@@ -1,0 +1,328 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{9A3A0800-38C3-4B16-A519-AF6A1F9778F7}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>FadeFox.UI</RootNamespace>
+    <AssemblyName>FadeFox.UI</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <OldToolsVersion>3.5</OldToolsVersion>
+    <UpgradeBackupLocation />
+    <TargetFrameworkProfile />
+    <SccProjectName>SAK</SccProjectName>
+    <SccLocalPath>SAK</SccLocalPath>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccProvider>SAK</SccProvider>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x86</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>..\output\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
+    <CodeAnalysisFailOnMissingRules>false</CodeAnalysisFailOnMissingRules>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
+    <CodeAnalysisFailOnMissingRules>false</CodeAnalysisFailOnMissingRules>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
+    <CodeAnalysisFailOnMissingRules>false</CodeAnalysisFailOnMissingRules>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.Dynamic, Version=1.2.2.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\DynamicLanguageRuntime.1.2.2\lib\net45\Microsoft.Dynamic.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Scripting, Version=1.2.2.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\DynamicLanguageRuntime.1.2.2\lib\net45\Microsoft.Scripting.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Scripting.Metadata, Version=1.2.2.0, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\DynamicLanguageRuntime.1.2.2\lib\net45\Microsoft.Scripting.Metadata.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Design" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Border.cs" />
+    <Compile Include="BorderColor.cs" />
+    <Compile Include="BorderPanelEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="BorderPanelEx.designer.cs">
+      <DependentUpon>BorderPanelEx.cs</DependentUpon>
+    </Compile>
+    <Compile Include="CodeSearchTextBox.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="CodeSearchTextBox.Designer.cs">
+      <DependentUpon>CodeSearchTextBox.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DataGridViewColumnTypeAddIn\DataGridViewNumericUpDownColumn.cs" />
+    <Compile Include="DataGridViewColumnTypeAddIn\DataGridViewNumericUpDownEditingControl.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="DataGridViewColumnTypeAddIn\DataGridViewDatePicker.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="DataGridViewColumnTypeAddIn\DataGridViewDatePicker.Designer.cs">
+      <DependentUpon>DataGridViewDatePicker.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DataGridViewColumnTypeAddIn\DataGridViewDatePickerCell.cs" />
+    <Compile Include="DataGridViewColumnTypeAddIn\DataGridViewDatePickerColumn.cs" />
+    <Compile Include="DataGridViewColumnTypeAddIn\DataGridViewDatePickerEditingControl.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="DataGridViewColumnTypeAddIn\DataGridViewNumericUpDownCell.cs" />
+    <Compile Include="DataGridViewEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ExtendedColor.cs" />
+    <Compile Include="GradientBackgroundRender.cs" />
+    <Compile Include="GradientPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="GradientPanel.Designer.cs">
+      <DependentUpon>GradientPanel.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GradientPanelEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="GradientPanelEx.designer.cs">
+      <DependentUpon>GradientPanelEx.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ICloseEnabled.cs" />
+    <Compile Include="ICodeSearchForm.cs" />
+    <Compile Include="IGradientRender.cs" />
+    <Compile Include="ImageButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ImageButton.Designer.cs">
+      <DependentUpon>ImageButton.cs</DependentUpon>
+    </Compile>
+    <Compile Include="InvokeC.cs" />
+    <Compile Include="MsgBox.cs" />
+    <Compile Include="MsgBoxForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MsgBoxForm.Designer.cs">
+      <DependentUpon>MsgBoxForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="NPControl\INPControlProperty.cs" />
+    <Compile Include="NPControl\NPButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="NPControl\NPControlHelper.cs" />
+    <Compile Include="NPControl\NPLabel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="NPControl\NPTimer.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="NPControl\NPTimer.Designer.cs">
+      <DependentUpon>NPTimer.cs</DependentUpon>
+    </Compile>
+    <Compile Include="NPControl\PropertyListBAS.cs" />
+    <Compile Include="NPControl\RoundControlCLS.cs" />
+    <Compile Include="OpenFileTextBox.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="OpenFileTextBox.designer.cs">
+      <DependentUpon>OpenFileTextBox.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="FlatButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="FlatButton.designer.cs">
+      <DependentUpon>FlatButton.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GlassButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="GlassButton.designer.cs">
+      <DependentUpon>GlassButton.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Round.cs" />
+    <Compile Include="SimpleBox.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SimpleBox.Designer.cs">
+      <DependentUpon>SimpleBox.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SimplePanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="SimplePanel.designer.cs">
+      <DependentUpon>SimplePanel.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SimpleLabel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="SimpleLabel.designer.cs">
+      <DependentUpon>SimpleLabel.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SimpleProgressBar.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="SimpleProgressBar.Designer.cs">
+      <DependentUpon>SimpleProgressBar.cs</DependentUpon>
+    </Compile>
+    <Compile Include="SimpleListBox.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="SimpleListBox.designer.cs">
+      <DependentUpon>SimpleListBox.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Text3DLabel.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Text3DLabel.designer.cs">
+      <DependentUpon>Text3DLabel.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UICore.cs" />
+    <Compile Include="Wizard\WizardPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Wizard\WizardPage.Designer.cs">
+      <DependentUpon>WizardPage.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Wizard\WizardSheet.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="MsgBoxForm.resx">
+      <DependentUpon>MsgBoxForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Wizard\WizardPage.resx">
+      <DependentUpon>WizardPage.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="CodeSearchTextBox.resx">
+      <DependentUpon>CodeSearchTextBox.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="OpenFileTextBox.resx">
+      <DependentUpon>OpenFileTextBox.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SimpleBox.resx">
+      <DependentUpon>SimpleBox.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SimpleListBox.resx">
+      <DependentUpon>SimpleListBox.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="ImageButtonDefaultDown.png" />
+    <EmbeddedResource Include="ImageButtonDefaultHover.png" />
+    <EmbeddedResource Include="ImageButtonDefaultNormal.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FadeFox\FadeFox.csproj">
+      <Project>{21043921-63f5-43ae-a45d-263cd4271543}</Project>
+      <Name>FadeFox</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="Resources\MsgBoxInformation.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\MsgBoxError.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\MsgBoxQuestion.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\MsgBoxWarning.png" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

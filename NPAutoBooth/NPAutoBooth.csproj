@@ -1,0 +1,612 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{9FF909D8-0CD3-4301-9305-20C01A5813ED}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>NPAutoBooth</RootNamespace>
+    <AssemblyName>NPAutoBooth</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\output\</OutputPath>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\output\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>CARS.ICO</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <OutputPath>bin\Debug\</OutputPath>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <OutputPath>bin\Release\</OutputPath>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
+    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
+    <CodeAnalysisFailOnMissingRules>false</CodeAnalysisFailOnMissingRules>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="HTS, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\공통DLL\참조로올릴거\HTS.dll</HintPath>
+    </Reference>
+    <Reference Include="Kiosk">
+      <HintPath>..\공통DLL\유도현장\Kiosk.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Office.Interop.Excel, Version=14.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+      <HintPath>..\..\..\공통DLL\참조로올릴거\Microsoft.Office.Interop.Excel.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Vbe.Interop, Version=14.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+      <HintPath>..\..\..\공통DLL\참조로올릴거\Microsoft.Vbe.Interop.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\@Library\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Common\ABDeadline.cs" />
+    <Compile Include="Common\ExtCommon.cs" />
+    <Compile Include="Common\PagingData.cs" />
+    <Compile Include="Common\GabigeCollectDelete.cs" />
+    <Compile Include="Common\PayCardandCash.cs" />
+    <Compile Include="Common\PingSend.cs" />
+    <Compile Include="Common\SerialPortID.cs" />
+    <Compile Include="Common\ServerID.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Booth1024\FormCreditInfomation.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\Booth1024\FormCreditInfomation.designer.cs">
+      <DependentUpon>FormCreditInfomation.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Booth1024\FormCreditPaymentMenu.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\Booth1024\FormCreditPaymentMenu.designer.cs">
+      <DependentUpon>FormCreditPaymentMenu.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\BoothUC\BaseBoothUC\InformationUC.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\BaseBoothUC\MainUC.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\BaseBoothUC\PaymentUC.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\BaseBoothUC\ReciptUC.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\BaseBoothUC\SearchCarUC.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\BaseBoothUC\SelectCarUC.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth4vs3\Ctl4by3Information.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth4vs3\Ctl4by3Information.Designer.cs">
+      <DependentUpon>Ctl4by3Information.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth4vs3\Ctl4by3Main.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth4vs3\Ctl4by3Main.Designer.cs">
+      <DependentUpon>Ctl4by3Main.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth4vs3\Ctl4by3Payment.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth4vs3\Ctl4by3Payment.Designer.cs">
+      <DependentUpon>Ctl4by3Payment.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth4vs3\Ctl4by3Recipt.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth4vs3\Ctl4by3Recipt.Designer.cs">
+      <DependentUpon>Ctl4by3Recipt.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth4vs3\Ctl4by3SearchCar.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth4vs3\Ctl4by3SearchCar.Designer.cs">
+      <DependentUpon>Ctl4by3SearchCar.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth4vs3\Ctl4by3SelectCar.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth4vs3\Ctl4by3SelectCar.Designer.cs">
+      <DependentUpon>Ctl4by3SelectCar.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth9vs16\Ctl9by16Information.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth9vs16\Ctl9by16Information.Designer.cs">
+      <DependentUpon>Ctl9by16Information.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth9vs16\Ctl9by16Main.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth9vs16\Ctl9by16Main.Designer.cs">
+      <DependentUpon>Ctl9by16Main.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth9vs16\Ctl9by16Payment.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth9vs16\Ctl9by16Payment.Designer.cs">
+      <DependentUpon>Ctl9by16Payment.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth9vs16\Ctl9by16Recipt.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth9vs16\Ctl9by16Recipt.Designer.cs">
+      <DependentUpon>Ctl9by16Recipt.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth9vs16\Ctl9by16SearchCar.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth9vs16\Ctl9by16SearchCar.Designer.cs">
+      <DependentUpon>Ctl9by16SearchCar.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth9vs16\Ctl9by16SelectCar.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUC\Booth9vs16\Ctl9by16SelectCar.Designer.cs">
+      <DependentUpon>Ctl9by16SelectCar.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\BoothUC\BoothCommonLib.cs" />
+    <Compile Include="UI\BoothUC\FormFactory.cs" />
+    <Compile Include="UI\ISubForm.cs" />
+    <Compile Include="UI\UICOMMON\FormAdminCashSetting.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormAdminCashSetting.designer.cs">
+      <DependentUpon>FormAdminCashSetting.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormAdminLogin.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormAdminLogin.designer.cs">
+      <DependentUpon>FormAdminLogin.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormAdminMenu.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormAdminMenu.designer.cs">
+      <DependentUpon>FormAdminMenu.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormDeviceTest.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormDeviceTest.designer.cs">
+      <DependentUpon>FormDeviceTest.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UI\Booth1024\FormCreditMain.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\Booth1024\FormCreditMain.designer.cs">
+      <DependentUpon>FormCreditMain.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Booth1024\FormCreditRecipt.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\Booth1024\FormCreditRecipt.designer.cs">
+      <DependentUpon>FormCreditRecipt.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Booth1024\FormCreditSearchCarNumber.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\Booth1024\FormCreditSearchCarNumber.designer.cs">
+      <DependentUpon>FormCreditSearchCarNumber.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\Booth1024\FormCreditSelectCarnumber.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\Booth1024\FormCreditSelectCarnumber.designer.cs">
+      <DependentUpon>FormCreditSelectCarnumber.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormLauncher.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormLauncher.designer.cs">
+      <DependentUpon>FormLauncher.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormMessageBox.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormMessageBox.designer.cs">
+      <DependentUpon>FormMessageBox.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormAdminPassword.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormAdminPassword.Designer.cs">
+      <DependentUpon>FormAdminPassword.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormMessagePrePay.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormMessagePrePay.designer.cs">
+      <DependentUpon>FormMessagePrePay.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormMessageShortBox.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormMessageShortBox.designer.cs">
+      <DependentUpon>FormMessageShortBox.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormMessageShortBoxYESNO.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\UICOMMON\FormMessageShortBoxYESNO.designer.cs">
+      <DependentUpon>FormMessageShortBoxYESNO.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\UICOMMON\NumberPad.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\UICOMMON\NumberPad.designer.cs">
+      <DependentUpon>NumberPad.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\UserContorl\UserControl_SearchCar.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI\UserContorl\UserControl_SearchCar.designer.cs">
+      <DependentUpon>UserControl_SearchCar.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="UI\Booth1024\FormCreditInfomation.resx">
+      <DependentUpon>FormCreditInfomation.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\Booth1024\FormCreditPaymentMenu.resx">
+      <DependentUpon>FormCreditPaymentMenu.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\BoothUC\BaseBoothUC\MainUC.resx">
+      <DependentUpon>MainUC.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\BoothUC\Booth4vs3\Ctl4by3Information.resx">
+      <DependentUpon>Ctl4by3Information.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\BoothUC\Booth4vs3\Ctl4by3Main.resx">
+      <DependentUpon>Ctl4by3Main.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\BoothUC\Booth4vs3\Ctl4by3Payment.resx">
+      <DependentUpon>Ctl4by3Payment.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\BoothUC\Booth4vs3\Ctl4by3Recipt.resx">
+      <DependentUpon>Ctl4by3Recipt.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\BoothUC\Booth4vs3\Ctl4by3SearchCar.resx">
+      <DependentUpon>Ctl4by3SearchCar.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\BoothUC\Booth4vs3\Ctl4by3SelectCar.resx">
+      <DependentUpon>Ctl4by3SelectCar.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\BoothUC\Booth9vs16\Ctl9by16Information.resx">
+      <DependentUpon>Ctl9by16Information.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\BoothUC\Booth9vs16\Ctl9by16Main.resx">
+      <DependentUpon>Ctl9by16Main.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\BoothUC\Booth9vs16\Ctl9by16Payment.resx">
+      <DependentUpon>Ctl9by16Payment.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\BoothUC\Booth9vs16\Ctl9by16Recipt.resx">
+      <DependentUpon>Ctl9by16Recipt.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\BoothUC\Booth9vs16\Ctl9by16SearchCar.resx">
+      <DependentUpon>Ctl9by16SearchCar.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\BoothUC\Booth9vs16\Ctl9by16SelectCar.resx">
+      <DependentUpon>Ctl9by16SelectCar.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\UICOMMON\FormAdminCashSetting.resx">
+      <DependentUpon>FormAdminCashSetting.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\UICOMMON\FormAdminLogin.resx">
+      <DependentUpon>FormAdminLogin.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\UICOMMON\FormAdminMenu.resx">
+      <DependentUpon>FormAdminMenu.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\UICOMMON\FormDeviceTest.resx">
+      <DependentUpon>FormDeviceTest.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <SubType>Designer</SubType>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\Booth1024\FormCreditMain.resx">
+      <DependentUpon>FormCreditMain.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\Booth1024\FormCreditRecipt.resx">
+      <DependentUpon>FormCreditRecipt.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\Booth1024\FormCreditSearchCarNumber.resx">
+      <DependentUpon>FormCreditSearchCarNumber.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\Booth1024\FormCreditSelectCarnumber.resx">
+      <DependentUpon>FormCreditSelectCarnumber.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\UICOMMON\FormLauncher.resx">
+      <DependentUpon>FormLauncher.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\UICOMMON\FormMessageBox.resx">
+      <DependentUpon>FormMessageBox.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\UICOMMON\FormAdminPassword.resx">
+      <DependentUpon>FormAdminPassword.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\UICOMMON\FormMessagePrePay.resx">
+      <DependentUpon>FormMessagePrePay.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\UICOMMON\FormMessageShortBox.resx">
+      <DependentUpon>FormMessageShortBox.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\UICOMMON\FormMessageShortBoxYESNO.resx">
+      <DependentUpon>FormMessageShortBoxYESNO.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\UICOMMON\NumberPad.resx">
+      <DependentUpon>NumberPad.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI\UserContorl\UserControl_SearchCar.resx">
+      <DependentUpon>UserControl_SearchCar.cs</DependentUpon>
+    </EmbeddedResource>
+    <None Include="app.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Windows.Installer.3.1">
+      <Visible>False</Visible>
+      <ProductName>Windows Installer 3.1</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="CARS.ICO" />
+    <None Include="Resources\Type2_Image_CarSearchTextBar.png" />
+    <None Include="Resources\Type2_Button_Premover_on.png" />
+    <None Include="Resources\Type2_Button_Premover_off.png" />
+    <None Include="Resources\Type2_Button_PAY_on.png" />
+    <None Include="Resources\Type2_Button_PAY_off.png" />
+    <None Include="Resources\Type2_Button_Home_on.png" />
+    <None Include="Resources\Type2_Button_Home_off.png" />
+    <None Include="Resources\Type2_Button_Home_off1.png" />
+    <None Include="Resources\RightArrowOn.png" />
+    <None Include="Resources\RightArrowoff.png" />
+    <None Include="Resources\LeftArrowOn.png" />
+    <None Include="Resources\LeftArrowOff.png" />
+    <None Include="Resources\Type2MainPage1080.png" />
+    <None Include="Resources\Type2BackGround1080.png" />
+    <None Include="Resources\NEW_배경_차량찾기배경.png" />
+    <None Include="Resources\NEW_배경_1080차량선택.png" />
+    <None Include="Resources\NEW_배경_1080요금결제.png" />
+    <None Include="Resources\btnOkBackon.png" />
+    <None Include="Resources\btnOkBackOff.png" />
+    <None Include="Resources\btnNumberon.png" />
+    <None Include="Resources\btnNumberOff.png" />
+    <None Include="Resources\OLD_이미지_중복선택_차량바.png" />
+    <None Include="Resources\OLD_버튼_질문멘트_취소-파랑.png" />
+    <None Include="Resources\OLD_버튼_질문멘트_예-청색.png" />
+    <None Include="Resources\NEW_팝업_요금결제진행여부.png" />
+    <None Include="Resources\Type2_Dot.png" />
+    <None Include="Resources\Type2_Button462_108_Y_on.png" />
+    <None Include="Resources\Type2_Button462_108_Y_off.png" />
+    <None Include="Resources\Type2_Button462_108_N_on.png" />
+    <None Include="Resources\Type2_Button462_108_N_off.png" />
+    <None Include="Resources\Type2Wait.png" />
+    <None Include="Resources\TypeWait.png" />
+    <None Include="Resources\Type2MainPage.png" />
+    <None Include="Resources\Type2BackGround.png" />
+    <None Include="Resources\Type2ButtonOn.png" />
+    <None Include="Resources\Type2ButtonOff.png" />
+    <None Include="Resources\Type2Button.png" />
+    <None Include="NEW_이미지_유효하지않은할인권.png" />
+    <None Include="Resources\NEW_팝업_요금결제무료차량진행여부.png" />
+    <None Include="Resources\NEW_팝업_신용카드결제중.png" />
+    <None Include="Resources\NEW_팝업_기다려주십시요.gif" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FadeFox.UI\FadeFox.UI.csproj">
+      <Project>{9A3A0800-38C3-4B16-A519-AF6A1F9778F7}</Project>
+      <Name>FadeFox.UI</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\FadeFox\FadeFox.csproj">
+      <Project>{21043921-63F5-43AE-A45D-263CD4271543}</Project>
+      <Name>FadeFox</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\HttpServer\HttpServer.csproj">
+      <Project>{363d4a84-957e-4cda-acb7-eede603fdd81}</Project>
+      <Name>HttpServer</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\NPCommon\NPCommon.csproj">
+      <Project>{AED252A1-93AE-48BB-A6C9-E708A62EEBFE}</Project>
+      <Name>NPCommon</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <COMReference Include="AxDreampos_Ocx">
+      <Guid>{37ED6B3D-A067-4966-9132-3BA3609D22EE}</Guid>
+      <VersionMajor>37</VersionMajor>
+      <VersionMinor>1</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>aximp</WrapperTool>
+      <Isolated>False</Isolated>
+    </COMReference>
+    <COMReference Include="AxKisPosAgentLib">
+      <Guid>{A18CEB87-C381-47F0-91E7-B93ED817E1C4}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>aximp</WrapperTool>
+      <Isolated>False</Isolated>
+    </COMReference>
+    <COMReference Include="AxSmtSndRcvVCATLib">
+      <Guid>{0570C2F5-35A3-41ED-B231-276F8DE34592}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>aximp</WrapperTool>
+      <Isolated>False</Isolated>
+    </COMReference>
+    <COMReference Include="AxWMPLib">
+      <Guid>{6BF52A50-394A-11D3-B153-00C04F79FAA6}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>aximp</WrapperTool>
+      <Isolated>False</Isolated>
+    </COMReference>
+    <COMReference Include="Dreampos_Ocx">
+      <Guid>{37ED6B3D-A067-4966-9132-3BA3609D22EE}</Guid>
+      <VersionMajor>37</VersionMajor>
+      <VersionMinor>1</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+    <COMReference Include="KisPosAgentLib">
+      <Guid>{A18CEB87-C381-47F0-91E7-B93ED817E1C4}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+    <COMReference Include="SmtSndRcvVCATLib">
+      <Guid>{0570C2F5-35A3-41ED-B231-276F8DE34592}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+    <COMReference Include="stdole">
+      <Guid>{00020430-0000-0000-C000-000000000046}</Guid>
+      <VersionMajor>2</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>primary</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+    <COMReference Include="WMPLib">
+      <Guid>{6BF52A50-394A-11D3-B153-00C04F79FAA6}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
