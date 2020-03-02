@@ -730,11 +730,11 @@ namespace NPAutoBooth.UI
         {
             try
             {
-
-
                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormMain|FormMain_FormClosed", "프로그램 종료작업 시작");
 
-                GcClolector_Thread.Dispose();
+                GcClolector_Thread?.Dispose();
+                CenterAlive_Thread?.Dispose();
+
                 //Tmap연동
                 if (PaymentIntervalCheck_Thread != null && PaymentIntervalCheck_Thread.Enabled)
                 {
