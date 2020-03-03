@@ -37,12 +37,14 @@ namespace NPAutoBooth.UI
         private string mDeviceNone = string.Empty;
         private string mDeviceOk = string.Empty;
         private string mDeviceError = string.Empty;
+
+        private bool mTotalSuccess = true;
+        private int mSeq = 1;
+
         public FormLauncher()
         {
             InitializeComponent();
             loadPC_Config();
-
-
         }
 
         private void FormLauncher_Load(object sender, EventArgs e)
@@ -60,9 +62,9 @@ namespace NPAutoBooth.UI
         private void FormLauncherLoad()
         {
             SetLanguage(NPSYS.CurrentLanguageType);
+            //지폐리더기 사용여부
             if (NPSYS.Device.UsingSettingBillReader)
             {
-
                 lblBillReader.Text = "";
                 lblBillReader.Visible = true;
                 lblBillReaderSubject.Visible = true;
@@ -72,7 +74,7 @@ namespace NPAutoBooth.UI
                 lblBillReader.Visible = false;
                 lblBillReaderSubject.Visible = false;
             }
-
+            //코인리더기 사용여부
             if (NPSYS.Device.UsingSettingCoinReader)
             {
 
@@ -85,49 +87,46 @@ namespace NPAutoBooth.UI
                 lblCoinReader.Visible = false;
                 lblCoinReaderSubject.Visible = false;
             }
+            //50원동전방출기 사용여부
+            if (NPSYS.Device.UsingSettingCoinCharger50)
+            {
+                lblCoinCharger50.Text = "";
+                lblCoinCharger50.Visible = true;
+                lblCoinCharger50Subject.Visible = true;
+            }
+            else
+            {
+                lblCoinCharger50.Visible = false;
+                lblCoinCharger50Subject.Visible = false;
+            }
+            //100원동전방출기 사용여부
+            if (NPSYS.Device.UsingSettingCoinCharger100)
+            {
+                lblCoinCharger100.Text = "";
+                lblCoinCharger100.Visible = true;
+                lblCoinCharger100Subject.Visible = true;
+            }
+            else
+            {
+                lblCoinCharger100.Visible = false;
+                lblCoinCharger100Subject.Visible = false;
 
+            }
+            //500원동전방출기 사용여부
+            if (NPSYS.Device.UsingSettingCoinCharger500)
+            {
+                lblCoinCharger500.Text = "";
+                lblCoinCharger500.Visible = true;
+                lblCoinCharger500Subject.Visible = true;
+            }
+            else
+            {
+                lblCoinCharger500.Visible = false;
+                lblCoinCharger500Subject.Visible = false;
+            }
+            //3.1.74 동전방출기 50원100원500원설정기능 주석완료
 
-                
-                if (NPSYS.Device.UsingSettingCoinCharger50)
-                {
-                    lblCoinCharger50.Text = "";
-                    lblCoinCharger50.Visible = true;
-                    lblCoinCharger50Subject.Visible = true;
-                }
-                else
-                {
-                    lblCoinCharger50.Visible = false;
-                    lblCoinCharger50Subject.Visible = false;
-                }
-
-                if (NPSYS.Device.UsingSettingCoinCharger100)
-                {
-                    lblCoinCharger100.Text = "";
-                    lblCoinCharger100.Visible = true;
-                    lblCoinCharger100Subject.Visible = true;
-                }
-                else
-                {
-                    lblCoinCharger100.Visible = false;
-                    lblCoinCharger100Subject.Visible = false;
-
-                }
-
-                if (NPSYS.Device.UsingSettingCoinCharger500)
-                {
-                    lblCoinCharger500.Text = "";
-                    lblCoinCharger500.Visible = true;
-                    lblCoinCharger500Subject.Visible = true;
-                }
-                else
-                {
-                    lblCoinCharger500.Visible = false;
-                    lblCoinCharger500Subject.Visible = false;
-                }
-                //3.1.74 동전방출기 50원100원500원설정기능 주석완료
-
-
-
+            //지폐방출기 사용여부
             if (NPSYS.Device.UsingSettingBill)
             {
                 lblBill.Text = "";
@@ -139,6 +138,7 @@ namespace NPAutoBooth.UI
                 lblBillSubject.Visible = false;
                 lblBill.Visible = false;
             }
+            //영수증프린터 사용여부
             if (NPSYS.Device.UsingSettingPrint != ConfigID.PrinterType.NONE)
             {
                 lblPrint.Text = "";
@@ -150,7 +150,7 @@ namespace NPAutoBooth.UI
                 lblPrint.Visible = false;
                 lblPrintSubject.Visible = false;
             }
-
+            //좌측 카드리더기 사용여부
             if (NPSYS.Device.UsingSettingCardReadType != ConfigID.CardReaderType.None)
             {
                 lblCreditLeft.Text = "";
@@ -162,7 +162,7 @@ namespace NPAutoBooth.UI
                 lblCreditLeft.Visible = false;
                 lblCreditLeftSubject.Visible = false;
             }
-
+            //마그네틱할인권리더기 사용여부
             if (NPSYS.Device.UsingSettingMagneticReadType != ConfigID.CardReaderType.None)
             {
                 lblCreditRight.Text = "";
@@ -174,7 +174,7 @@ namespace NPAutoBooth.UI
                 lblCreditRight.Visible = false;
                 lblCreditRightSubject.Visible = false;
             }
-
+            //TMoney 사용여부
             if (NPSYS.Device.UsingSettingTmoney)
             {
                 lblTmoney.Text = "";
@@ -186,8 +186,8 @@ namespace NPAutoBooth.UI
                 lblTmoney.Visible = false;
                 lblTmoneySubject.Visible = false;
             }
-
-            if (NPSYS.Device.UsingSettingControlBoard !=  ConfigID.ControlBoardType.NONE)
+            //컨트롤보드 사용여부
+            if (NPSYS.Device.UsingSettingControlBoard != ConfigID.ControlBoardType.NONE)
             {
                 lblDIdo.Text = "";
                 lblDIdo.Visible = true;
@@ -197,7 +197,6 @@ namespace NPAutoBooth.UI
             {
                 lblDIdo.Visible = false;
                 lblDIdoSubject.Visible = false;
-
             }
             //바코드모터드리블 사용
             if (NPSYS.Device.UsingSettingDiscountBarcodeSerial != ConfigID.BarcodeReaderType.None)
@@ -210,13 +209,9 @@ namespace NPAutoBooth.UI
             {
                 lblBarcode.Visible = false;
                 lblBarcodeSubject.Visible = false;
-
             }
             //바코드모터드리블 사용완료
 
-
-
-            
             // 신분증인식기 적용
             if (NPSYS.Device.UsingSettingSinbunReader)
             {
@@ -228,14 +223,8 @@ namespace NPAutoBooth.UI
             {
                 lblSinbunReader.Visible = false;
                 lblSinbunReaderSubject.Visible = false;
-
             }
-
         }
-
-        private bool mTotalSuccess = true;
-        int mSeq = 1;
-
 
         public void Initialize(int pSeq)
         {
@@ -503,7 +492,6 @@ namespace NPAutoBooth.UI
                                     lblLog.Text = mDeviceError;
                                     TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormLauncher|Initialize", "내부테이블생성에러:");
                                 }
-
                             }
                             catch (Exception ex)
                             {
@@ -521,8 +509,6 @@ namespace NPAutoBooth.UI
 
                             lblLog.ForeColor = (r ? Color.Blue : Color.Red);
                             if (r == false) mTotalSuccess = false;
-
-
                         }
                         break;
 
@@ -544,11 +530,9 @@ namespace NPAutoBooth.UI
                             }
                             else
                             {
-
-
                                 NPSYS.Device.BillReader.Reset();
-                                BillReader.BillRederStatusType billStatus  =NPSYS.Device.BillReader.CurrentStatus();
-                                if (billStatus== BillReader.BillRederStatusType.OK)
+                                BillReader.BillRederStatusType billStatus = NPSYS.Device.BillReader.CurrentStatus();
+                                if (billStatus == BillReader.BillRederStatusType.OK)
                                 {
                                     billStatus = NPSYS.Device.BillReader.BillDIsableAccept();
                                     if (billStatus == BillReader.BillRederStatusType.OK)
@@ -560,13 +544,11 @@ namespace NPAutoBooth.UI
                                     {
                                         lblBillReader.Text = mDeviceError;
                                     }
-
                                 }
                                 else
                                 {
                                     resultReaderStatus = false;
                                     lblBillReader.Text = mDeviceError;
-
                                 }
                             }
 
@@ -582,7 +564,6 @@ namespace NPAutoBooth.UI
                     case 3:
                         if (NPSYS.Device.UsingSettingCoinReader)
                         {
-                            
                             // 코인인식기
                             NPSYS.Device.CoinReader = new CoinReader();
                             NPSYS.Device.CoinReader.BaudRateString = NPSYS.SerialPorts[SerialPortID.CoinReader].BaudRateString;
@@ -591,15 +572,15 @@ namespace NPAutoBooth.UI
                             DataTable dtCoinreaderErrorData = LPRDbSelect.GetDeivceErrorInfoFromDeviceCode(CommProtocol.device.CRE);
                             NPSYS.Device.CoinReader.CurrentCoinReaderStatusManageMen.SendAllDeviveOk();
                             NPSYS.Device.CoinReader.CurrentCoinReaderStatusManageMen.SetDbErrorInfo(dtCoinreaderErrorData);
-                             CoinReader.CoinReaderStatusType resultCoinreaderStatus = NPSYS.Device.CoinReader.Connect();
-                            if (resultCoinreaderStatus !=  CoinReader.CoinReaderStatusType.OK)
+                            CoinReader.CoinReaderStatusType resultCoinreaderStatus = NPSYS.Device.CoinReader.Connect();
+                            if (resultCoinreaderStatus != CoinReader.CoinReaderStatusType.OK)
                             {
 
                                 lblCoinReader.Text = mDeviceError;
                             }
                             else
                             {
-                                CoinReader.CoinReaderStatusType coinReaderResult= NPSYS.Device.CoinReader.DisableCoinRead();
+                                CoinReader.CoinReaderStatusType coinReaderResult = NPSYS.Device.CoinReader.DisableCoinRead();
                                 if (coinReaderResult == CoinReader.CoinReaderStatusType.OK)
                                 {
                                     lblCoinReader.Text = mDeviceOk;
@@ -613,8 +594,8 @@ namespace NPAutoBooth.UI
                                 }
                             }
 
-                            lblCoinReader.ForeColor = (resultCoinreaderStatus== CoinReader.CoinReaderStatusType.OK ? Color.Blue : Color.Red);
-                            if (resultCoinreaderStatus !=  CoinReader.CoinReaderStatusType.OK) mTotalSuccess = false;
+                            lblCoinReader.ForeColor = (resultCoinreaderStatus == CoinReader.CoinReaderStatusType.OK ? Color.Blue : Color.Red);
+                            if (resultCoinreaderStatus != CoinReader.CoinReaderStatusType.OK) mTotalSuccess = false;
                         }
                         else
                         {
@@ -627,165 +608,156 @@ namespace NPAutoBooth.UI
 
                     case 4:
                         //3.1.74 동전방출기 50원100원500원설정기능
-                        
 
-                            
-
-                            if (NPSYS.Device.UsingSettingCoinCharger50)
+                        if (NPSYS.Device.UsingSettingCoinCharger50)
+                        {
+                            NPSYS.Device.CoinDispensor50 = new CoinDispensor();
+                            NPSYS.Device.CoinDispensor50.CurrentCoinType = CoinDispensor.CoinType.Money50Type;
+                            NPSYS.Device.CoinDispensor50.BaudRateString = NPSYS.SerialPorts[SerialPortID.CoinCharger50].BaudRateString;
+                            NPSYS.Device.CoinDispensor50.PortNameString = NPSYS.SerialPorts[SerialPortID.CoinCharger50].PortNameString;
+                            NPSYS.Device.CoinDispensor50.ParityString = NPSYS.SerialPorts[SerialPortID.CoinCharger50].ParityString;
+                            DataTable dtCoinDispensor1 = LPRDbSelect.GetDeivceErrorInfoFromDeviceCode(CommProtocol.device.CC1);
+                            NPSYS.Device.CoinDispensor50.CurrentCoinDispensorStatusManagement.SendAllDeviveOk();
+                            NPSYS.Device.CoinDispensor50.CurrentCoinDispensorStatusManagement.SetDbErrorInfo(dtCoinDispensor1);
+                            CoinDispensor.CoinDispensorStatusType resultCoinDispensor50Connect = NPSYS.Device.CoinDispensor50.Connect();
+                            if (resultCoinDispensor50Connect != CoinDispensor.CoinDispensorStatusType.OK)
                             {
-                                NPSYS.Device.CoinDispensor50 = new CoinDispensor();
-                                NPSYS.Device.CoinDispensor50.CurrentCoinType = CoinDispensor.CoinType.Money50Type;
-                                NPSYS.Device.CoinDispensor50.BaudRateString = NPSYS.SerialPorts[SerialPortID.CoinCharger50].BaudRateString;
-                                NPSYS.Device.CoinDispensor50.PortNameString = NPSYS.SerialPorts[SerialPortID.CoinCharger50].PortNameString;
-                                NPSYS.Device.CoinDispensor50.ParityString = NPSYS.SerialPorts[SerialPortID.CoinCharger50].ParityString;
-                                DataTable dtCoinDispensor1 = LPRDbSelect.GetDeivceErrorInfoFromDeviceCode(CommProtocol.device.CC1);
-                                NPSYS.Device.CoinDispensor50.CurrentCoinDispensorStatusManagement.SendAllDeviveOk();
-                                NPSYS.Device.CoinDispensor50.CurrentCoinDispensorStatusManagement.SetDbErrorInfo(dtCoinDispensor1);
-                                 CoinDispensor.CoinDispensorStatusType resultCoinDispensor50Connect = NPSYS.Device.CoinDispensor50.Connect();
-                                if (resultCoinDispensor50Connect != CoinDispensor.CoinDispensorStatusType.OK)
+                                TextCore.DeviceError(TextCore.DEVICE.COIN50CHARGER, "FormLauncher|Initialize", "동전방출기 50 PORT OPEN 초기화실패");
+
+                                lblCoinCharger50.Text = mDeviceError;
+
+                            }
+                            else
+                            {
+                                TextCore.ACTION(TextCore.ACTIONS.COIN50CHARGER, "FormLauncher|Initialize", "접속성공");
+                            }
+                            if (NPSYS.Device.gIsUseCoinDischarger50Device)
+                            {
+                                CoinDispensor.CoinDispensorStatusType CoinDispensortResult = NPSYS.Device.CoinDispensor50.reset();
+                                System.Threading.Thread.Sleep(5000);
+                                NPSYS.Device.CoinDispensor50.BaReadinessSignal();
+                                if (CoinDispensortResult != CoinDispensor.CoinDispensorStatusType.OK)
                                 {
-                                    TextCore.DeviceError(TextCore.DEVICE.COIN50CHARGER, "FormLauncher|Initialize", "동전방출기 50 PORT OPEN 초기화실패");
-      
+                                    TextCore.DeviceError(TextCore.DEVICE.COIN50CHARGER, "FormLauncher|Initialize", CoinDispensortResult.ToString());
+                                    NPSYS.Device.CoinDischarge50DeviceErrorMessage = "동전방출기 " + CoinDispensortResult.ToString();
                                     lblCoinCharger50.Text = mDeviceError;
- 
-                                }
-                                else
-                                {
-                                    TextCore.ACTION(TextCore.ACTIONS.COIN50CHARGER, "FormLauncher|Initialize", "접속성공");
-                                }
-                                if (NPSYS.Device.gIsUseCoinDischarger50Device)
-                                {
-                                    CoinDispensor.CoinDispensorStatusType CoinDispensortResult = NPSYS.Device.CoinDispensor50.reset();
-                                    System.Threading.Thread.Sleep(5000);
-                                    NPSYS.Device.CoinDispensor50.BaReadinessSignal();
-                                    if (CoinDispensortResult != CoinDispensor.CoinDispensorStatusType.OK)
-                                    {
-                                        TextCore.DeviceError(TextCore.DEVICE.COIN50CHARGER, "FormLauncher|Initialize", CoinDispensortResult.ToString());
-                                        NPSYS.Device.CoinDischarge50DeviceErrorMessage = "동전방출기 " + CoinDispensortResult.ToString();
-                                        lblCoinCharger50.Text = mDeviceError;
                                     NPSYS.Device.gIsUseCoinDischarger50Device = false;
 
                                 }
-                                    else
-                                    {
-                                        lblCoinCharger50.Text = mDeviceOk;
+                                else
+                                {
+                                    lblCoinCharger50.Text = mDeviceOk;
                                     NPSYS.Device.gIsUseCoinDischarger50Device = true;
 
                                 }
                             }
-                            }
-                            else
-                            {
-                                NPSYS.Device.gIsUseCoinDischarger50Device = false;
-                                NPSYS.Device.CoinDischarge50DeviceErrorMessage = "사용안함으로 설정";
+                        }
+                        else
+                        {
+                            NPSYS.Device.gIsUseCoinDischarger50Device = false;
+                            NPSYS.Device.CoinDischarge50DeviceErrorMessage = "사용안함으로 설정";
 
-                            }
-                            if (NPSYS.Device.UsingSettingCoinCharger100)
-                            {
-                                NPSYS.Device.CoinDispensor100 = new CoinDispensor();
-                                NPSYS.Device.CoinDispensor100.CurrentCoinType = CoinDispensor.CoinType.Money100Type;
-                                NPSYS.Device.CoinDispensor100.BaudRateString = NPSYS.SerialPorts[SerialPortID.CoinCharger100].BaudRateString;
-                                NPSYS.Device.CoinDispensor100.PortNameString = NPSYS.SerialPorts[SerialPortID.CoinCharger100].PortNameString;
-                                NPSYS.Device.CoinDispensor100.ParityString = NPSYS.SerialPorts[SerialPortID.CoinCharger100].ParityString;
+                        }
+                        if (NPSYS.Device.UsingSettingCoinCharger100)
+                        {
+                            NPSYS.Device.CoinDispensor100 = new CoinDispensor();
+                            NPSYS.Device.CoinDispensor100.CurrentCoinType = CoinDispensor.CoinType.Money100Type;
+                            NPSYS.Device.CoinDispensor100.BaudRateString = NPSYS.SerialPorts[SerialPortID.CoinCharger100].BaudRateString;
+                            NPSYS.Device.CoinDispensor100.PortNameString = NPSYS.SerialPorts[SerialPortID.CoinCharger100].PortNameString;
+                            NPSYS.Device.CoinDispensor100.ParityString = NPSYS.SerialPorts[SerialPortID.CoinCharger100].ParityString;
                             DataTable dtCoinDispensor2 = LPRDbSelect.GetDeivceErrorInfoFromDeviceCode(CommProtocol.device.CC2);
                             NPSYS.Device.CoinDispensor100.CurrentCoinDispensorStatusManagement.SendAllDeviveOk();
                             NPSYS.Device.CoinDispensor100.CurrentCoinDispensorStatusManagement.SetDbErrorInfo(dtCoinDispensor2);
                             CoinDispensor.CoinDispensorStatusType resultCoinDispensor100Connect = NPSYS.Device.CoinDispensor100.Connect();
-                                if (resultCoinDispensor100Connect != CoinDispensor.CoinDispensorStatusType.OK)
-                                {
-                                    TextCore.DeviceError(TextCore.DEVICE.COIN100CHARGER, "FormLauncher|Initialize", "동전방출기 초기화실패");
-                                    NPSYS.Device.CoinDischarge100DeviceErrorMessage = "동전방출기 초기화실패";
+                            if (resultCoinDispensor100Connect != CoinDispensor.CoinDispensorStatusType.OK)
+                            {
+                                TextCore.DeviceError(TextCore.DEVICE.COIN100CHARGER, "FormLauncher|Initialize", "동전방출기 초기화실패");
+                                NPSYS.Device.CoinDischarge100DeviceErrorMessage = "동전방출기 초기화실패";
 
-                                    NPSYS.Device.gIsUseCoinDischarger100Device = false;
-                                    lblCoinCharger100.Text = mDeviceError;
-                  
-                                }
-                                else
-                                {
-                                    NPSYS.Device.gIsUseCoinDischarger100Device = true;
-                                    TextCore.ACTION(TextCore.ACTIONS.COIN100CHARGER, "FormLauncher|Initialize", "접속성공");
-                                }
-                                if (NPSYS.Device.gIsUseCoinDischarger100Device)
-                                {
-                                    CoinDispensor.CoinDispensorStatusType  CoinDispensortResult =NPSYS.Device.CoinDispensor100.reset();
-                                    System.Threading.Thread.Sleep(5000);
-                                    NPSYS.Device.CoinDispensor100.BaReadinessSignal();
-                                    if (CoinDispensortResult != CoinDispensor.CoinDispensorStatusType.OK)
-                                    {
-                                        TextCore.DeviceError(TextCore.DEVICE.COIN100CHARGER, "FormLauncher|Initialize", CoinDispensortResult.ToString());
-                                        NPSYS.Device.CoinDischarge100DeviceErrorMessage = "동전방출기 " + CoinDispensortResult.ToString();
-                                        lblCoinCharger100.Text = mDeviceError;
-                                        NPSYS.Device.gIsUseCoinDischarger100Device = false;
+                                NPSYS.Device.gIsUseCoinDischarger100Device = false;
+                                lblCoinCharger100.Text = mDeviceError;
 
-                                    }
-                                    else
-                                    {
-                                        lblCoinCharger100.Text = mDeviceOk;
- 
-                                    }
-                                }
                             }
                             else
                             {
-                                NPSYS.Device.gIsUseCoinDischarger100Device = false;
-                                NPSYS.Device.CoinDischarge100DeviceErrorMessage = "사용안함으로 설정";
- 
+                                NPSYS.Device.gIsUseCoinDischarger100Device = true;
+                                TextCore.ACTION(TextCore.ACTIONS.COIN100CHARGER, "FormLauncher|Initialize", "접속성공");
                             }
-                            if (NPSYS.Device.UsingSettingCoinCharger500)
+                            if (NPSYS.Device.gIsUseCoinDischarger100Device)
                             {
-                                NPSYS.Device.CoinDispensor500 = new CoinDispensor();
-                                NPSYS.Device.CoinDispensor500.CurrentCoinType = CoinDispensor.CoinType.Money500Type;
-                                NPSYS.Device.CoinDispensor500.BaudRateString = NPSYS.SerialPorts[SerialPortID.CoinCharger500].BaudRateString;
-                                NPSYS.Device.CoinDispensor500.PortNameString = NPSYS.SerialPorts[SerialPortID.CoinCharger500].PortNameString;
-                                NPSYS.Device.CoinDispensor500.ParityString = NPSYS.SerialPorts[SerialPortID.CoinCharger500].ParityString;
-                                DataTable dtCoinDispensor3 = LPRDbSelect.GetDeivceErrorInfoFromDeviceCode(CommProtocol.device.CC3);
+                                CoinDispensor.CoinDispensorStatusType CoinDispensortResult = NPSYS.Device.CoinDispensor100.reset();
+                                System.Threading.Thread.Sleep(5000);
+                                NPSYS.Device.CoinDispensor100.BaReadinessSignal();
+                                if (CoinDispensortResult != CoinDispensor.CoinDispensorStatusType.OK)
+                                {
+                                    TextCore.DeviceError(TextCore.DEVICE.COIN100CHARGER, "FormLauncher|Initialize", CoinDispensortResult.ToString());
+                                    NPSYS.Device.CoinDischarge100DeviceErrorMessage = "동전방출기 " + CoinDispensortResult.ToString();
+                                    lblCoinCharger100.Text = mDeviceError;
+                                    NPSYS.Device.gIsUseCoinDischarger100Device = false;
+
+                                }
+                                else
+                                {
+                                    lblCoinCharger100.Text = mDeviceOk;
+
+                                }
+                            }
+                        }
+                        else
+                        {
+                            NPSYS.Device.gIsUseCoinDischarger100Device = false;
+                            NPSYS.Device.CoinDischarge100DeviceErrorMessage = "사용안함으로 설정";
+
+                        }
+                        if (NPSYS.Device.UsingSettingCoinCharger500)
+                        {
+                            NPSYS.Device.CoinDispensor500 = new CoinDispensor();
+                            NPSYS.Device.CoinDispensor500.CurrentCoinType = CoinDispensor.CoinType.Money500Type;
+                            NPSYS.Device.CoinDispensor500.BaudRateString = NPSYS.SerialPorts[SerialPortID.CoinCharger500].BaudRateString;
+                            NPSYS.Device.CoinDispensor500.PortNameString = NPSYS.SerialPorts[SerialPortID.CoinCharger500].PortNameString;
+                            NPSYS.Device.CoinDispensor500.ParityString = NPSYS.SerialPorts[SerialPortID.CoinCharger500].ParityString;
+                            DataTable dtCoinDispensor3 = LPRDbSelect.GetDeivceErrorInfoFromDeviceCode(CommProtocol.device.CC3);
                             NPSYS.Device.CoinDispensor500.CurrentCoinDispensorStatusManagement.SendAllDeviveOk();
                             NPSYS.Device.CoinDispensor500.CurrentCoinDispensorStatusManagement.SetDbErrorInfo(dtCoinDispensor3);
 
                             CoinDispensor.CoinDispensorStatusType resultCoinDispensor500Connect = NPSYS.Device.CoinDispensor500.Connect();
 
 
-                                if (resultCoinDispensor500Connect != CoinDispensor.CoinDispensorStatusType.OK)
-                                {
-                                    TextCore.DeviceError(TextCore.DEVICE.COIN500CHARGER, "FormLauncher|Initialize", "동전방출기 초기화실패");
-                                    NPSYS.Device.CoinDischarge500DeviceErrorMessage = "동전방출기 초기화실패";
-                                    NPSYS.Device.gIsUseCoinDischarger500Device = false;
-                                    lblCoinCharger500.Text = mDeviceError;
+                            if (resultCoinDispensor500Connect != CoinDispensor.CoinDispensorStatusType.OK)
+                            {
+                                TextCore.DeviceError(TextCore.DEVICE.COIN500CHARGER, "FormLauncher|Initialize", "동전방출기 초기화실패");
+                                NPSYS.Device.CoinDischarge500DeviceErrorMessage = "동전방출기 초기화실패";
+                                NPSYS.Device.gIsUseCoinDischarger500Device = false;
+                                lblCoinCharger500.Text = mDeviceError;
 
-                                }
-                                else
-                                {
-                                    TextCore.ACTION(TextCore.ACTIONS.COIN500CHARGER, "FormLauncher|Initialize", "접속성공");
-                                    NPSYS.Device.gIsUseCoinDischarger500Device = true;
-                                }
-                                if (NPSYS.Device.gIsUseCoinDischarger500Device)
-                                {
-                                CoinDispensor.CoinDispensorStatusType l_CoinDispensortResul500 = NPSYS.Device.CoinDispensor500.reset();
-                                    System.Threading.Thread.Sleep(5000);
-                                    NPSYS.Device.CoinDispensor500.BaReadinessSignal();
-                                    if (l_CoinDispensortResul500 != CoinDispensor.CoinDispensorStatusType.OK)
-                                   {
-                                        TextCore.DeviceError(TextCore.DEVICE.COIN500CHARGER, "FormLauncher|Initialize", l_CoinDispensortResul500.ToString());
-                                        NPSYS.Device.CoinDischarge500DeviceErrorMessage = "동전방출기 " + l_CoinDispensortResul500.ToString();
-                                        lblCoinCharger500.Text = mDeviceError;
-          
-              
-                                    }
-                                    else
-                                    {
-                                        lblCoinCharger500.Text = mDeviceOk;
-
-                                    }
-                                }
                             }
                             else
                             {
-                                NPSYS.Device.gIsUseCoinDischarger500Device = false;
-                                NPSYS.Device.CoinDischarge500DeviceErrorMessage = "사용안함으로 설정";
-    
+                                TextCore.ACTION(TextCore.ACTIONS.COIN500CHARGER, "FormLauncher|Initialize", "접속성공");
+                                NPSYS.Device.gIsUseCoinDischarger500Device = true;
                             }
-
-
+                            if (NPSYS.Device.gIsUseCoinDischarger500Device)
+                            {
+                                CoinDispensor.CoinDispensorStatusType l_CoinDispensortResul500 = NPSYS.Device.CoinDispensor500.reset();
+                                System.Threading.Thread.Sleep(5000);
+                                NPSYS.Device.CoinDispensor500.BaReadinessSignal();
+                                if (l_CoinDispensortResul500 != CoinDispensor.CoinDispensorStatusType.OK)
+                                {
+                                    TextCore.DeviceError(TextCore.DEVICE.COIN500CHARGER, "FormLauncher|Initialize", l_CoinDispensortResul500.ToString());
+                                    NPSYS.Device.CoinDischarge500DeviceErrorMessage = "동전방출기 " + l_CoinDispensortResul500.ToString();
+                                    lblCoinCharger500.Text = mDeviceError;
+                                }
+                                else
+                                {
+                                    lblCoinCharger500.Text = mDeviceOk;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            NPSYS.Device.gIsUseCoinDischarger500Device = false;
+                            NPSYS.Device.CoinDischarge500DeviceErrorMessage = "사용안함으로 설정";
+                        }
 
                         break;
                     //3.1.74 동전방출기 50원100원500원설정기능 주석완료
@@ -823,10 +795,10 @@ namespace NPAutoBooth.UI
                                 NPSYS.Device.gIsUseDeviceBillDischargeDevice = true;
                                 MoneyBillOutDeviice.BillPurgeJob();
                                 TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormLauncher|Initialize", "접속성공");
-       
+
 
                             }
-                            
+
                             lblBill.ForeColor = (result.Success ? Color.Blue : Color.Red);
                             if (result.Success == false) mTotalSuccess = false;
                         }
@@ -892,14 +864,14 @@ namespace NPAutoBooth.UI
                         {
                             NPSYS.Device.gIsUseReceiptPrintDevice = false;
                             NPSYS.Device.ReceiptPrintDeviceErrorMessage = "사용안함으로 설정";
-   
+
                         }
                         break;
 
                     case 7:
                         if (NPSYS.Device.UsingSettingTmoney)
                         {
-  
+
                             NPSYS.Device.T_MoneySmartro = new TmoneySmartro();
                             string BaudRateString = NPSYS.SerialPorts[SerialPortID.TmoneyCardReader].BaudRateString;
                             string PortNameString = NPSYS.SerialPorts[SerialPortID.TmoneyCardReader].PortNameString;
@@ -907,7 +879,7 @@ namespace NPAutoBooth.UI
                             int tmoneybaudrate = Convert.ToInt32(BaudRateString);
                             NPSYS.Device.T_MoneySmartro.pvs_catid = NPSYS.TmoneyCatId;
                             NPSYS.Device.T_MoneySmartro.pvs_vanip = NPSYS.TmoneyVanIp;
-                            NPSYS.Device.T_MoneySmartro.pvi_vanport =Convert.ToInt32(NPSYS.TmoneyVanPort);
+                            NPSYS.Device.T_MoneySmartro.pvi_vanport = Convert.ToInt32(NPSYS.TmoneyVanPort);
                             try
                             {
                                 NPSYS.Device.T_MoneySmartro.pvi_vanport = Convert.ToInt32(NPSYS.TmoneyVanPort);
@@ -915,13 +887,13 @@ namespace NPAutoBooth.UI
                             catch
                             {
                             }
-                            NPSYS.Device.T_MoneySmartro.mPortNumber=tmoneyPort;
+                            NPSYS.Device.T_MoneySmartro.mPortNumber = tmoneyPort;
                             NPSYS.Device.T_MoneySmartro.mBaudrate = tmoneybaudrate;
                             bool lConnect = NPSYS.Device.T_MoneySmartro.TmoneyConnet();
                             if (lConnect)
                             {
-                                string errorMessage=string.Empty;
-                                bool isGashi= NPSYS.Device.T_MoneySmartro.TmoneyGashi(ref errorMessage);
+                                string errorMessage = string.Empty;
+                                bool isGashi = NPSYS.Device.T_MoneySmartro.TmoneyGashi(ref errorMessage);
                                 if (isGashi == true)
                                 {
                                     bool isLogON = NPSYS.Device.T_MoneySmartro.TmoneyLogOn();
@@ -944,11 +916,11 @@ namespace NPAutoBooth.UI
                                 }
                                 else
                                 {
-                                        lblTmoney.Text = "개시실패";
-                                        TextCore.ACTION(TextCore.ACTIONS.TMONEY, "FormLauncher|Initialize", "개시실패");
-                                        NPSYS.Device.isUseDeviceTMoneyReaderDevice = false;
-                                        NPSYS.Device.UsingSettingTmoney = false;
-                                        NPSYS.Device.TMONEYDeviceErrorMessage = "개시실패";
+                                    lblTmoney.Text = "개시실패";
+                                    TextCore.ACTION(TextCore.ACTIONS.TMONEY, "FormLauncher|Initialize", "개시실패");
+                                    NPSYS.Device.isUseDeviceTMoneyReaderDevice = false;
+                                    NPSYS.Device.UsingSettingTmoney = false;
+                                    NPSYS.Device.TMONEYDeviceErrorMessage = "개시실패";
                                 }
 
                             }
@@ -961,7 +933,7 @@ namespace NPAutoBooth.UI
                                 NPSYS.Device.TMONEYDeviceErrorMessage = "접속실패";
 
                             }
-                          //  NPSYS.Device.T_MoneySmartro.TmoneyClose();
+                            //  NPSYS.Device.T_MoneySmartro.TmoneyClose();
                             //}
                         }
                         break;
@@ -1063,18 +1035,18 @@ namespace NPAutoBooth.UI
                         }
                         // 2016.10.27  KIS_DIP 추가종료
                         //KOCSE 카드리더기 추가
-                        else if (NPSYS.Device.UsingSettingCardReadType == ConfigID.CardReaderType.KOCES_TCM )
+                        else if (NPSYS.Device.UsingSettingCardReadType == ConfigID.CardReaderType.KOCES_TCM)
                         {
                             System.Threading.Thread.Sleep(2000);
-                            
 
-                                KocesTcmMotor.mTerminalId = NPSYS.Config.GetValue(ConfigID.FeatureSettingCreditCardTerminalNo).ToUpper().Trim();
-                                KocesTcmMotor.mSaup = NPSYS.Config.GetValue(ConfigID.FeatureSettingCreditCardSaupNo).ToUpper().Trim();
-                                KocesTcmMotor.mSwVersion = NPSYS.gVanSoftVersion;
-                                KocesTcmMotor.mSerial = NPSYS.gVanSerialVersion;
-                                string errormessage = string.Empty;
-                                NPSYS.Device.UsingSettingCreditCard = false;
-                                
+
+                            KocesTcmMotor.mTerminalId = NPSYS.Config.GetValue(ConfigID.FeatureSettingCreditCardTerminalNo).ToUpper().Trim();
+                            KocesTcmMotor.mSaup = NPSYS.Config.GetValue(ConfigID.FeatureSettingCreditCardSaupNo).ToUpper().Trim();
+                            KocesTcmMotor.mSwVersion = NPSYS.gVanSoftVersion;
+                            KocesTcmMotor.mSerial = NPSYS.gVanSerialVersion;
+                            string errormessage = string.Empty;
+                            NPSYS.Device.UsingSettingCreditCard = false;
+
 
 
                             bool isSuccess = KocesTcmMotor.ProgramDownLoadRequest(ref errormessage);
@@ -1110,7 +1082,7 @@ namespace NPAutoBooth.UI
                             NPSYS.Device.UsingSettingCreditCard = false;
                             NPSYS.Device.KICC_TIT = new KICC_TIT();
 
-                            bool isSuccess = NPSYS.Device.KICC_TIT.CardEject(); 
+                            bool isSuccess = NPSYS.Device.KICC_TIT.CardEject();
                             if (isSuccess)
                             {
                                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormLauncher | Initialize",
@@ -1138,7 +1110,7 @@ namespace NPAutoBooth.UI
                         }
                         //KICC DIP적용완료
                         //KICCTS141적용
-                        
+
                         else if (NPSYS.Device.UsingSettingCardReadType == ConfigID.CardReaderType.KICC_TS141)
                         {
                             System.Threading.Thread.Sleep(2000);
@@ -1246,7 +1218,7 @@ namespace NPAutoBooth.UI
                         }
                         //KSNET 적용완료
                         //스마트로 TIT_DIP EV-CAT 적용
-                        else if (NPSYS.Device.UsingSettingCardReadType == ConfigID.CardReaderType.SMATRO_TIT_DIP )
+                        else if (NPSYS.Device.UsingSettingCardReadType == ConfigID.CardReaderType.SMATRO_TIT_DIP)
                         {
                             System.Threading.Thread.Sleep(500);
 
@@ -1432,13 +1404,13 @@ namespace NPAutoBooth.UI
                                     NPSYS.Device.gIsUseMagneticReaderDevice = true;
                                     NPSYS.Device.CardDevice2.TIcketFrontEject();
                                     TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormLauncher|Initialize", "할인권리더기 접속성공:" + _TIcketStatus2.Message);
-     
+
                                 }
                                 else
                                 {
                                     NPSYS.Device.gIsUseMagneticReaderDevice = false;
                                     TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormLauncher|Initialize", "할인권리더기 접속실패:" + _TIcketStatus2.Message);
-     
+
                                 }
                             }
                             lblCreditRight.Text = result.Message;
@@ -1597,7 +1569,7 @@ namespace NPAutoBooth.UI
                                         resultDoBarcode = true;
                                     }
                                 }
-  
+
                                 if (resultDoBarcode == false)
                                 {
                                     lblBarcode.Text = mDeviceError;
@@ -1626,13 +1598,13 @@ namespace NPAutoBooth.UI
                         break;
 
                     case 12:
-    
+
 
                         break;
 
 
                     case 13:
-   
+
                         break;
                     // 신분증인식기 적용
                     case 14:
@@ -1641,7 +1613,7 @@ namespace NPAutoBooth.UI
                             NPSYS.Device.SinbunReader = new SinBunReader();
                             bool resultSinbunReaderStatus = false;
                             resultSinbunReaderStatus = NPSYS.Device.SinbunReader.Connect();
-                            if(resultSinbunReaderStatus)
+                            if (resultSinbunReaderStatus)
                             {
                                 lblSinbunReader.Text = mDeviceOk;
                                 NPSYS.Device.gIsUseSinbunReader = true;
@@ -1664,7 +1636,7 @@ namespace NPAutoBooth.UI
                     // 신분증인식기 적용완료
                     //전동어닝 제어 적용
                     case 15:
- 
+
                         break;
                     //전동어닝 제어 적용완료
                     case 16:
@@ -1693,20 +1665,18 @@ namespace NPAutoBooth.UI
 
         private void tmrLauncher_Tick(object sender, EventArgs e)
         {
-
-
             if (mSeq > 16)
             {
                 tmrLauncher.Enabled = false;
                 this.Close();
             }
             Initialize(mSeq);
-
         }
         //스마트로 TIT_DIP EV-CAT 적용
+
         private void resultInfo(bool result)
         {
-                       
+
             if (result)
             {
                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormLauncher | Initialize",
@@ -1714,7 +1684,7 @@ namespace NPAutoBooth.UI
                                         + " 성공유무:" + result.ToString());
                 lblCreditLeft.Text = mDeviceOk;
                 lblCreditLeft.ForeColor = Color.Blue;
-              NPSYS.Device.CreditReaderStatusManageMent.SetCreditReaderDeviceStatus(CreditReaderStatusManageMent.CREDITReaderStatusType.OK, true);
+                NPSYS.Device.CreditReaderStatusManageMent.SetCreditReaderDeviceStatus(CreditReaderStatusManageMent.CREDITReaderStatusType.OK, true);
                 NPSYS.Device.UsingSettingCreditCard = true;
                 NPSYS.Device.Smartro_TITDIP_Evcat.QueryResults -= evcat.SmartroEvcat_QueryResults;
             }
@@ -1723,7 +1693,7 @@ namespace NPAutoBooth.UI
                 NPSYS.Device.UsingSettingCreditCard = false;
                 lblCreditLeft.ForeColor = Color.Red;
                 lblCreditLeft.Text = "스마트로 EV-CAT 초기화 실패";
-                 NPSYS.Device.CreditReaderStatusManageMent.SetCreditReaderDeviceStatus(CreditReaderStatusManageMent.CREDITReaderStatusType.DeviceStatus, false);
+                NPSYS.Device.CreditReaderStatusManageMent.SetCreditReaderDeviceStatus(CreditReaderStatusManageMent.CREDITReaderStatusType.DeviceStatus, false);
                 NPSYS.Device.CreditCardDeviceErrorMessage1 = "스마트로 EV-CAT 초기화 실패";
                 TextCore.DeviceError(TextCore.DEVICE.CARDREADER1, "FormLauncher|Initialize", "초기화실패");
                 NPSYS.Device.Smartro_TITDIP_Evcat.QueryResults -= evcat.SmartroEvcat_QueryResults;
@@ -1778,60 +1748,38 @@ namespace NPAutoBooth.UI
                             buttoType.Text = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.transaction, buttoType.Tag.ToString());
                         }
                         break;
-
-
                 }
-
             }
 
             SetLanuageDynamic(NPSYS.CurrentLanguageType);
-
-
         }
-
-
-
 
         private void SetLanuageDynamic(ConfigID.LanguageType pLanguageType)
         {
-
             mDeviceNone = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_TXT_DEVICE_NONE.ToString());
             mDeviceOk = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_TXT_DEVICE_OK.ToString());
             mDeviceError = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_TXT_DEVICE_ERROR.ToString());
         }
 
         private Control[] GetAllControlsUsingRecursive(Control containerControl)
-
         {
-
             List<Control> allControls = new List<Control>();
-
-
 
             foreach (Control control in containerControl.Controls)
             {
                 //자식 컨트롤을 컬렉션에 추가한다
-
                 allControls.Add(control);
 
                 //만일 자식 컨트롤이 또 다른 자식 컨트롤을 가지고 있다면…
-
                 if (control.Controls.Count > 0)
-
                 {
-
                     //자신을 재귀적으로 호출한다
-
                     allControls.AddRange(GetAllControlsUsingRecursive(control));
-
                 }
-
             }
 
             //모든 컨트롤을 반환한다
-
             return allControls.ToArray();
-
         }
 
         #endregion
