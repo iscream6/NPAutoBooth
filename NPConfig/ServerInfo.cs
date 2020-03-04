@@ -31,7 +31,7 @@ using FadeFox.Database.SQLite;
 
 namespace NPConfig
 {
-	public partial class ServerInfo : DialogForm
+	public partial class ServerInfo : Form//DialogForm
 	{
 		DataProcType mProcType = DataProcType.None;
 		Rijndael mSecurity = new Rijndael();
@@ -76,10 +76,10 @@ namespace NPConfig
 
 		private void Initialize()
 		{
-			this.MenuName = "서버 정보";
-			this.InsertAuth = true;
-			this.UpdateAuth = true;
-			this.DeleteAuth = true;
+			//this.MenuName = "서버 정보";
+			//this.InsertAuth = true;
+			//this.UpdateAuth = true;
+			//this.DeleteAuth = true;
 
 			SYS.SetLookupInfo(mConfig, cboSearchServerLID, "SERVER", true);
 
@@ -97,15 +97,15 @@ namespace NPConfig
 			btnSave.Visible = false;
 			btnCancel.Visible = false;
 
-			btnInsert.Visible = InsertAuth;
-			btnUpdate.Visible = UpdateAuth;
-			btnDelete.Visible = DeleteAuth;
+			btnInsert.Visible = true; //nsertAuth;
+			btnUpdate.Visible = true; //pdateAuth;
+			btnDelete.Visible = true; //DeleteAuth;
 
 			pnlControl.Enabled = true;
 			btnUpdate.Enabled = false;
 			btnDelete.Enabled = false;
 
-			lblSubject.Text = this.MenuName;
+			lblSubject.Text = "서버 정보"; //this.MenuName;
 
 			ClearInputScreen();
 			pnlInput.Enabled = false;
@@ -247,7 +247,7 @@ namespace NPConfig
 
 		private void btnClose_Click(object sender, EventArgs e)
 		{
-			CloseEnabled = true;
+			//CloseEnabled = true;
 			this.Close();
 		}
 
@@ -315,7 +315,7 @@ namespace NPConfig
 			switch (pProcType)
 			{
 				case DataProcType.Insert:
-					lblSubject.Text = this.MenuName + " 추가";
+					lblSubject.Text = /*this.MenuName*/ "서버 정보" + " 추가";
 					pnlCondition.Enabled = false;
 
 					txtServerID.Enabled = true;
@@ -337,7 +337,7 @@ namespace NPConfig
 					break;
 
 				case DataProcType.Update:
-					lblSubject.Text = this.MenuName + " 수정";
+					lblSubject.Text = /*this.MenuName*/ "서버 정보" + " 수정";
 					pnlCondition.Enabled = false;
 
 					txtServerID.Enabled = false;
@@ -357,7 +357,7 @@ namespace NPConfig
 					break;
 
 				case DataProcType.Delete:
-					lblSubject.Text = this.MenuName + " 삭제";
+					lblSubject.Text = /*this.MenuName*/ "서버 정보" + " 삭제";
 					pnlCondition.Enabled = false;
 
 					pnlInput.Enabled = false;
@@ -367,7 +367,7 @@ namespace NPConfig
 					break;
 
 				case DataProcType.None:
-					lblSubject.Text = this.MenuName;
+					lblSubject.Text = /*this.MenuName*/ "서버 정보";
 					pnlCondition.Enabled = true;
 
 					pnlInput.Enabled = false;
@@ -390,9 +390,9 @@ namespace NPConfig
 					btnSave.Visible = false;
 					btnCancel.Visible = false;
 
-					btnInsert.Visible = InsertAuth;
-					btnUpdate.Visible = UpdateAuth;
-					btnDelete.Visible = DeleteAuth;
+					btnInsert.Visible = true; //InsertAuth;
+					btnUpdate.Visible = true; //UpdateAuth;
+					btnDelete.Visible = true; //DeleteAuth;
 					btnClose.Visible = true;
 
 					pnlControl.Enabled = true;

@@ -1147,6 +1147,7 @@
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.Tag = "PAY";
             this.Text = "일반설정";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.NormalInfo_FormClosed);
             this.Load += new System.EventHandler(this.NPPaymentInfo_Load);

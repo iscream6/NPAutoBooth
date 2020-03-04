@@ -45,7 +45,8 @@ namespace NPConfig
 				return;
 			}
             config.SetValue(ConfigID.AdminPassword, txtPassword1.Text);
-			this.Close();
+			//this.Close();
+			MessageBox.Show("저장하였습니다.");
 		}
 
 		private void btnCancel_Click(object sender, EventArgs e)

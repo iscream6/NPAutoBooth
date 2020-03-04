@@ -38,7 +38,8 @@ namespace NPConfig
         private void btnOk_Click(object sender, EventArgs e)
         {
             SaveInfo();
-            this.Close();
+            //this.Close();
+            MessageBox.Show("저장하였습니다.");
         }
 
         private void btnCancel_Click(object sender, EventArgs e)

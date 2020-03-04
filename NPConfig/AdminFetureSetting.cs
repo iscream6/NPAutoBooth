@@ -1,17 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Text;
-using System.Windows.Forms;
-using FadeFox.Database;
-using FadeFox.UI;
-using FadeFox.Database.SQLite;
-using FadeFox.Security;
+﻿using FadeFox.Database.SQLite;
 using FadeFox.Utility;
 using NPCommon;
-using FadeFox.Text;
+using System;
+using System.Windows.Forms;
 
 namespace NPConfig
 {
@@ -20,7 +11,6 @@ namespace NPConfig
         string mConfigFilePath = "";
         ConfigDB3I mConfig = null;
         SQLite mDB = new SQLite();
-        
 
         private const string m_DiscountReadingFormat_105 = "TRACK2ISO_TRACK3105";
         private const string m_DiscountReadingFormat_210 = "TRACK2ISO_TRACK3210";
@@ -55,7 +45,6 @@ namespace NPConfig
 
         private void AdminFetureSetting_Load(object sender, EventArgs e)
         {
-            
             cbxCarNumberType.Items.Add(ConfigID.CarNumberType.Digit4SetAUTO.ToString());
             cbxCarNumberType.Items.Add(ConfigID.CarNumberType.Digit4SetEnt.ToString());
             cbxCarNumberType.Items.Add(ConfigID.CarNumberType.Digit5Free.ToString());
@@ -324,14 +313,7 @@ namespace NPConfig
                 mConfig.SetValue(ConfigID.FeatureSettingUseCreditAndTIcketSplit, "N");
             }
 
-
-
-
-
-
             mConfig.SetValue(ConfigID.FeatureSettingAutoboorhSelect, cbxAutoboorhSelect.Text);
-
-
 
             if (cbxUseRealMode.Text != m_BoothModeReal)
             {
@@ -360,9 +342,6 @@ namespace NPConfig
                 mConfig.SetValue(ConfigID.FeatureSettingDoorSingalNumber, txtDoorSingalNumber.Text.Trim());
             }
             //Door신호관련 완료
-
-
-
      
             if (cbxUseFreeCarPay.Text.Trim() == "사용")
             {
@@ -435,7 +414,6 @@ namespace NPConfig
                 mConfig.SetValue(ConfigID.FeatureSettingPaymentInsertMoneyTimeInfinite, "N");
             }
 
-
             if (tbxMoveiTime.Text.Trim() == "" || tbxMoveiTime.Text.Trim() == "0")
                 tbxMoveiTime.Text = "10";
 
@@ -443,9 +421,6 @@ namespace NPConfig
             {
                 tbxInputTime.Text = "300";
             }
-
-
-
 
             mConfig.SetValue(ConfigID.MovieStopTime, tbxMoveiTime.Text);
 
@@ -466,9 +441,6 @@ namespace NPConfig
                 mConfig.SetValue(ConfigID.FeatureSettingInsert50000Qty, "N");
             }
 
-
-
-
             if (cbxDiscountDIsplay.Text == "사용")
             {
                 mConfig.SetValue(ConfigID.FeatureSettingDiscountDIsplay, "Y");
@@ -487,12 +459,7 @@ namespace NPConfig
                 mConfig.SetValue(ConfigID.FeatureSettingFullcuting, "N");
             }
 
-
-
             mConfig.SetValue(ConfigID.FeatureSettingUseDiscountFormat, cbxUseDiscountFormat.Text);
-
-
-
 
             switch (cbxMoneyOutputType.SelectedIndex)
             {
@@ -515,8 +482,10 @@ namespace NPConfig
             {
                 mConfig.SetValue(ConfigID.FeatureSettingUseAutoMagam, "N");
             }
+
             mConfig.SetValue(ConfigID.FeatureSettingMagamEndTIme, lblMagamEndTIme.Text);
             mConfig.SetValue(ConfigID.FeatureSettingMagamStartTIme, lblMagamStartTIme.Text);
+
             if (cbxUseMagamDelay.Text.Trim() == "사용")
             {
                 mConfig.SetValue(ConfigID.FeatureSettingUseMagamDelay, "Y");
@@ -525,14 +494,12 @@ namespace NPConfig
             {
                 mConfig.SetValue(ConfigID.FeatureSettingUseMagamDelay, "N");
             }
+
             mConfig.SetValue(ConfigID.FeatureSettingMagamDelayEndTime, lblMagamDelayEndTime.Text);
             mConfig.SetValue(ConfigID.FeatureSettingMagamDelayStartTime, lblMagamDelayStartTime.Text);
             // 2016-11-10 4자리 차량조회안될시 차량통과기능 주석종료
 
-
             //만공차 카운팅기능주석완료
-
-
 
             //사전정산시 요금없는차량 영수증발급안함 적용
             if (cbxUsePreFreeCarNoRecipt.Text.Trim() == "사용")
@@ -574,7 +541,8 @@ namespace NPConfig
             mConfig.SetValue(ConfigID.FeatureSettingMoneyTypeDataMode, cbxMoneyTray.Text);
 
             mConfig.SetValue(ConfigID.FeatureSettingCarNumberType, cbxCarNumberType.Text);
-            this.Close();
+            //this.Close();
+            MessageBox.Show("저장하였습니다.");
         }
 
         private void btnCancel_Click(object sender, EventArgs e)
@@ -626,9 +594,6 @@ namespace NPConfig
 
             }
         }
-
-
-
 
         private void cbxUseAutoMagam_SelectedIndexChanged(object sender, EventArgs e)
         {

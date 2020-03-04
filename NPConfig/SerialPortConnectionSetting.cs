@@ -31,7 +31,7 @@ using FadeFox.Database.SQLite;
 
 namespace NPConfig
 {
-	public partial class SerialPortConnectionSetting : DialogForm
+	public partial class SerialPortConnectionSetting : Form /*DialogForm*/
 	{
 		DataProcType mProcType = DataProcType.None;
 		SQLite mConfig = new SQLite();
@@ -84,7 +84,7 @@ namespace NPConfig
 
 		private void Initialize()
 		{
-			this.MenuName = "시리얼포트 연결관리";
+			//this.MenuName = "시리얼포트 연결관리";
 			grdList.RowSelected = SelectRowScreen;
 			grdList.RowsPreAdding = ImportBeforeRowAdd;
 			grdList.RowsAdding = ImportRunScreen;
@@ -190,7 +190,7 @@ namespace NPConfig
 
 		private void btnClose_Click(object sender, EventArgs e)
 		{
-			CloseEnabled = true;
+			//CloseEnabled = true;
 			this.Close();
 		}
 
@@ -258,7 +258,7 @@ namespace NPConfig
 			switch (pProcType)
 			{
 				case DataProcType.Insert:
-					lblSubject.Text = this.MenuName + " 추가";
+					lblSubject.Text = /*this.MenuName*/ "시리얼포트 연결관리" + " 추가";
 					pnlInput.Enabled = true;
 
 					txtSerialPortID.Enabled = true;
@@ -278,7 +278,7 @@ namespace NPConfig
 					break;
 
 				case DataProcType.Update:
-					lblSubject.Text = this.MenuName + " 수정";
+					lblSubject.Text = /*this.MenuName*/ "시리얼포트 연결관리" + " 수정";
 					pnlInput.Enabled = true;
 
 					txtSerialPortID.Enabled = false;
@@ -296,14 +296,14 @@ namespace NPConfig
 					break;
 
 				case DataProcType.Delete:
-					lblSubject.Text = this.MenuName + " 삭제";
+					lblSubject.Text = /*this.MenuName*/ "시리얼포트 연결관리" + " 삭제";
 					pnlInput.Enabled = false;
 
 					pnlControl.Enabled = false;
 					break;
 
 				case DataProcType.None:
-					lblSubject.Text = this.MenuName;
+					lblSubject.Text = /*this.MenuName*/ "시리얼포트 연결관리";
 					pnlInput.Enabled = false;
 
 					if (grdList.Rows.Count > 0)

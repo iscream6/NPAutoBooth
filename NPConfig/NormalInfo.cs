@@ -136,8 +136,9 @@ namespace NPConfig
             mConfig.SetValue(ConfigID.TmoneySamSlot4, (string)cmbSAMSlot4.SelectedValue);
             //----- TMoney Smartro 적용완료
 
-            this.Close();
-		}
+            //this.Close();
+            MessageBox.Show("저장하였습니다.");
+        }
 
 		private void btnCancel_Click(object sender, EventArgs e)
 		{

@@ -271,6 +271,8 @@
             // 
             // groupBox1
             // 
+            this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox1.Controls.Add(this.cbxCardreaderType2);
             this.groupBox1.Controls.Add(this.cbxCardreaderType1);
             this.groupBox1.Controls.Add(this.label2);
@@ -318,6 +320,8 @@
             // 
             // groupBox2
             // 
+            this.groupBox2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox2.Controls.Add(this.rbBarcodeDCTicket);
             this.groupBox2.Controls.Add(this.rbMagneticDCTicket);
             this.groupBox2.Controls.Add(this.rbNoDCTicket);
@@ -401,6 +405,8 @@
             // 
             // groupBox3
             // 
+            this.groupBox3.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox3.Controls.Add(this.cbxBarcodereaderType);
             this.groupBox3.Controls.Add(this.label5);
             this.groupBox3.Location = new System.Drawing.Point(1, 336);
@@ -539,6 +545,7 @@
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+            this.Tag = "DIV";
             this.Text = "사용기능 설정";
             this.Load += new System.EventHandler(this.UsingSetting_Load);
             this.pnlLayoutTop.ResumeLayout(false);

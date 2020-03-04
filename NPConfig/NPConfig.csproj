@@ -61,6 +61,9 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="NABi.UI.Common.EffectForm">
+      <HintPath>..\@Library\NABi.UI.Common.EffectForm.dll</HintPath>
+    </Reference>
     <Reference Include="Sayou.Core">
       <HintPath>..\@Library\Sayou.Core.dll</HintPath>
     </Reference>
@@ -89,6 +92,12 @@
     </Compile>
     <Compile Include="AdminPasswordSetting.designer.cs">
       <DependentUpon>AdminPasswordSetting.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ConfigMain.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ConfigMain.Designer.cs">
+      <DependentUpon>ConfigMain.cs</DependentUpon>
     </Compile>
     <Compile Include="LookupInfo.cs">
       <SubType>Form</SubType>
@@ -164,6 +173,9 @@
     <EmbeddedResource Include="AdminPasswordSetting.resx">
       <DependentUpon>AdminPasswordSetting.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="ConfigMain.resx">
+      <DependentUpon>ConfigMain.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="LookupInfo.resx">
       <DependentUpon>LookupInfo.cs</DependentUpon>
     </EmbeddedResource>
@@ -228,6 +240,14 @@
       <Project>{aed252a1-93ae-48bb-a6c9-e708a62eebfe}</Project>
       <Name>NPCommon</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="RibbonWinForms">
+      <Version>5.0.1.1</Version>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Resources\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

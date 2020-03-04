@@ -30,7 +30,7 @@ using System.IO.Ports;
 
 namespace NPConfig
 {
-	public partial class SerialPortSearch : DialogForm, ICodeSearchForm
+	public partial class SerialPortSearch : Form /*DialogForm*/, ICodeSearchForm
 	{
 
 		public SerialPortSearch()
@@ -95,7 +95,7 @@ namespace NPConfig
 
 		private void btnCancel_Click(object sender, EventArgs e)
 		{
-			CloseEnabled = true;
+			//CloseEnabled = true;
 			this.Close();
 		}
 

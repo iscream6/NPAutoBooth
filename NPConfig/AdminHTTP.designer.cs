@@ -258,6 +258,7 @@
             this.Controls.Add(this.pnlControl);
             this.Controls.Add(this.pnlLayoutTop);
             this.Name = "AdminHTTP";
+            this.Tag = "RES";
             this.Text = "AdminHTTP";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.AdminSaleTIcket_FormClosed);
             this.Load += new System.EventHandler(this.AdminSaleTIcket_Load);

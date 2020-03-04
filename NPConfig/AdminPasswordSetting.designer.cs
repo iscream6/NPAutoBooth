@@ -207,6 +207,7 @@
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+            this.Tag = "PWD";
             this.Text = "AdminPasswordSetting";
             this.Load += new System.EventHandler(this.AdminPasswordSetting_Load);
             this.pnlLayoutTop.ResumeLayout(false);
