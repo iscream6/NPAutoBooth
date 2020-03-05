@@ -674,10 +674,10 @@ namespace NPAutoBooth.UI
                         return;
                     }
 
-                    //inputTimer.Start();
-                    //MovieTimer.Start();
-
                     GetImage();
+
+                    inputTimer.Enabled = true;
+                    MovieTimer.Enabled = true;
 
                     //SettingEnableEvent();
                     SettingEnableDevice(); //결제장비 동작 시작
@@ -687,10 +687,6 @@ namespace NPAutoBooth.UI
                     this.TopMost = true;
                     this.Show();
                     this.Activate();
-
-                    //inputTimer.Enabled = true;
-                    MovieTimer.Enabled = true;
-
                     TextCore.INFO(TextCore.INFOS.MEMORY, "FormPaymentMenu | OpenView", "요금화면 로드|사용메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
                 }
             }
@@ -757,7 +753,7 @@ namespace NPAutoBooth.UI
                     pic_Wait_MSG_WAIT.SendToBack();
                     pic_Wait_MSG_WAIT.Visible = false;
                     paymentControl.CancelButtonVisible = false;
-
+                    inputTimer.Enabled = true;
                     MovieTimer.Enabled = true;
 
                     SettingEnableDevice();

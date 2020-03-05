@@ -157,7 +157,8 @@ namespace NPAutoBooth.UI
                 playVideo();
                 formCloseTime = 10;
                 openTime = 0;
-
+                timerFormClose.Enabled = true;
+                timerFormClose.Start();
                 this.Show();
                 this.Activate();
 

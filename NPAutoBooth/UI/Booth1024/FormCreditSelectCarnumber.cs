@@ -300,7 +300,7 @@ namespace NPAutoBooth.UI
                     PageView(1);
                 }
                 playVideo();
-
+                inputTimer.Enabled = true;
                 MovieTimer.Enabled = true;
                 this.TopMost = true;
                 this.Show();
@@ -315,7 +315,7 @@ namespace NPAutoBooth.UI
             if (this.Visible == true)
             {
                 StopVideo();
-
+                inputTimer.Enabled = false;
                 MovieTimer.Enabled = false;
                 this.Hide();
                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormSelectCarnumber | CloseView", "차량선택화면 화면종료됨");
@@ -327,7 +327,7 @@ namespace NPAutoBooth.UI
             if (this.Visible == true)
             {
                 StopVideo();
-
+                inputTimer.Enabled = false;
                 MovieTimer.Enabled = false;
                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormSelectCarnumber | CloseViewBeforeInfo", "차량선택화면(메인화면으로 이동처리)");
                 this.Hide();
@@ -343,7 +343,7 @@ namespace NPAutoBooth.UI
 
                 mPreFomrType = pFormType;
                 playVideo();
-
+                inputTimer.Enabled = true;
                 MovieTimer.Enabled = true;
                 this.TopMost = true;
                 this.Show();

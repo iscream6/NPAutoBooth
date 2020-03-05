@@ -228,6 +228,8 @@ namespace NPAutoBooth.UI
                 OpenSetControl();
                 mPreFomrType = pFormType;
                 playVideo();
+                inputTimer.Enabled = true;
+                MovieTimer.Enabled = true;
 
                 if (car != null) // 새로폼을 생성할때면
                 {
@@ -238,9 +240,6 @@ namespace NPAutoBooth.UI
                 this.TopMost = true;
                 this.Show();
                 this.Activate();
-
-                MovieTimer.Enabled = true;
-
                 TextCore.INFO(TextCore.INFOS.MEMORY, "FormSearchCarNumber | OpenView", "차량검색 화면로드됨|사용메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
             }
         }
@@ -253,6 +252,7 @@ namespace NPAutoBooth.UI
             if (this.Visible)
             {
                 StopVideo();
+                inputTimer.Enabled = false;
                 MovieTimer.Enabled = false;
                 //TMAP연동
                 TimerTmpaWait.Enabled = false;
@@ -268,6 +268,7 @@ namespace NPAutoBooth.UI
             if (this.Visible)
             {
                 StopVideo();
+                inputTimer.Enabled = false;
                 MovieTimer.Enabled = false;
                 //TMAP연동
                 TimerTmpaWait.Enabled = false;
@@ -288,6 +289,7 @@ namespace NPAutoBooth.UI
                 OpenSetControl();
                 mPreFomrType = pFormType;
                 playVideo();
+                inputTimer.Enabled = true;
                 MovieTimer.Enabled = true;
                 this.TopMost = true;
                 this.Show();

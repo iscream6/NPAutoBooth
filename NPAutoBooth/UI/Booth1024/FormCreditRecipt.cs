@@ -815,6 +815,7 @@ namespace NPAutoBooth.UI
             if (this.Visible)
             {
                 axWindowsMediaPlayer1.Ctlcontrols.pause();
+                InputTimer.Enabled = false;
 
                 this.Hide();
                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditRecipt | CloseView", "영수증 화면종료됨");
