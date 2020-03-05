@@ -51,7 +51,7 @@ namespace NPCommon.Van
 
         ProtocolStep mStep = ProtocolStep.Ready;
         public event ReceiveTMoneyData EventTMoneyData;
-
+        private SmartroDTO testDTO;
         #endregion
 
         #region Properties
@@ -100,6 +100,10 @@ namespace NPCommon.Van
         /// 장비 통신포트 "0"[COM], "1"[USB], "2"[이더넷] 을 설정한다
         /// </summary>
         public string DeviceType { get => mDeviceType; set => mDeviceType = value; }
+        /// <summary>
+        /// Test용 읽기전용 DTO
+        /// </summary>
+        public SmartroDTO TestDTO { get => testDTO; }
 
         #endregion
 
@@ -160,6 +164,11 @@ namespace NPCommon.Van
         {
             SerialPort.DiscardInBuffer();
             SerialPort.DiscardOutBuffer();
+        }
+
+        public void TestEventHandler(SmartroDTO dto)
+        {
+            testDTO = dto;
         }
 
         protected override void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)

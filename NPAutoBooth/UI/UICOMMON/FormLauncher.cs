@@ -1235,18 +1235,14 @@ namespace NPAutoBooth.UI
                         {
                             System.Threading.Thread.Sleep(1000);
 
-                            SmartroDTO divCheckDto = null;
                             NPSYS.Device.TmoneySmartro3500 = new Smartro_TL3500S();
                             //1. Serial Port 연결 정보 셋팅
                             NPSYS.Device.TmoneySmartro3500.PortName = NPSYS.SerialPorts[SerialPortID.CreditCardReader_1].PortNameString;
                             NPSYS.Device.TmoneySmartro3500.BaudRateString = NPSYS.SerialPorts[SerialPortID.CreditCardReader_1].BaudRateString;
                             NPSYS.Device.TmoneySmartro3500.ParityString = NPSYS.SerialPorts[SerialPortID.CreditCardReader_1].ParityString;
 
-                            //2. 장치 체크 전문 수신 무기명 이벤트 설정
-                            NPSYS.Device.TmoneySmartro3500.EventTMoneyData += (SmartroDTO dto) =>
-                            {
-                                divCheckDto = dto;
-                            };
+                            //2. 장치 체크 전문 수신 이벤트 구독
+                            NPSYS.Device.TmoneySmartro3500.EventTMoneyData += NPSYS.Device.TmoneySmartro3500.TestEventHandler;
 
                             //3. 단말기 정보 셋팅
                             NPSYS.Device.TmoneySmartro3500.DeviceType = NPSYS.Config.GetValue(ConfigID.TmoneyDeviceType);
@@ -1264,16 +1260,13 @@ namespace NPAutoBooth.UI
 
                             if (isSuccess)
                             {
-                                //4. 설정 정보 셋팅 전문 송신
-                                NPSYS.Device.TmoneySmartro3500.RequestInitSetting();
-
-                                //5. 장치 체크 전문 송신
+                                //4. 장치 체크 전문 송신
                                 NPSYS.Device.TmoneySmartro3500.RequestDeviceCheck();
 
-                                System.Threading.Thread.Sleep(500); //잠시 대기
+                                System.Threading.Thread.Sleep(1000); //잠시 대기
 
                                 string status = "";
-                                Header header = divCheckDto?.HeaderData as Header;
+                                Header header = NPSYS.Device.TmoneySmartro3500.TestDTO?.HeaderData as Header;
                                 if (header == null || header.JobCode != "a")
                                 {
                                     status = "장치체크송수신실패";
@@ -1281,7 +1274,25 @@ namespace NPAutoBooth.UI
                                 }
                                 else
                                 {
-                                    ReceiveDeviceCheck deviceCheck = divCheckDto?.BodyData as ReceiveDeviceCheck;
+                                    //5. 설정 정보 셋팅 전문 송신
+                                    NPSYS.Device.TmoneySmartro3500.RequestInitSetting();
+
+                                    System.Threading.Thread.Sleep(1000); //잠시 대기
+
+                                    header = NPSYS.Device.TmoneySmartro3500.TestDTO?.HeaderData as Header;
+                                    if (header == null || header.JobCode != "i")
+                                    {
+                                        status = "설정 정보 셋팅 실패";
+                                        isSuccess = false;
+                                        break;
+                                    }
+
+                                    //6. 장치 체크 전문 재송신
+                                    NPSYS.Device.TmoneySmartro3500.RequestDeviceCheck();
+
+                                    System.Threading.Thread.Sleep(1000); //잠시 대기
+
+                                    ReceiveDeviceCheck deviceCheck = NPSYS.Device.TmoneySmartro3500.TestDTO?.BodyData as ReceiveDeviceCheck;
                                     if (deviceCheck == null)
                                     {
                                         status = "장치체크 송수신 실패";
@@ -1334,7 +1345,10 @@ namespace NPAutoBooth.UI
                                     }
                                 }
 
-                                status = isSuccess ? "초기화 성공" : status;
+                                //7. 장치 체크 전문 수신 무기명 이벤트 해제
+                                NPSYS.Device.TmoneySmartro3500.EventTMoneyData -= NPSYS.Device.TmoneySmartro3500.TestEventHandler;
+
+                                    status = isSuccess ? "초기화 성공" : status;
                                 CreditReaderStatusManageMent.CREDITReaderStatusType statusType =
                                     isSuccess ?
                                     CreditReaderStatusManageMent.CREDITReaderStatusType.OK :
@@ -1424,12 +1438,7 @@ namespace NPAutoBooth.UI
 
                         }
 
-
                         break;
-
-
-
-
 
                     case 9:
                         if (NPSYS.Device.UsingSettingControlBoard == ConfigID.ControlBoardType.GOODTECH)

@@ -166,7 +166,7 @@ namespace NPCommon.Van
                 case "l": //마지막 승인 응답 응답전문
                     t = null;
                     break;
-                case "V": //버전 체크 응답전문
+                case "v": //버전 체크 응답전문
                     t = typeof(ReceiveVersionCheck);
                     break;
                 case "s": //화면&음성 설정 응답전문
