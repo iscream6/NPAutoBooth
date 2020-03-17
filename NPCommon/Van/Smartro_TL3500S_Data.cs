@@ -393,11 +393,29 @@ namespace NPCommon.Van
     {
         private const ushort length = 30;
 
-        public string TradCode;     //[01 Byte] 거래구분코드 "1"[승인], "2"[마지막 거래 취소 후 승인]
-        public string PayMoney;     //[10 Byte] 승인요청금액(원거래+세금+봉사료)
-        public string Vat;          //[08 Byte] 부가세 우측 정렬, 좌측 "0" 채움
-        public string Service;      //[08 Byte] 봉사료 우측 정렬, 좌측 "0" 채움
-        public string InstMonth;    //[02 Byte] 할부개월 우측 정렬, 좌측 "0" 채움
+        /// <summary>
+        /// 거래구분코드 "1"[승인], "2"[마지막 거래 취소 후 승인]
+        /// </summary>
+        public string TradCode;     //[01 Byte] 
+        /// <summary>
+        /// 승인요청금액(원거래+세금+봉사료)
+        /// </summary>
+        public string PayMoney;     //[10 Byte] 
+        /// <summary>
+        /// 부가세
+        /// </summary>
+        public string Vat;          //[08 Byte] 우측 정렬, 좌측 "0" 채움
+        /// <summary>
+        /// 봉사료
+        /// </summary>
+        public string Service;      //[08 Byte] 우측 정렬, 좌측 "0" 채움
+        /// <summary>
+        /// 할부개월
+        /// </summary>
+        public string InstMonth;    //[02 Byte] 우측 정렬, 좌측 "0" 채움
+        /// <summary>
+        /// 서명 여부 "1"[비서명], "2"[서명]
+        /// </summary>
         public string SignYN;       //[01 Byte] 서명 여부 "1"[비서명], "2"[서명]
 
         public ushort Size => length;
@@ -430,37 +448,37 @@ namespace NPCommon.Van
     {
         private const ushort length = 157;
         /// <summary>
-        /// 거래구분코드
+        /// 거래구분코드 "1"[승인], "3"[선불카드], "X"[거래거절]:거래매체~단말기번호 Space 채움, 취소시 "2"인 경우 태그한 카드가 이전 거래 내역이 없거나 이미 취소한 카드인 경우 거래취소 요청전문에 대한 응답전문은 카드조회 응답전문이 전송
         /// </summary>
-        public string TradCode;     //[01 Byte] 거래구분코드 "1"[승인], "3"[선불카드], "X"[거래거절]:거래매체~단말기번호 Space 채움, 취소시 "2"인 경우 태그한 카드가 이전 거래 내역이 없거나 이미 취소한 카드인 경우 거래취소 요청전문에 대한 응답전문은 카드조회 응답전문이 전송
+        public string TradCode;     //[01 Byte]
         /// <summary>
-        /// 거래매체
+        /// 거래매체 "1"[IC], "2"[MS], "3"[RF]
         /// </summary>
-        public string TradType;     //[01 Byte] 거래매체 "1"[IC], "2"[MS], "3"[RF]
+        public string TradType;     //[01 Byte] 
         /// <summary>
-        /// 카드번호
+        /// 카드번호 
         /// </summary>
-        public string CardNo;       //[20 Byte] 카드번호 신용카드 앞 6자리외 나머지 마스킹 처리 우측 정렬, 좌측 "0" 채움
+        public string CardNo;       //[20 Byte] 신용카드 앞 6자리외 나머지 마스킹 처리 우측 정렬, 좌측 "0" 채움
         /// <summary>
-        /// 승인금액
+        /// 승인요청금액(원거래+세금+봉사료)
         /// </summary>
-        public string PayMoney;     //[10 Byte] 승인요청금액(원거래+세금+봉사료) 우측 정렬, 좌측 "0" 채움
+        public string PayMoney;     //[10 Byte] 우측 정렬, 좌측 "0" 채움
         /// <summary>
-        /// 세금
+        /// 부가세 선불카드의 경우 거래 전 잔액
         /// </summary>
-        public string Vat;          //[08 Byte] 부가세 선불카드의 경우 거래 전 잔액 우측 정렬, 좌측 "0" 채움
+        public string Vat;          //[08 Byte] 우측 정렬, 좌측 "0" 채움
         /// <summary>
         /// 봉사료
         /// </summary>
-        public string Service;      //[08 Byte] 봉사료 우측 정렬, 좌측 "0" 채움
+        public string Service;      //[08 Byte] 우측 정렬, 좌측 "0" 채움
         /// <summary>
         /// 할부개월
         /// </summary>
-        public string InstMonth;    //[02 Byte] 할부개월 우측 정렬, 좌측 "0" 채움
+        public string InstMonth;    //[02 Byte] 우측 정렬, 좌측 "0" 채움
         /// <summary>
-        /// 승인번호/선불카드정보
+        /// 승인번호/선불카드 정보 카드종류[1B]+"0"[5B]+잔액[6B] 카드종류 "T"[티머니], "E"[캐시비], "M"[마이비], "U"[유페이], "H"[한페이], "K"[코레일]
         /// </summary>
-        public string AcceptNo;     //[12 Byte] 선불카드 정보 카드종류[1B]+"0"[5B]+잔액[6B] 카드종류 "T"[티머니], "E"[캐시비], "M"[마이비], "U"[유페이], "H"[한페이], "K"[코레일]
+        public string AcceptNo;     //[12 Byte] 
         /// <summary>
         /// 매출일자(YYYYMMDDD)
         /// </summary>
@@ -578,16 +596,46 @@ namespace NPCommon.Van
     {
         private const ushort length = 57;
 
-        public string CancleCode;   //[01 Byte] "1"[요청전문 취소], "2"[결제기 마지막 거래 취소] 연동 장치에서 거래 승인데이터를 저장 안하는 경우 "2"를 이용하여 취소 요청, "1"인 경우 동일 가맹점에서만 가능하고 승인 시의 승인번호와 원거래일자, 원거래시간이 일치하여야 함
-        public string TradCode;     //[01 Byte] "1"[신용승인]
-        public string PayMoney;     //[10 Byte] 승인금액(원거래+세금+봉사료)
-        public string Vat;          //[08 Byte] 부가세 우측 정렬, 좌측 "0" 채움
-        public string Service;      //[08 Byte] 봉사료 우측 정렬, 좌측 "0" 채움
-        public string InstMonth;    //[02 Byte] 할부개월 우측 정렬, 좌측 "0" 채움
-        public string SignYN;       //[01 Byte] 서명 여부 "1"[비서명], "2"[서명]
-        public string AcceptNo;     //[12 Byte] 승인번호, 좌측 정렬 Space 채움
-        public string AcceptDate;   //[08 Byte] 원거래일자 일자[YYYYMMDD]
-        public string AcceptTime;   //[06 Byte] 원거래시간 시간[hhmmss]
+        /// <summary>
+        /// "1"[요청전문 취소], "2"[결제기 마지막 거래 취소] 연동 장치에서 거래 승인데이터를 저장 안하는 경우 "2"를 이용하여 취소 요청, "1"인 경우 동일 가맹점에서만 가능하고 승인 시의 승인번호와 원거래일자, 원거래시간이 일치하여야 함
+        /// </summary>
+        public string CancleCode;   //[01 Byte] 
+        /// <summary>
+        /// "1"[신용승인]
+        /// </summary>
+        public string TradCode;     //[01 Byte] 
+        /// <summary>
+        /// 승인금액(원거래+세금+봉사료)
+        /// </summary>
+        public string PayMoney;     //[10 Byte] 
+        /// <summary>
+        /// 부가세
+        /// </summary>
+        public string Vat;          //[08 Byte] 우측 정렬, 좌측 "0" 채움
+        /// <summary>
+        /// 봉사료
+        /// </summary>
+        public string Service;      //[08 Byte] 우측 정렬, 좌측 "0" 채움
+        /// <summary>
+        /// 할부개월
+        /// </summary>
+        public string InstMonth;    //[02 Byte] 우측 정렬, 좌측 "0" 채움
+        /// <summary>
+        /// 서명 여부 "1"[비서명], "2"[서명]
+        /// </summary>
+        public string SignYN;       //[01 Byte] 
+        /// <summary>
+        /// 승인번호
+        /// </summary>
+        public string AcceptNo;     //[12 Byte] 좌측 정렬 Space 채움
+        /// <summary>
+        /// 원거래일자 일자[YYYYMMDD]
+        /// </summary>
+        public string AcceptDate;   //[08 Byte] 
+        /// <summary>
+        /// 원거래시간 시간[hhmmss]
+        /// </summary>
+        public string AcceptTime;   //[06 Byte] 
 
         public ushort Size => length;
 

@@ -18,34 +18,6 @@ namespace NPAutoBooth.UI
     {
         #region SMATRO_TIT_DIP_EVCAT
 
-        /// <summary>
-        /// 스마트로 DIP 타입결제기 카드결제요청이 안되있을시 카드결제요청
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void timerSmatro_TITDIP_Evcat_Tick(object sender, EventArgs e)
-        {
-            if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay)
-            {
-                if (mSmartro_TITDIP_EVCat.StartSoundTick > 0)
-                {
-                    mSmartro_TITDIP_EVCat.StartSoundTick -= 1;
-                    if (mSmartro_TITDIP_EVCat.StartSoundTick == 0)
-                    {
-                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
-                    }
-                    else
-                    {
-                        return;
-                    }
-                }
-            }
-            timerSmatro_TITDIP_Evcat.Stop();
-            SmatroEVCAT_CardApprovalAction();
-            timerSmatro_TITDIP_Evcat.Start();
-
-        }
-
         private void SmatroEVCAT_CardApprovalAction()
         {
             if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardStop || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardReady || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardInitailizeSuccess
@@ -382,26 +354,6 @@ namespace NPAutoBooth.UI
         #endregion SMATRO_TIT_DIP_EVCAT
         
         #region SMARTRO_VCAT
-
-        private void timerSmartroVCat_Tick(object sender, EventArgs e)
-        {
-
-            if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay)
-            {
-                if (mSmartroVCat.StartSoundTick > 0)
-                {
-                    mSmartroVCat.StartSoundTick -= 1;
-                    if (mSmartroVCat.StartSoundTick == 0)
-                    {
-                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
-                    }
-                }
-            }
-            timerSmartroVCat.Stop();
-            SmartroCardApprovalAction();
-            timerSmartroVCat.Start();
-
-        }
 
         /// <summary>
         /// 스마트로 추가 상태변화
@@ -781,6 +733,7 @@ namespace NPAutoBooth.UI
                             }
                             break;
                         case "b": //거래승인 응답전문
+                        case "c": //거래취소 응답전문
                             ReceiveApproval receiveApproval = pDTO.BodyData as ReceiveApproval;
 
                             if (CurrentNormalCarInfo.PaymentMoney > 0 && CurrentNormalCarInfo.Current_Money == 0)
@@ -795,7 +748,7 @@ namespace NPAutoBooth.UI
                                     NPSYS.CashCreditMoney += CurrentNormalCarInfo.VanAmt;
                                     paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
                                     paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
-                                    TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | timerKICC_DIP_IFM_Tick", "정상적인 카드결제됨");
+                                    TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | TmoneySmartro3500_EventTMoneyData", "정상적인 카드결제됨");
 
                                     if (CurrentNormalCarInfo.PaymentMoney == 0)
                                     {
@@ -803,26 +756,12 @@ namespace NPAutoBooth.UI
                                         CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
                                         //0원 결제완료
                                         PaymentComplete();
-
+                                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardApproval;
                                         return;
                                     }
                                 }
                                 else // 잘못된 티켓
                                 {
-                                    //if (mCurrentNormalCarInfo.VanRescode != KICC_TIT.KICC_USER_CANCLECODE)
-                                    //{
-                                    //    //카드실패전송
-                                    //    if (NPSYS.gUseCardFailSend)
-                                    //    {
-                                    //        DateTime paydate = DateTime.Now;
-                                    //        //카드실패전송
-                                    //        mCurrentNormalCarInfo.PaymentMethod = PaymentType.Fail_Card;
-                                    //        //카드실패전송 완료
-                                    //        Payment currentCar = mHttpProcess.PaySave(mCurrentNormalCarInfo, paydate);
-                                    //    }
-                                    //    //카드실패전송 완료
-                                    //}
-                                    //카드실패전송
                                     if (NPSYS.gUseCardFailSend)
                                     {
                                         DateTime paydate = DateTime.Now;
@@ -832,17 +771,13 @@ namespace NPAutoBooth.UI
                                         Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
                                     }
                                     //카드실패전송 완료
-                                    TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu | timerKICC_DIP_IFM_Tick", "정상적인 카드결제안됨");
+                                    TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu | TmoneySmartro3500_EventTMoneyData", "정상적인 카드결제안됨");
                                     paymentControl.ErrorMessage = _CardpaySuccess.Message;
                                     mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
                                     EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NotCardPay);
                                     return;
                                 }
                             }
-
-                            break;
-                        case "c": //거래취소 응답전문
-                            ReceiveApproval receiveCancelApproval = pDTO.BodyData as ReceiveApproval;
 
                             break;
                         case "d": //카드조회 응답전문
@@ -852,6 +787,13 @@ namespace NPAutoBooth.UI
                         case "f": //카드 UID 읽기 응답전문
                             break;
                         case "@": //이벤트 응답전문
+                            // M : MS카드 인식
+                            // R : RF카드 인식
+                            // I : IC카드 인식
+                            // O : IC카드 제거
+                            // F : IC카드 FallBack
+                            ReceiveEvent receive = pDTO.BodyData as ReceiveEvent;
+                            TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu | TmoneySmartro3500_EventCode", $"{receive.EventCode}");
                             break;
                         case "g": //부가정보 추가 거래승인 응답전문
                             break;

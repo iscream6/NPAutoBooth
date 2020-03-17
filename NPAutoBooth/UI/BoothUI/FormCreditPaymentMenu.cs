@@ -22,6 +22,8 @@ namespace NPAutoBooth.UI
 {
     public partial class FormCreditPaymentMenu : Form, ISubForm
     {
+        #region Member Fields
+
         /// <summary>
         /// Design 추가 이벤트 핸들러(필수)
         /// </summary>
@@ -36,7 +38,7 @@ namespace NPAutoBooth.UI
         private CardDeviceStatus mCardStatus = new CardDeviceStatus();
 
         private ManualResetEvent mCreditCardThreadLock = new ManualResetEvent(true);
-        
+
         private string mCurrentMovieName = string.Empty; // 2016-03-17 카드관련 동영상 떄문에 추가
         private NPSYS.FormType mPreFomrType = NPSYS.FormType.NONE;
         private NPSYS.FormType mCurrentFormType = NPSYS.FormType.Payment;
@@ -59,6 +61,8 @@ namespace NPAutoBooth.UI
 
         public NormalCarInfo CurrentNormalCarInfo { get; set; } = new NormalCarInfo();
 
+        #endregion
+
         #region 폼이동 이벤트
 
         /// <summary>
@@ -79,7 +83,7 @@ namespace NPAutoBooth.UI
         #endregion
 
         #region 생성자
-        
+
         public FormCreditPaymentMenu()
         {
             InitializeComponent();
@@ -166,10 +170,6 @@ namespace NPAutoBooth.UI
             {
                 NPSYS.Device.Smartro_TITDIP_Evcat.QueryResults += SmartroEvcat_QueryResults;
             }
-            else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.SMATRO_TL3500S)
-            {
-                NPSYS.Device.TmoneySmartro3500.EventTMoneyData += TmoneySmartro3500_EventTMoneyData;
-            }
         }
 
         /// <summary>
@@ -190,7 +190,7 @@ namespace NPAutoBooth.UI
             paymentControl.Initialize();
 
             if (!NPSYS.isBoothRealMode) groupTest.Visible = true;
-            
+
             if (NPSYS.gUseMultiLanguage) paymentControl.ForeignLanguageVisible(true);
             else paymentControl.ForeignLanguageVisible(false);
 
@@ -239,9 +239,65 @@ namespace NPAutoBooth.UI
 
         #endregion
 
-        #region Form Initialize
+        #region 폼 컨트롤 이벤트 처리
 
-        
+        /// <summary>
+        /// 처음화면
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btn_home_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                NPSYS.buttonSoundDingDong();
+                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | btn_home_Click", "고객이 홈버튼 누름");
+                if (CurrentNormalCarInfo.ListDcDetail.Count > 0)
+                {
+                    foreach (DcDetail detailDcDetail in CurrentNormalCarInfo.ListDcDetail)
+                    {
+                        if (detailDcDetail.UseYn == true && detailDcDetail.currentDiscountTicketType == DcDetail.DIscountTicketType.BR)
+                        {
+                            mHttpProcess.DiscountCancle(CurrentNormalCarInfo, detailDcDetail);
+                            detailDcDetail.UseYn = false;
+                        }
+                    }
+                }
+                EventExitPayForm(mCurrentFormType);
+            }
+            catch (Exception ex)
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|btn_home_Click", ex.ToString());
+            }
+        }
+
+        /// <summary>
+        /// 이전화면
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btn_PrePage_Click(object sender, EventArgs e)
+        {
+            NPSYS.buttonSoundDingDong();
+            TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu | btn_PrePage_Click", "이전 버튼 클릭");
+            if (CurrentNormalCarInfo.Current_Money > 0)
+            {
+                //CashCancleAction();
+            }
+            if (CurrentNormalCarInfo.ListDcDetail.Count > 0)
+            {
+                foreach (DcDetail detailDcDetail in CurrentNormalCarInfo.ListDcDetail)
+                {
+                    if (detailDcDetail.UseYn == true && detailDcDetail.currentDiscountTicketType == DcDetail.DIscountTicketType.BR)
+                    {
+                        mHttpProcess.DiscountCancle(CurrentNormalCarInfo, detailDcDetail);
+                        detailDcDetail.UseYn = false;
+                    }
+                }
+            }
+            CurrentNormalCarInfo.ListDcDetail = new List<DcDetail>();
+            EventExitPayForm(mCurrentFormType, NPSYS.FormType.Select);
+        }
 
         private void Close_Callback()
         {
@@ -259,12 +315,9 @@ namespace NPAutoBooth.UI
                 axWindowsMediaPlayer1.PlayStateChange -= new AxWMPLib._WMPOCXEvents_PlayStateChangeEventHandler(Player_PlayStateChange);
                 axWindowsMediaPlayer1.MediaError -= new AxWMPLib._WMPOCXEvents_MediaErrorEventHandler(Player_MediaError);
                 axWindowsMediaPlayer1.ErrorEvent -= new EventHandler(player_ErrorEvent);
-
-
             }
             catch (Exception ex)
             {
-
                 TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|FormPaymentMenu", ex.ToString());
             }
 
@@ -278,7 +331,6 @@ namespace NPAutoBooth.UI
                 NPSYS.Device.BarcodeMoter.EventAutoRedingData -= new BarcodeMoter.GetAutoRedingData(BarcodeMotorSerials_EventBarcode);
             }
 
-
             if (NPSYS.Device.gIsUseSinbunReader)
             {
                 NPSYS.Device.SinbunReader.readEvent -= SinbunProcess; // 이벤트
@@ -289,9 +341,262 @@ namespace NPAutoBooth.UI
                 NPSYS.Device.SmtSndRcv.OnTermComplete -= new EventHandler(SmtSndRcv_OnTermComplete);
                 NPSYS.Device.SmtSndRcv.OnTermExit -= new EventHandler(SmtSndRcv_OnTermExit);
             }
-
         }
-        #endregion
+
+        /// <summary>
+        /// 정기권 연장
+        /// </summary>
+        /// <param name="pMonth"></param>
+        private void SetNextRegExipire(int pMonth)
+        {
+            paymentControl.ButtonEnable(ButtonEnableType.AddMonthStart);
+            int pPrePayMoney = CurrentNormalCarInfo.PaymentMoney;
+            CurrentNormalCarInfo.SetRegCurrMonthSetting(pMonth);
+            paymentControl.ElapsedTime = NPSYS.ConvetYears_Dash(CurrentNormalCarInfo.NextExpiredYmd);
+            paymentControl.ParkingFee = TextCore.ToCommaString(CurrentNormalCarInfo.TotFee);
+            paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+            paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
+            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | SetNextRegExipire", "정기권연장일선택 개월수:" + pMonth.ToString() + " 연장가능일:" + NPSYS.ConvetYears_Dash(CurrentNormalCarInfo.NextExpiredYmd));
+
+            if (pPrePayMoney > CurrentNormalCarInfo.PaymentMoney) // 현재 할인되서 금액이 할인됬다면
+            {
+                BeforeChangePayValueAsCardReader();
+                ChangePayValueAsCardReader();
+            }
+
+            paymentControl.ButtonEnable(ButtonEnableType.AddMonthEnd);
+        }
+
+        /// <summary>
+        /// 삼성페이
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnSamSungPay_Click(object sender, EventArgs e)
+        {
+
+            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | btnSamSungPay_Click", "삼성페이 결제버튼 누름");
+
+            if (CurrentNormalCarInfo.PaymentMoney > 0 && CurrentNormalCarInfo.Current_Money == 0
+                && (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KICC_DIP_IFM || NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KOCES_TCM || NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KOCES_PAYMGATE))
+            {
+
+                if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KICC_DIP_IFM)
+                {
+                    try
+                    {
+                        paymentControl.ButtonEnable(ButtonEnableType.SamsumPayStart);
+                        SettingDisableDevice();
+                        if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED || NPSYS.Device.KICC_TIT.GetCardInsert())
+                        {
+                            NPSYS.Device.KICC_TIT.CardEject();
+                            mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
+                        }
+                        Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, CurrentNormalCarInfo);
+                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
+                        if (_CardpaySuccess.Success) // 정상적인 티켓이라면
+                        {
+                            NPSYS.CashCreditCount += 1;
+                            NPSYS.CashCreditMoney += CurrentNormalCarInfo.VanAmt;
+                            paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+                            paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
+                            TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | btnSamSungPay_Click", "정상적인 카드결제됨");
+
+                            if (CurrentNormalCarInfo.PaymentMoney == 0)
+                            {
+                                //카드실패전송
+                                CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
+                                //카드실패전송완료
+                                PaymentComplete();
+
+                                return;
+                            }
+                        }
+                        else // 잘못된 티켓
+                        {
+                            TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu | btnSamSungPay_Click", "정상적인 카드결제안됨 사유 : " + _CardpaySuccess.Message);
+                            paymentControl.ErrorMessage = _CardpaySuccess.Message;
+                            mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
+                            EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NotCardPay);
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu | btnSamSungPay_Click", "KICC 결제중 예외 발생 : 사유 : " + ex.ToString());
+                    }
+                    finally
+                    {
+                        if (CurrentNormalCarInfo.PaymentMoney > 0)
+                        {
+                            SettingEnableDevice();
+                            paymentControl.ButtonEnable(ButtonEnableType.SamsunPayEnd);
+                        }
+                    }
+                }
+                else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KOCES_TCM || NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KOCES_PAYMGATE)
+                {
+                    try
+                    {
+                        paymentControl.ButtonEnable(ButtonEnableType.SamsumPayStart);
+                        SettingDisableDevice();
+                        if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED || KocesTcmMotor.CardState() == 2)
+                        {
+                            KocesTcmMotor.CardEject();
+                            mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
+                        }
+
+                        Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, CurrentNormalCarInfo);
+                        if (_CardpaySuccess.Success)
+                        {
+                            NPSYS.CashCreditCount += 1;
+                            NPSYS.CashCreditMoney += CurrentNormalCarInfo.VanAmt;
+                            paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+                            paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
+                            TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | btnSamSungPay_Click", "정상적인 카드결제됨");
+
+                            if (CurrentNormalCarInfo.PaymentMoney == 0)
+                            {
+                                //카드실패전송
+                                CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
+                                //카드실패전송완료
+                                PaymentComplete();
+
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu | btnSamSungPay_Click", "정상적인 카드결제안됨");
+                            paymentControl.ErrorMessage = _CardpaySuccess.Message;
+                            mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
+                            EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NotCardPay);
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu | btnSamSungPay_Click", "KOCES 결제중 예외 발생 : 사유 : " + ex.ToString());
+                    }
+                    finally
+                    {
+                        if (CurrentNormalCarInfo.PaymentMoney > 0)
+                        {
+                            SettingEnableDevice();
+                            paymentControl.ButtonEnable(ButtonEnableType.SamsunPayEnd);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | btnSamSungPay_Click", "삼성페이 결제되지 않는장비임");
+            }
+        }
+
+        private void btn_CashCancle_Click(object sender, EventArgs e)
+        {
+            if (CurrentNormalCarInfo.PaymentMoney == 0 || CurrentNormalCarInfo.Current_Money == 0)
+            {
+                return;
+            }
+            inputtime = NPSYS.SettingInputTimeValue;
+            NPSYS.buttonSoundDingDong();
+            TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu|btn_CashCancle_Click", "현금 취소버튼누름");
+            CashCancleAction();
+        }
+
+        /// <summary>
+        /// 취소시 할인금액을 제외한 주차요금 관련 변수 초기화 시킴 
+        /// </summary>
+        private void CashCancleAction()
+        {
+            try
+            {
+                if (CurrentNormalCarInfo.Current_Money > 0)  // 투입된 금액이 있다면
+                {
+                    paymentControl.ButtonEnable(ButtonEnableType.CashCancle);
+                    SettingDisableDevice();
+
+                    PaymentResult result = CancleRefundMoneyAction();
+
+                    if (result == PaymentResult.Success) // 지폐나 동전불출할수 있으면
+                    {
+                        CurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.CancelOut; //시제설정누락처리
+                        TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymentMenu | Payment", "취소시 결제처리 전송시작");
+                        DateTime paydate = DateTime.Now;
+                        //카드실패전송
+                        CurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
+                        //카드실패전송완료
+                        Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
+                        if (currentCar.status.Success == false)
+                        {
+                            // DB에 저장하고 재전송처리해야함
+                            return;
+                        }
+
+                        CurrentNormalCarInfo.CanCleClear();
+                        NormalCarInfo lCanclecarInfo = new NormalCarInfo();
+                        lCanclecarInfo.CurrentPayment = CommonFuction.Clone<Payment>(currentCar);
+                        lCanclecarInfo.SetCurrentPayment(NormalCarInfo.PaymentSetType.NormalPaymnet);
+                        SetCarInfo(lCanclecarInfo);
+                        paymentControl.CancelButtonVisible = false;
+
+
+                    }
+                    else
+                    {
+                        paymentControl.CancelButtonVisible = false;
+                        //카드실패전송
+                        CurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
+                        //카드실패전송완료
+                        CurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.CancelNotOut; //시제설정누락처리
+                        TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymentMenu | Payment", "취소시 결제처리 전송시작");
+                        DateTime paydate = DateTime.Now;
+                        Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
+                        if (currentCar.status.Success == false)
+                        {
+                            // DB에 저장하고 재전송처리해야함
+                            return;
+                        }
+                        ReceiptCancleErrorActions();
+                        CurrentNormalCarInfo.CanCleClear();
+                        NormalCarInfo lCanclecarInfo = new NormalCarInfo();
+                        lCanclecarInfo.CurrentPayment = CommonFuction.Clone<Payment>(currentCar);
+                        lCanclecarInfo.SetCurrentPayment(NormalCarInfo.PaymentSetType.NormalPaymnet);
+                        SetCarInfo(lCanclecarInfo);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|btn_CashCancle_Click", ex.ToString());
+            }
+            finally
+            {
+                paymentControl.ButtonEnable(ButtonEnableType.CashCancleStop);
+                SettingEnableDevice();
+            }
+        }
+
+        private void FormPaymentMenu_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            try
+            {
+                //SettingDisableEvent();
+                //axWindowsMediaPlayer1.Ctlcontrols.stop();
+                //axWindowsMediaPlayer1.close();
+
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymentMenu|FormPaymentMenu_FormClosed", "요금화면 처리작업 종료");
+                //this.Close();
+            }
+            catch (Exception ex)
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|FormPaymentMenu_FormClosed", ex.ToString());
+            }
+        }
+
+        #endregion 폼 컨트롤 이벤트 처리
 
         #region 폼 활성화 시작/폼 활성화 종료시 호출함수
 
@@ -481,9 +786,9 @@ namespace NPAutoBooth.UI
             }
         }
 
-        #endregion //==========
+        #endregion 폼 활성화 시작/폼 활성화 종료시 호출함수
 
-        #region 폼활성화 / 종료시 장비동작처리 
+        #region 결제 동작 처리
 
         /// <summary>
         /// 결제 시작시 장비 동작처리
@@ -572,6 +877,9 @@ namespace NPAutoBooth.UI
                     break;
                 case ConfigID.CardReaderType.SMATRO_TL3500S:
                     if (NPSYS.Device.TmoneySmartro3500 == null) NPSYS.Device.TmoneySmartro3500 = new Smartro_TL3500S();
+
+                    NPSYS.Device.TmoneySmartro3500.EventTMoneyData += TmoneySmartro3500_EventTMoneyData;
+
                     if (!NPSYS.Device.TmoneySmartro3500.IsConnect)
                     {
                         //다시 연결 시도
@@ -605,18 +913,26 @@ namespace NPAutoBooth.UI
                         Thread.Sleep(100); //잠시 대기
                         //결제 요청 전문 송신
                         //0원 결제일 경우를 제외시켜야 함.
-                        if(CurrentNormalCarInfo.PaymentMoney != 0)
+                        if (CurrentNormalCarInfo.PaymentMoney != 0)
                         {
-                            if(CurrentNormalCarInfo.CurrentCarPayStatus  == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar ||
+                            if (CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar ||
                                 CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar)
                             {
+                                //취소금액
+                                string cancelPaymentMoney = CurrentNormalCarInfo.PaymentMoney.ToString();
+                                //취소 승인일시
+                                string cancelDateTime = CurrentNormalCarInfo.VanDate_Cancle.Replace("-", "") + CurrentNormalCarInfo.VanTime_Cancle.Replace(":", "");
+                                //취소할 승인번호
+                                string cancelNumber = CurrentNormalCarInfo.VanRegNo_Cancle;
+                                
                                 //결제 취소 요청
-                                NPSYS.Device.TmoneySmartro3500.RequestApprovalCancle(CurrentNormalCarInfo.PaymentMoney.ToString(), CurrentNormalCarInfo.VanDate_Cancle.Replace("-", ""));
+                                NPSYS.Device.TmoneySmartro3500.RequestApprovalCancle(cancelPaymentMoney, cancelDateTime, cancelNumber);
                             }
                             else
                             {
                                 //결제 승인 요청
                                 NPSYS.Device.TmoneySmartro3500.RequestApproval(CurrentNormalCarInfo.PaymentMoney.ToString());
+                                //NPSYS.Device.TmoneySmartro3500.RequestApprovalCancle("2500", "20200317124737", "31298213"); //결제취소 테스트
                             }
                         }
                         else
@@ -695,182 +1011,782 @@ namespace NPAutoBooth.UI
                     UnsetSmatro_DIPTIT_Evcat();
                     break;
                 case ConfigID.CardReaderType.SMATRO_TL3500S:
+                    //결제 금액이 떠 있을 수 있으므로 결제 대기 상태로 전문을 전송한다.
+                    NPSYS.Device.TmoneySmartro3500.RequestApprovalWait(); //음성 : 취소되었습니다.
                     NPSYS.Device.TmoneySmartro3500.EventTMoneyData -= TmoneySmartro3500_EventTMoneyData;
                     break;
             }
 
         }
-        #endregion
 
-        #region 언어변경
         /// <summary>
-        /// 언어변경
+        /// 주차요금을 모두 고객이 지불했을시 실행되며 영수증 폼으로 이동
         /// </summary>
-        public void SetLanguage(NPCommon.ConfigID.LanguageType pLanguageType)
+        private void PaymentComplete()
         {
-
-            Control[] currentControl = GetAllControlsUsingRecursive(this);
-            foreach (Control controlItem in currentControl)
+            try
             {
 
-                switch (controlItem)
+                PaymentEndAction();
+                CashRecipt();
+                if (CurrentNormalCarInfo.GetInComeMoney > 0)
                 {
-                    case Label labelType:
-                        if (labelType.Tag != null && labelType.Tag.ToString().Trim().Length > 0)
-                        {
+                    if (CompletOutChargeAction() != PaymentResult.Success)
+                    {
+                        //시제설정누락처리
+                        CurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.SuccessNotOut; //시제설정누락처리
+                        ReceiptChargeErrorActions();
+                        //카드실패전송
+                        CurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
+                        //카드실패전송완료
 
-                            labelType.Text = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.transaction, labelType.Tag.ToString());
-                        }
-                        break;
-                    case ImageButton imageButtonType:
-                        if (imageButtonType.Tag != null && imageButtonType.Tag.ToString().Trim().Length > 0)
-                        {
-                            imageButtonType.Text = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.transaction, imageButtonType.Tag.ToString());
-                        }
-                        break;
-                    case TextBox textBoxType:
-                        if (textBoxType.Tag != null && textBoxType.Tag.ToString().Trim().Length > 0)
-                        {
-                            textBoxType.Text = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.transaction, textBoxType.Tag.ToString());
-                        }
-                        break;
-                    case Button buttoType:
-                        if (buttoType.Tag != null && buttoType.Tag.ToString().Trim().Length > 0)
-                        {
-                            buttoType.Text = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.transaction, buttoType.Tag.ToString());
-                        }
-                        break;
-
-
+                    }
                 }
 
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymentMenu | Payment", "결제처리 전송시작");
+                DateTime paydate = DateTime.Now;
+                Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
+                if (currentCar.status.Success == false)
+                {
+                    // DB에 저장하고 재전송처리해야함
+                    return;
+                }
+                NormalCarInfo SendcarInfo = new NormalCarInfo();
+                SendcarInfo = CommonFuction.Clone<NormalCarInfo>(CurrentNormalCarInfo);
+                EventExitPayForm_NextReceiptForm(mCurrentFormType, NPSYS.FormType.Receipt, SendcarInfo);
+                return;
+
             }
-            SetLanuageDynamic(pLanguageType);
-        }
-
-        private void SetLanuageDynamic(NPCommon.ConfigID.LanguageType pLanguageType)
-        {
-            paymentControl.SetLanguage(pLanguageType, CurrentNormalCarInfo);
-
-            //m_DiscountAndPayAndCreditAndTMoneyMovie = "할인권_현금_신용카드_교통카드.avi";
-            m_DiscountAndPayAndCreditAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Discount_Cash_Card_Tmoney.ToString());
-
-            //m_PayAndCreditAndTMoneyMovie = "현금_신용카드_교통카드.avi";
-            m_PayAndCreditAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Cash_Card_Tmoney.ToString());
-            //m_DiscountAndCreditAndTMoneyMovie = "할인권_신용카드_교통카드.avi";
-            m_DiscountAndCreditAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Discount_Card_Tmoney.ToString());
-
-            //m_CreditAndTmoneyMovie = "신용카드_교통카드.avi";
-            m_CreditAndTmoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Card_Tmoney.ToString());
-
-            // m_DiscountAndPayAndCreditMovie = "할인권_현금_신용카드.avi";
-            m_DiscountAndPayAndCreditMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Discount_Cash_Card.ToString());
-
-            //m_PayAndCreditMovie = "현금_신용카드.avi";
-            m_PayAndCreditMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Cash_Card.ToString());
-
-            //m_DiscountAndPayMovie = "할인권_현금.avi";
-            m_DiscountAndPayMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Discount_Cash.ToString());
-
-            // m_PayMovie = "현금.avi";
-            m_PayMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Cash.ToString());
-
-            //m_CreditMovie = "신용카드.avi";
-            m_CreditMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Card.ToString());
-
-            //m_DiscountAndCreditMovie = "할인권_신용카드.avi";
-            m_DiscountAndCreditMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Discount_Card.ToString());
-
-            //m_DiscountAndTmoneyMovie = "할인권_교통카드.avi";
-            m_DiscountAndTmoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Discount_Tmoney.ToString());
-
-            //m_TmoneyMovie = "교통카드.avi";
-            m_TmoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Tmoney.ToString());
-
-
-            //m_DiscountMovie = "할인권.avi";
-            m_DiscountMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Discount.ToString());
-
-            //m_JuminDIscountMovie = "감면혜택.wav";
-            m_JuminDIscountMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DiscountReduce.ToString());
-
-            // m_Junggi = "정기권연장.wav";
-            m_Junggi = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_CommuterExtendedPeriod.ToString());
-
-            //m_CancleCard = "카드취소.wav";
-            m_CancleCard = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_CardCancle.ToString());
-
-            //m_DiscountBarcodeCreditMovie = "할인권바코드_신용카드.wav";
-            m_DiscountBarcodeCreditMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DiscountBarcode_Card.ToString());
-
-            //m_BarAndDiscountAndCreditAndPayAndTMoneyMovie = "바코드_할인권_신용카드_현금_교통카드.wav";
-            m_BarAndDiscountAndCreditAndPayAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Discount_Card_Cash_Tmoney.ToString());
-
-            //m_BarAndCreditAndPayAndTMoneyMovie = "바코드_신용카드_현금_교통카드.wav";
-            m_BarAndCreditAndPayAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Card_Cash_Tmoney.ToString());
-
-            //m_BarAndDiscountAndPayAndTMoneyMovie = "바코드_할인권_현금_교통카드.wav";
-            m_BarAndDiscountAndPayAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Discount_Cash_Tmoney.ToString());
-
-            //m_BarAndPayAndTMoneyMovie = "바코드_현금_교통카드.wav";
-            m_BarAndPayAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Cash_Tmoney.ToString());
-
-            //m_BarAndDiscountAndCreditAndPayMovie = "바코드_할인권_신용카드_현금.wav";
-            m_BarAndDiscountAndCreditAndPayMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Discount_Card_Cash.ToString());
-
-            //m_BarAndCreditAndPayMovie = "바코드_신용카드_현금.wav";
-            m_BarAndCreditAndPayMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Card_Cash.ToString());
-
-            //m_BarAndDiscountAndPayMovie = "바코드_할인권_현금.wav";
-            m_BarAndDiscountAndPayMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Discount_Cash.ToString());
-
-            // m_BarAndPayMovie = "바코드_현금.wav";
-            m_BarAndPayMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Cash.ToString());
-
-            //m_BarAndDiscountAndCreditAndTMoneyMovie = "바코드_할인권_신용카드_교통카드.wav";
-            m_BarAndDiscountAndCreditAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Discount_Card_Tmoney.ToString());
-
-            //m_BarAndCreditAndTMoneyMovie = "바코드_신용카드_교통카드.wav";
-            m_BarAndCreditAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Card_Tmoney.ToString());
-
-            //m_BarAndDiscountAndTMoneyMovie = "바코드_할인권_교통카드.wav";
-            m_BarAndDiscountAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Discount_Tmoney.ToString());
-
-            //m_BarAndDiscountAndCreditMovie = "바코드_할인권_신용카드.wav";
-            m_BarAndDiscountAndCreditMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Discount_Card.ToString());
-
-            //m_BarAndCreditMovie = "바코드_신용카드.wav";
-            m_BarAndCreditMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Card.ToString());
-
-            //m_BarAndTMoneyMovie = "바코드_교통카드.wav";
-            m_BarAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Tmoney.ToString());
-
-            Action_DeviceEnableMovie();
-        }
-
-        private Control[] GetAllControlsUsingRecursive(Control containerControl)
-        {
-            List<Control> allControls = new List<Control>();
-            foreach (Control control in containerControl.Controls)
+            catch (Exception ex)
             {
-                //자식 컨트롤을 컬렉션에 추가한다
-                allControls.Add(control);
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|Payment", ex.ToString());
+                paymentControl.ErrorMessage = "Payment():" + ex.ToString();
+            }
+        }
+        /// <summary>
+        /// 현금영수증 처리
+        /// </summary>
+        /// <returns></returns>
+        private bool CashRecipt()
+        {
+            if (NPSYS.Device.UsingUsingSettingCashReceipt && CurrentNormalCarInfo.Current_Money > 0) // 현금영수증 사용이라면
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CashRecipt", "[현금영수증 처리시도]");
+                Result cashResult = m_PayCardandCash.CashRecipt(CurrentNormalCarInfo);
+                return cashResult.Success;
+            }
+            return false;
+        }
 
-                //만일 자식 컨트롤이 또 다른 자식 컨트롤을 가지고 있다면…
-                if (control.Controls.Count > 0)
+        private void PaymentEndAction()
+        {
+            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | PaymentEndAction", "[PaymentEndAction]");
+            paymentControl.ButtonEnable(ButtonEnableType.PayFormEnd);
+            mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardStop;
+            SettingDisableDevice();
+        }
+
+        #endregion 결제 동작 처리
+
+        #region 타이머 Tick Event Handler
+
+        private int inputtime = NPSYS.SettingInputTimeValue;
+
+        /// <summary>
+        /// 일정시간 화면 닫기 타이머
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void inputTimer_Tick(object sender, EventArgs e)
+        {
+            if (inputtime < 0)
+            {
+                inputtime = 50000000;
+                TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu | inputTimer_Tick", "시간이지나서 처음으로 돌아감");
+                CashCancleFormCloseAction(false);
+                if (CurrentNormalCarInfo.ListDcDetail.Count > 0)
                 {
-                    //자신을 재귀적으로 호출한다
-                    allControls.AddRange(GetAllControlsUsingRecursive(control));
+                    foreach (DcDetail detailDcDetail in CurrentNormalCarInfo.ListDcDetail)
+                    {
+                        if (detailDcDetail.UseYn == true && detailDcDetail.currentDiscountTicketType == DcDetail.DIscountTicketType.BR)
+                        {
+                            mHttpProcess.DiscountCancle(CurrentNormalCarInfo, detailDcDetail);
+                            detailDcDetail.UseYn = false;
+                        }
+                    }
+                }
+                CurrentNormalCarInfo.ListDcDetail = new List<DcDetail>();
+                EventExitPayForm(mCurrentFormType);
+                return;
+
+            }
+            inputtime = inputtime - 3000;
+        }
+
+        /// <summary>
+        /// 신용카드 리더기 타이머
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void timerAutoCardReading_Tick(object sender, EventArgs e)
+        {
+            timerAutoCardReading.Stop();
+            try
+            {
+                switch (NPSYS.Device.GetCurrentUseDeviceCard())
+                {
+                    case ConfigID.CardReaderType.FIRSTDATA_DIP:
+                        CardActionFirstDataDip();
+                        break;
+                    case ConfigID.CardReaderType.KICC_DIP_IFM:
+                        CardActionKiccDip();
+                        break;
+                    case ConfigID.CardReaderType.KOCES_PAYMGATE:
+                        CardActionKocesPayMGate();
+                        break;
+                    case ConfigID.CardReaderType.KOCES_TCM:
+                        CardActionKocesTcm();
+                        break;
+                }
+            }
+            catch
+            {
+            }
+            finally
+            {
+                if (CurrentNormalCarInfo.PaymentMoney != 0)
+                {
+                    timerAutoCardReading.Start();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 동전/지폐 리더기 타이머
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void tmrReadAccount_Tick(object sender, EventArgs e)
+        {
+            tmrReadAccount.Stop();
+
+            if (!NPSYS.Device.isUseDeviceBillReaderDevice && !NPSYS.Device.isUseDeviceCoinReaderDevice)  // 지폐 및 동전 리더기 둘다 동시 작동이 안될때
+            {
+                tmrReadAccount.Enabled = false;
+                return;
+            }
+            try
+            {
+                tmrReadAccount.Stop();
+
+                string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                if (NPSYS.Device.isUseDeviceCoinReaderDevice)
+                {
+                    //동전연속투입관련 변경
+                    if (NPSYS.Device.CoinReader.mLIstQty.Count > 0)
+                    {
+                        string coinmessage = NPSYS.Device.CoinReader.mLIstQty[0].ToString();
+                        NPSYS.Device.CoinReader.mLIstQty.RemoveAt(0);
+                        TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu|tmrReadAccount_Tick", "동전 넣음");
+                        TextCore.ACTION(TextCore.ACTIONS.COINREADER, "FormPaymentMenu|tmrReadAccount_Tick", "동전 들어옴");
+                        InsertMoney(coinmessage);
+                    }
+                }
+
+                //동전연속투입관련 변경
+                if (BillReader.g_billValue.Trim() != "")
+                {
+                    string billValue = BillReader.g_billValue;
+                    BillReader.g_billValue = "";
+                    if (billValue.ToUpper().Trim() == "REJECT")
+                    {
+                        NPSYS.Device.BillReader.BillReject();
+                        TextCore.ACTION(TextCore.ACTIONS.BILLREADER, "FormPaymentMenu|tmrReadAccount_Tick", "지폐불량으로 리젝트");
+                    }
+                    else
+                    {
+                        BillReader.BillRederStatusType currentInsertStatus = BillReader.BillRederStatusType.OK;
+                        TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu|tmrReadAccount_Tick", "지폐 넣음:" + billValue);
+                        if (NPSYS.SettingUse50000QtyBill == true)
+                        {
+                            currentInsertStatus = NPSYS.Device.BillReader.BillAccept();
+                            if (currentInsertStatus == BillReader.BillRederStatusType.OK)
+                            {
+                                InsertMoney(billValue);
+                            }
+                            else
+                            {
+                                currentInsertStatus = NPSYS.Device.BillReader.BillReject();
+                                TextCore.ACTION(TextCore.ACTIONS.BILLREADER, "FormPaymentMenu | tmrReadAccount_Tick", "지폐불량으로 리젝트:" + currentInsertStatus.ToString());
+                            }
+                        }
+                        else if (billValue.ToUpper() == "50000QTY")
+                        {
+                            currentInsertStatus = NPSYS.Device.BillReader.BillReject(); ;
+                            TextCore.ACTION(TextCore.ACTIONS.BILLREADER, "FormPaymentMenu | tmrReadAccount_Tick", "5만원권 사용불가처리로 리젝트:" + currentInsertStatus.ToString());
+                        }
+                        else
+                        {
+                            currentInsertStatus = NPSYS.Device.BillReader.BillAccept();
+                            if (currentInsertStatus == BillReader.BillRederStatusType.OK)
+                            {
+                                InsertMoney(billValue);
+                            }
+                            else
+                            {
+                                currentInsertStatus = NPSYS.Device.BillReader.BillReject();
+                                TextCore.ACTION(TextCore.ACTIONS.BILLREADER, "FormPaymentMenu | tmrReadAccount_Tick", "지폐불량으로 리젝트:" + currentInsertStatus.ToString());
+                            }
+                        }
+                    }
+                }
+
+                if (CurrentNormalCarInfo.Current_Money > 0)
+                {
+                    paymentControl.CancelButtonVisible = true;
+                }
+                else
+                {
+                    paymentControl.CancelButtonVisible = false;
+                }
+
+                if (CurrentNormalCarInfo.Current_Money == 0)
+                {
+                    tmrReadAccount.Start();
+                    return;
+                }
+
+                if (CurrentNormalCarInfo.PaymentMoney == 0)
+                {
+                    //카드실패전송
+                    CurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
+                    //카드실패전송완료
+                    PaymentComplete();
+
+                    return;
+                }
+
+                tmrReadAccount.Start();
+                return;
+            }
+            catch (Exception ex)
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|tmrReadAccount_Tick", ex.ToString());
+                tmrReadAccount.Start();
+            }
+            finally
+            {
+
+            }
+        }
+
+        /// <summary>
+        /// 마그네틱 할인권 리더기 타이머
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void timer_CardReader2_Tick(object sender, EventArgs e)
+        {
+            int lTicketActionResult = 0;
+
+            if (!NPSYS.Device.gIsUseMagneticReaderDevice)
+            {
+                timer_CardReader2.Enabled = false;
+                return;
+            }
+            try
+            {
+                // 2016.10.27 KIS_DIP 추가
+                if (CurrentNormalCarInfo.Current_Money > 0
+                    || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardPaySuccess
+                    || CurrentNormalCarInfo.VanAmt > 0)
+                {
+                    return;
+                }
+                // 2016.10.27 KIS_DIP 추가종료
+
+                Result _TIcketStatus = NPSYS.Device.CardDevice2.GetStatus();
+                if (_TIcketStatus.Success == false)  // 티켓장비가 정상이 아니면
+                {
+                    if (NPSYS.Device.CardDevice2.IsCreditCardSuccessStatus(_TIcketStatus.ReultIntMessage))
+                    {
+                        if (_TIcketStatus.ReultIntMessage == (int)TicketCardDevice.TicketAndCardResult.Read_and_Verify_Fail)
+                        {
+                            NPSYS.Device.CardDevice2.TIcketFrontEject();
+                            TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "신용카드상태체크에러:" + "잘못들어갔을때 발생:" + _TIcketStatus.Message);
+                            TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:");
+                            Thread.Sleep(5000);
+                            return;
+                        }
+                        TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "신용카드상태체크에러:" + "잘못들어갔거나 비었을때 발생:" + _TIcketStatus.Message);
+                        return;
+                    }
+                    NPSYS.Device.CardDevice2.TIcketFrontEject(); //카드 앞으로 배출
+
+                    TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "카드장비 소프트리셋:" + _TIcketStatus.Message);
+                    _TIcketStatus = NPSYS.Device.CardDevice2.SoftResetCreditDevice();
+                    TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "카드장비 소프트리셋 결과:" + _TIcketStatus.Message);
+                    Thread.Sleep(3000);
+                    _TIcketStatus = NPSYS.Device.CardDevice2.GetStatus();
+                    if (_TIcketStatus.Success == false)  // 티켓장비가 정상이 아니면
+                    {
+
+                        if (NPSYS.Device.CardDevice2.IsCreditCardSuccessStatus(_TIcketStatus.ReultIntMessage))
+                        {
+                            if (_TIcketStatus.ReultIntMessage == (int)TicketCardDevice.TicketAndCardResult.Read_and_Verify_Fail)
+                            {
+                                NPSYS.Device.CardDevice2.TIcketFrontEject();
+                                TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "신용카드상태체크에러:" + "잘못들어갔을때 발생:" + _TIcketStatus.Message);
+                                TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:");
+                                TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "카드장비 소프트리셋");
+                                _TIcketStatus = NPSYS.Device.CardDevice2.SoftResetCreditDevice();
+                                TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "카드장비 소프트리셋 결과:" + _TIcketStatus.Message);
+                                Thread.Sleep(3000);
+                                NPSYS.Device.CardDevice2.CurrentTicketCardDeviceStatusManageMent.SetDeviceStatus(TicketCardDevice.TicketAndCardResult.OK, true);
+
+                                return;
+                            }
+                            TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "신용카드상태체크에러:" + "잘못들어갔거나 비었을때 발생:" + _TIcketStatus.Message);
+                            NPSYS.Device.CardDevice2.CurrentTicketCardDeviceStatusManageMent.SetDeviceStatus(TicketCardDevice.TicketAndCardResult.OK, true);
+                            return;
+                        }
+
+
+                        NPSYS.Device.CardDevice2.CurrentTicketCardDeviceStatusManageMent.SetDeviceStatus((TicketCardDevice.TicketAndCardResult)_TIcketStatus.ReultIntMessage, false);
+
+                        NPSYS.Device.CreditCardDeviceErrorMessage2 = _TIcketStatus.Message;
+                        SetLanuageDynamic(NPSYS.CurrentLanguageType);
+                        NPSYS.LedLight();
+                        StartTicketCardRead();
+                        TextCore.DeviceError(TextCore.DEVICE.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", _TIcketStatus.Message);
+                        // CommProtocol.MakeDevice_RestfulStatus(CommProtocol.device.CA2, _TIcketStatus.ReultIntMessage); // 희주주석
+
+                        return;
+                    }
+                }
+
+                Result _result = NPSYS.Device.CardDevice2.readingTicketCardStart(); //카드 읽기
+                Result l_ReadingTrackdata = NPSYS.Device.CardDevice2.readingTicketCardEnd();
+
+                timer_CardReader2.Stop(); //Timer 잠시 멈춤
+                paymentControl.ErrorMessage = string.Empty;
+
+                //카드 읽기 결과에 문제가 없고 정기권 차량일 경우
+                if (l_ReadingTrackdata.ReultIntMessage != (int)TicketCardDevice.TicketAndCardResult.No_Return_Sensor_Ticket
+                    && l_ReadingTrackdata.ReultIntMessage != (int)TicketCardDevice.TicketAndCardResult.Empy
+                    && (
+                        CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Outcar_Season
+                        || CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Precar_Season
+                        )
+                    )
+                {
+                    lTicketActionResult = NPSYS.Device.CardDevice2.TIcketFrontEject(); //카드 앞으로 배출
+                    TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:" + lTicketActionResult.ToString());
+                    System.Threading.Thread.Sleep(200);
+                    EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NoRegExtensDiscount);
+                    return;
+                }
+
+                if (l_ReadingTrackdata.Success)    // 카드 또는 티켓이 삽입된 상태이고 정보값을 읽었다면
+                {
+                    inputtime = paymentInputTimer;
+
+                    if (l_ReadingTrackdata.CurrentReadingType == Result.ReadingTypes.DiscountTIcket)  // 티켓정보라면
+                    {
+                        if (!NPSYS.Device.UsingSettingDiscountCard)   // 할인권 설정에서 사용안함일때 VCat사용시
+                        {
+                            lTicketActionResult = NPSYS.Device.CardDevice2.TIcketFrontEject();
+                            TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:" + lTicketActionResult.ToString());
+                            System.Threading.Thread.Sleep(200);
+                            EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NoDiscountTicket);
+                            return;
+                        }
+
+                        Payment paymentAfterDisocunt = mHttpProcess.Discount(CurrentNormalCarInfo, DcDetail.DIscountTicketType.MI, l_ReadingTrackdata.Message);
+
+                        //=========== 할인권 처리 ==============
+                        if (paymentAfterDisocunt.status.Success) // 정상적인 티켓이라면
+                        {
+                            int prepayment = CurrentNormalCarInfo.PaymentMoney;
+
+                            CurrentNormalCarInfo.ParkingMin = paymentAfterDisocunt.parkingMin;
+                            CurrentNormalCarInfo.TotFee = Convert.ToInt32(paymentAfterDisocunt.totFee);
+                            CurrentNormalCarInfo.TotDc = Convert.ToInt32(paymentAfterDisocunt.totDc);
+                            CurrentNormalCarInfo.Change = Convert.ToInt32(paymentAfterDisocunt.change); //시제설정누락처리
+                            CurrentNormalCarInfo.RecvAmt = Convert.ToInt32(paymentAfterDisocunt.recvAmt); //시제설정누락처리
+                            CurrentNormalCarInfo.DcCnt = paymentAfterDisocunt.dcCnt;
+                            CurrentNormalCarInfo.RealFee = Convert.ToInt32(paymentAfterDisocunt.realFee);
+                            //할인권 입수수량 표출
+                            paymentControl.DiscountInputCount = (Convert.ToInt32(paymentControl.DiscountInputCount) + 1).ToString();
+                            //할인권 입수수량 표출 주석완료
+
+                            //요금할인권처리
+                            paymentControl.ParkingFee = TextCore.ToCommaString(CurrentNormalCarInfo.TotFee.ToString());
+                            paymentControl.RecvMoney = TextCore.ToCommaString((CurrentNormalCarInfo.RecvAmt - CurrentNormalCarInfo.Change).ToString()); //시제설정누락처리
+
+                            TextCore.INFO(TextCore.INFOS.DISCOUNTTICEKT_SUCCESS, "FormPaymentMenu|timer_CardReader2_Tick", "결제성공");
+                            lTicketActionResult = NPSYS.Device.CardDevice2.TIcketBackEject();
+                            TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 뒤로배출:" + lTicketActionResult.ToString());
+                            paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+                            paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
+
+                            if (prepayment == CurrentNormalCarInfo.PaymentMoney)
+                            {
+                                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|timer_CardReader1_Tick", "할인에 성공했지만 할인금액이 없음");
+                                return;
+                            }
+
+                            //할인 요금 적용 전 카드결제 동작 중지
+                            BeforeChangePayValueAsCardReader();
+
+                            if (CurrentNormalCarInfo.PaymentMoney == 0)
+                            {
+                                //카드실패전송
+                                CurrentNormalCarInfo.PaymentMethod = PaymentType.DiscountCard;
+                                //카드실패전송완료
+                                PaymentComplete();
+
+                                // db에 저장
+                                // 영수증 출력화면
+                                return;
+                            }
+                            else
+                            {
+                                //할인 요금 적용 된 상태로 카드결제 동작 시작
+                                ChangePayValueAsCardReader();
+                            }
+                        }
+                        else // 잘못된 티켓
+                        {
+                            lTicketActionResult = NPSYS.Device.CardDevice2.TIcketFrontEject();
+                            TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:" + lTicketActionResult.ToString());
+                            System.Threading.Thread.Sleep(200);
+
+                            if (paymentAfterDisocunt.status.currentStatus == Status.BodyStatus.DiscountMod_NotAdd)
+                            {
+                                //할인권 수량 제한
+                                EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NoAddDiscountTIcket);
+                                return;
+                            }
+                            else if (paymentAfterDisocunt.status.currentStatus == Status.BodyStatus.Discount_PreUsed)
+                            {
+                                //동일 할인권 사용 제한
+                                EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.DuplicateDiscountTicket);
+                                return;
+                            }
+                            else
+                            {
+                                //잘못된 할인권
+                                EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NoDiscountTicket);
+                                return;
+                            }
+                        }
+                    }
+                    else if (l_ReadingTrackdata.CurrentReadingType == Result.ReadingTypes.CreditCard)   // 카드정보라면
+                    {
+                        lTicketActionResult = NPSYS.Device.CardDevice2.TIcketFrontEject();
+                        TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "카드 앞으로 배출:" + lTicketActionResult.ToString());
+                        System.Threading.Thread.Sleep(500);
+                        inputtime = paymentInputTimer;
+                        EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NotCardPay);
+                        return;
+                    }
+                    else
+                    {
+                        lTicketActionResult = NPSYS.Device.CardDevice2.TIcketFrontEject();
+                        TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "카드 앞으로 배출:" + lTicketActionResult.ToString());
+                        System.Threading.Thread.Sleep(500);
+                        TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu|timer_CardReader2_Tick", l_ReadingTrackdata.CurrentReadingType.ToString());
+                        EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NotCardPay);
+                        return;
+                    }
+                }
+                else if (l_ReadingTrackdata.ReultIntMessage == (int)TicketCardDevice.TicketAndCardResult.No_TICEKT)
+                {
+                    paymentControl.ErrorMessage = "투입방향 오류.투입방향을 확인하세요";
+                    TextCore.INFO(TextCore.INFOS.DISCOUNTTICEKT_ERRPR, "FormPaymentMenu|timer_CardReader2_Tick", "투입방향 오류.투입방향을 확인하세요");
+                    NPSYS.Device.CardDevice2.TIcketFrontEject();
+                    TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:" + lTicketActionResult.ToString());
+                    System.Threading.Thread.Sleep(500);
+                    EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.CorrectCard);
+                    return;
+
+                }
+                else if (l_ReadingTrackdata.ReultIntMessage == (int)TicketCardDevice.TicketAndCardResult.Read_and_Verify_Fail)
+                {
+                    paymentControl.ErrorMessage = "투입방향 오류.투입방향을 확인하세요";
+                    TextCore.INFO(TextCore.INFOS.DISCOUNTTICEKT_ERRPR, "FormPaymentMenu|timer_CardReader2_Tick", "투입방향 오류.투입방향을 확인하세요");
+                    NPSYS.Device.CardDevice2.TIcketFrontEject();
+                    TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:" + lTicketActionResult.ToString());
+                    System.Threading.Thread.Sleep(500);
+
+                    EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NotCardPay);
+                    return;
+                }
+
+                else if (l_ReadingTrackdata.ReultIntMessage == (int)TicketCardDevice.TicketAndCardResult.No_Return_Sensor_Ticket || l_ReadingTrackdata.ReultIntMessage == (int)TicketCardDevice.TicketAndCardResult.Empy)
+                {
+                    // TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "else if:" + l_ReadingTrackdata.ReultIntMessage);
+                }
+                else
+                {
+                    paymentControl.ErrorMessage = l_ReadingTrackdata.Message;
+                    TextCore.INFO(TextCore.INFOS.DISCOUNTTICEKT_ERRPR, "FormPaymentMenu|timer_CardReader2_Tick", l_ReadingTrackdata.Message);
+                    NPSYS.Device.CardDevice2.TIcketFrontEject();
+                    TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:");
+                }
+            }
+            catch (Exception ex)
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|timer_CardReader2_Tick", ex.ToString());
+                paymentControl.ErrorMessage = "timer_CardReader2_Tick():" + ex.ToString();
+            }
+            finally
+            {
+                if (NPSYS.Device.gIsUseMagneticReaderDevice && CurrentNormalCarInfo.PaymentMoney > 0)
+                {
+                    timer_CardReader2.Start();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 바코드할인 타이커(리스트로변경)
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void timerBarcode_Tick(object sender, EventArgs e)
+        {
+            if (NPSYS.CurrentFormType != mCurrentFormType)
+            {
+                return;
+            }
+            if (CurrentNormalCarInfo.Current_Money > 0)
+            {
+                return;
+            }
+            if (CurrentNormalCarInfo.PaymentMoney == 0)
+            {
+                return;
+            }
+            //KIS 할인처리시 처리문제
+
+            if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KIS_TIT_DIP_IFM && mCardStatus.currentCardReaderStatus != CardDeviceStatus.CardReaderStatus.CardReady)
+            {
+                return;
+            }
+            //KIS 할인처리시 처리문제주석완료
+            //바코드모터드리블 사용
+            if (NPSYS.Device.UsingSettingDiscountBarcodeSerial == ConfigID.BarcodeReaderType.NormaBarcode)
+            {
+                if (mListBarcodeData.Count > 0)
+                {
+                    timerBarcode.Stop();
+                    string barcodeData = mListBarcodeData[0];
+                    mListBarcodeData.RemoveAt(0);
+                    BarcodeAction(barcodeData);
+
+                    if (CurrentNormalCarInfo.PaymentMoney != 0)
+                    {
+                        timerBarcode.Start();
+                    }
+
+                }
+            }
+            else if (NPSYS.Device.UsingSettingDiscountBarcodeSerial == ConfigID.BarcodeReaderType.SVS2000 && NPSYS.Device.gIsUseBarcodeSerial)
+            {
+                if (mListBarcodeMotorData.Count > 0)
+                {
+                    timerBarcode.Stop();
+                    if (mListBarcodeMotorData[0].ResultStatus == BarcodeMotorErrorCode.Ok)
+                    {
+                        string barcodeMotroData = mListBarcodeMotorData[0].Data;
+                        //barcodeMotroData = "SF1E";//test
+                        mListBarcodeMotorData.RemoveAt(0);
+                        BarcodeAction(barcodeMotroData);
+                    }
+                    else
+                    {
+                        paymentControl.ErrorMessage = string.Empty;
+                        switch (mListBarcodeMotorData[0].ResultStatus)
+                        {
+                            case BarcodeMotorErrorCode.TicketJamError:
+                                paymentControl.ErrorMessage = "용지가 안에 걸렸습니다";
+                                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | timerBarcode_Tick", paymentControl.ErrorMessage);
+                                Application.DoEvents();
+                                break;
+                            case BarcodeMotorErrorCode.TIcketReadError:
+                                paymentControl.ErrorMessage = "바코드를 읽지 못하였습니다.";
+                                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | timerBarcode_Tick", paymentControl.ErrorMessage);
+                                // 자동으로 방출된다
+                                break;
+                            default:
+                                paymentControl.ErrorMessage = mListBarcodeMotorData[0].ResultStatus.ToString();
+                                break;
+                        }
+                        mListBarcodeMotorData.RemoveAt(0);
+                    }
+
+                    if (CurrentNormalCarInfo.PaymentMoney != 0)
+                    {
+                        timerBarcode.Start();
+                    }
+
+                }
+            }
+            //바코드모터드리블 사용완료
+        }
+
+        ////포시즌 카드누를시 화면숨김
+        int mCardVisible = 0;
+        private void timerCardVisible_Tick(object sender, EventArgs e)
+        {
+            if (mCardVisible <= 0) // mCardVisible이 0보다적으면
+            {
+                //if (btnCardApproval.Visible == false) //뉴타입주석
+                //{ //뉴타입주석
+                //    btnCardApproval.Visible = true; //뉴타입주석
+                //} //뉴타입주석
+            }
+            mCardVisible -= 1;
+        }
+        //포시즌 카드누를시 화면숨김 주석완료
+
+        private void timerKiccTs141State_Tick(object sender, EventArgs e)
+        {
+            try
+            {
+                timerKiccTs141State.Stop();
+
+                GetKiccState();
+                if (CurrentNormalCarInfo.PaymentMoney == 0 && CurrentNormalCarInfo.VanAmt > 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardPaySuccess)
+                {
+                    mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardPaySuccess;
+                    //카드실패전송
+                    CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
+                    //카드실패전송완료
+                    PaymentComplete();
+                }
+            }
+            catch (Exception ex)
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu | timerKiccTs141State_Tick", ex.ToString());
+            }
+            finally
+            {
+                if (CurrentNormalCarInfo.PaymentMoney != 0)
+                {
+                    timerKiccTs141State.Start();
                 }
             }
 
-            //모든 컨트롤을 반환한다
-            return allControls.ToArray();
+        }
+        private void timerKiccSoundPlay_Tick(object sender, EventArgs e)
+        {
+            if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay)
+            {
+                if (KiccTs141.StartSoundTick > 0)
+                {
+                    KiccTs141.StartSoundTick -= 1;
+                    if (KiccTs141.StartSoundTick == 0)
+                    {
+                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+            }
         }
 
-        #endregion
+        private void timerCardPay_Tick(object sender, EventArgs e)
+        {
+            if (CurrentNormalCarInfo.VanAmt > 0)
+            {
+                timerKisCardPay.Enabled = false;
+                timerKisCardPay.Stop();
+                //카드실패전송
+                CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
+                //카드실패전송완료
+                PaymentComplete();
+            }
+        }
 
-        #region VAN장비
+        /// <summary>
+        /// 스마트로 DIP 타입결제기 카드결제요청이 안되있을시 카드결제요청
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void timerSmatro_TITDIP_Evcat_Tick(object sender, EventArgs e)
+        {
+            if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay)
+            {
+                if (mSmartro_TITDIP_EVCat.StartSoundTick > 0)
+                {
+                    mSmartro_TITDIP_EVCat.StartSoundTick -= 1;
+                    if (mSmartro_TITDIP_EVCat.StartSoundTick == 0)
+                    {
+                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+            }
+            timerSmatro_TITDIP_Evcat.Stop();
+            SmatroEVCAT_CardApprovalAction();
+            timerSmatro_TITDIP_Evcat.Start();
+
+        }
+
+        private void timerSmartroVCat_Tick(object sender, EventArgs e)
+        {
+
+            if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay)
+            {
+                if (mSmartroVCat.StartSoundTick > 0)
+                {
+                    mSmartroVCat.StartSoundTick -= 1;
+                    if (mSmartroVCat.StartSoundTick == 0)
+                    {
+                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
+                    }
+                }
+            }
+            timerSmartroVCat.Stop();
+            SmartroCardApprovalAction();
+            timerSmartroVCat.Start();
+
+        }
+
+        private void MovieTimer_Tick(object sender, EventArgs e)
+        {
+            try
+            {
+                if (IsNextFormPlaying == false)
+                {
+                    MovieStopPlay -= 1000;
+                }
+                if (MovieStopPlay == 0 && IsNextFormPlaying == false)
+                {
+                    //if (mIsPlayerOkStatus == true)
+                    //{
+                    axWindowsMediaPlayer1.Ctlcontrols.pause();
+                    axWindowsMediaPlayer1.Ctlcontrols.play();
+                    //}
+                }
+            }
+            catch (Exception ex)
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|MovieTimer_Tick", "예외사항:" + ex.ToString());
+            }
+        }
+
+        #endregion 타이머 Tick Event Handler
+
+        #region 카드리더기 동작 처리
 
         /// <summary>
         /// 결제요금이 변경되기전 동작멈춤 중간에 결제가 되지않게 현재 카드리더기 기기에 요금 취소등의 동작
@@ -939,40 +1855,6 @@ namespace NPAutoBooth.UI
             }
         }
 
-        private void timerAutoCardReading_Tick(object sender, EventArgs e)
-        {
-
-            timerAutoCardReading.Stop();
-            try
-            {
-                switch (NPSYS.Device.GetCurrentUseDeviceCard())
-                {
-                    case ConfigID.CardReaderType.FIRSTDATA_DIP:
-                        CardActionFirstDataDip();
-                        break;
-                    case ConfigID.CardReaderType.KICC_DIP_IFM:
-                        CardActionKiccDip();
-                        break;
-                    case ConfigID.CardReaderType.KOCES_PAYMGATE:
-                        CardActionKocesPayMGate();
-                        break;
-                    case ConfigID.CardReaderType.KOCES_TCM:
-                        CardActionKocesTcm();
-                        break;
-                }
-            }
-            catch
-            {
-            }
-            finally
-            {
-                if (CurrentNormalCarInfo.PaymentMoney != 0)
-                {
-                    timerAutoCardReading.Start();
-                }
-            }
-        }
-        
         // 2016.10.27 KIS_DIP 추가
         #region KIS_TIT_DIP_IFM
 
@@ -992,184 +1874,74 @@ namespace NPAutoBooth.UI
         #endregion
         // 2016.10.27  KIS_DIP 추가종료
 
-        #endregion
-
-        #region 결제성공
 
         /// <summary>
-        /// 주차요금을 모두 고객이 지불했을시 실행되며 영수증 폼으로 이동
+        /// 스마트로 추가로 이함수 모두 변경
         /// </summary>
-        private void PaymentComplete()
+        private void StartTicketCardRead()
         {
             try
             {
+                TextCore.ACTION(TextCore.ACTIONS.CARDREADER, "FormPaymentMenu|StartTicketRead", "티켓/ 카드 받을 준비 시작");
+                timer_CardReader2.Enabled = false;
 
-                PaymentEndAction();
-                CashRecipt();
-                if (CurrentNormalCarInfo.GetInComeMoney > 0)
+                if ((NPSYS.Device.UsingSettingMagneticReadType == ConfigID.CardReaderType.TItMagnetincDiscount)
+                    && NPSYS.Device.gIsUseMagneticReaderDevice)
                 {
-                    if (CompletOutChargeAction() != PaymentResult.Success)
-                    {
-                        //시제설정누락처리
-                        CurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.SuccessNotOut; //시제설정누락처리
-                        ReceiptChargeErrorActions();
-                        //카드실패전송
-                        CurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
-                        //카드실패전송완료
-
-                    }
+                    timer_CardReader2.Enabled = true;
+                    timer_CardReader2.Start();
                 }
 
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymentMenu | Payment", "결제처리 전송시작");
-                DateTime paydate = DateTime.Now;
-                Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
-                if (currentCar.status.Success == false)
+                if (NPSYS.Device.UsingSettingCardReadType != ConfigID.CardReaderType.None
+                 && NPSYS.Device.UsingSettingMagneticReadType != ConfigID.CardReaderType.None
+                 && NPSYS.Device.gIsUseCreditCardDevice == false && NPSYS.Device.gIsUseMagneticReaderDevice == false)
                 {
-                    // DB에 저장하고 재전송처리해야함
-                    return;
+                    TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|StopTicketCardRead", "카드러더기 장비 두곳다 에러");
                 }
-                NormalCarInfo SendcarInfo = new NormalCarInfo();
-                SendcarInfo = CommonFuction.Clone<NormalCarInfo>(CurrentNormalCarInfo);
-                EventExitPayForm_NextReceiptForm(mCurrentFormType, NPSYS.FormType.Receipt, SendcarInfo);
-                return;
 
+                TextCore.ACTION(TextCore.ACTIONS.CARDREADER, "FormPaymentMenu|StartTicketRead", "티켓/ 카드 받을 준비 종료");
             }
             catch (Exception ex)
             {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|Payment", ex.ToString());
-                paymentControl.ErrorMessage = "Payment():" + ex.ToString();
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|StartTicketRead", ex.ToString());
             }
         }
+
         /// <summary>
-        /// 현금영수증 처리
+        /// 스마트로 추가로 이함수 모두 변경
         /// </summary>
-        /// <returns></returns>
-        private bool CashRecipt()
+        private void StopTicketCardRead()
         {
-            if (NPSYS.Device.UsingUsingSettingCashReceipt && CurrentNormalCarInfo.Current_Money > 0) // 현금영수증 사용이라면
+            try
             {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CashRecipt", "[현금영수증 처리시도]");
-                Result cashResult = m_PayCardandCash.CashRecipt(CurrentNormalCarInfo);
-                return cashResult.Success;
+                TextCore.ACTION(TextCore.ACTIONS.CARDREADER, "FormPaymentMenu|StopTicketCardRead", "티켓/ 카드 받을 준비 중지 작업 시작");
+
+                if (NPSYS.Device.UsingSettingMagneticReadType == ConfigID.CardReaderType.TItMagnetincDiscount
+                    && NPSYS.Device.gIsUseMagneticReaderDevice)
+                {
+                    timer_CardReader2.Enabled = false;
+                    timer_CardReader2.Stop();
+                    NPSYS.Device.CardDevice2.TIcketFrontEject();
+                }
+
+                if (NPSYS.Device.UsingSettingCardReadType != ConfigID.CardReaderType.None
+                 && NPSYS.Device.UsingSettingMagneticReadType != ConfigID.CardReaderType.None
+                 && NPSYS.Device.gIsUseCreditCardDevice == false && NPSYS.Device.gIsUseMagneticReaderDevice == false)
+                {
+                    TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|StopTicketCardRead", "카드러더기 장비 두곳다 에러");
+                }
+                TextCore.ACTION(TextCore.ACTIONS.CARDREADER, "FormPaymentMenu|StopTicketCardRead", "티켓/ 카드 받을 준비 중지 종료");
             }
-            return false;
+            catch (Exception ex)
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|StopTicketCardRead", ex.ToString());
+            }
         }
 
-        private void PaymentEndAction()
-        {
-            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | PaymentEndAction", "[PaymentEndAction]");
-            paymentControl.ButtonEnable(ButtonEnableType.PayFormEnd);
-            mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardStop;
-            SettingDisableDevice();
-
-        }
-
-        #endregion
+        #endregion 카드리더기 동작 처리
 
         #region 취소버튼 처리
 
-        private void btn_CashCancle_Click(object sender, EventArgs e)
-        {
-            if (CurrentNormalCarInfo.PaymentMoney == 0 || CurrentNormalCarInfo.Current_Money == 0)
-            {
-                return;
-            }
-            inputtime = NPSYS.SettingInputTimeValue;
-            NPSYS.buttonSoundDingDong();
-            TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu|btn_CashCancle_Click", "현금 취소버튼누름");
-            CashCancleAction();
-
-        }
-
-        /// <summary>
-        /// 취소시 할인금액을 제외한 주차요금 관련 변수 초기화 시킴 
-        /// </summary>
-        //시제설정누락처리 주석처리
-        //private void CancleInitailize(NormalCarInfo.MoneyInOutType pInOutType)
-        //{
-
-        //    NormalCarInfo mCancleNormalCarinfo = new NormalCarInfo();
-        //    mCancleNormalCarinfo = ObjectCopier.Clone<NormalCarInfo>(mCurrentNormalCarInfo);
-        //    mCancleNormalCarinfo.CanCleClear(pInOutType);
-        //    SetCarInfo(mCancleNormalCarinfo);
-        //    mCancleNormalCarinfo = null;
-
-        //}
-        //시제설정누락처리
-        private void CashCancleAction()
-        {
-            try
-            {
-                if (CurrentNormalCarInfo.Current_Money > 0)  // 투입된 금액이 있다면
-                {
-                    paymentControl.ButtonEnable(ButtonEnableType.CashCancle);
-                    SettingDisableDevice();
-
-                    PaymentResult result = CancleRefundMoneyAction();
-
-                    if (result == PaymentResult.Success) // 지폐나 동전불출할수 있으면
-                    {
-                        CurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.CancelOut; //시제설정누락처리
-                        TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymentMenu | Payment", "취소시 결제처리 전송시작");
-                        DateTime paydate = DateTime.Now;
-                        //카드실패전송
-                        CurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
-                        //카드실패전송완료
-                        Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
-                        if (currentCar.status.Success == false)
-                        {
-                            // DB에 저장하고 재전송처리해야함
-                            return;
-                        }
-
-                        CurrentNormalCarInfo.CanCleClear();
-                        NormalCarInfo lCanclecarInfo = new NormalCarInfo();
-                        lCanclecarInfo.CurrentPayment = CommonFuction.Clone<Payment>(currentCar);
-                        lCanclecarInfo.SetCurrentPayment(NormalCarInfo.PaymentSetType.NormalPaymnet);
-                        SetCarInfo(lCanclecarInfo);
-                        paymentControl.CancelButtonVisible = false;
-
-
-                    }
-                    else
-                    {
-                        paymentControl.CancelButtonVisible = false;
-                        //카드실패전송
-                        CurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
-                        //카드실패전송완료
-                        CurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.CancelNotOut; //시제설정누락처리
-                        TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymentMenu | Payment", "취소시 결제처리 전송시작");
-                        DateTime paydate = DateTime.Now;
-                        Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
-                        if (currentCar.status.Success == false)
-                        {
-                            // DB에 저장하고 재전송처리해야함
-                            return;
-                        }
-                        ReceiptCancleErrorActions();
-                        CurrentNormalCarInfo.CanCleClear();
-                        NormalCarInfo lCanclecarInfo = new NormalCarInfo();
-                        lCanclecarInfo.CurrentPayment = CommonFuction.Clone<Payment>(currentCar);
-                        lCanclecarInfo.SetCurrentPayment(NormalCarInfo.PaymentSetType.NormalPaymnet);
-                        SetCarInfo(lCanclecarInfo);
-                    }
-
-                }
-
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|btn_CashCancle_Click", ex.ToString());
-            }
-            finally
-            {
-                paymentControl.ButtonEnable(ButtonEnableType.CashCancleStop);
-                SettingEnableDevice();
-
-            }
-        }
-
-        //시제설정누락처리 완료
         private void CashCancleFormCloseAction(bool pIsSetDisable = false)
         {
             try
@@ -1248,9 +2020,10 @@ namespace NPAutoBooth.UI
             }
         }
 
-        #endregion
+        #endregion 취소버튼 처리
 
         #region 보관증관련
+
         //시제설정누락처리 수정
         /// <summary>
         /// 동전 및 지폐장비 이상일때 현금 취소시 보관증 출력
@@ -1292,10 +2065,9 @@ namespace NPAutoBooth.UI
             }
 
         }
-        #endregion
+        #endregion 보관증관련
 
         #region 거스름돈 / 취소시 방출관련
-
 
         /// <summary>
         /// Success 결제성공, Fail 장비이상 , ChargeSmall 거스름돈부족
@@ -1538,7 +2310,7 @@ namespace NPAutoBooth.UI
                             CurrentNormalCarInfo.Cancle500Qty = 0;
                         }
                     }
-                    
+
                     int cash500SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash500SettingQty));
 
                     if (cash500SettingQty < CurrentNormalCarInfo.Cancle500Qty) // 보유수량보다 500원 방출수량이 많을때
@@ -1963,12 +2735,6 @@ namespace NPAutoBooth.UI
                 NPSYS.NoCheckCargeMoneyOut();
             }
         }
-
-
-
-
-
-
 
         /// <summary>
         /// 결제완료후 거스름돈 처리 동전방출이 실패한다면 현재 방출하지 않은 동전을 다음 동전으로 넘긴다
@@ -2679,505 +3445,176 @@ namespace NPAutoBooth.UI
             }
         }
 
+        #endregion 거스름돈 / 취소시 방출관련
 
-        #endregion
-
-        #region 카드리더기 동작관련
-
-        /// <summary>
-        /// 스마트로 추가로 이함수 모두 변경
-        /// </summary>
-        private void StartTicketCardRead()
-        {
-            try
-            {
-                TextCore.ACTION(TextCore.ACTIONS.CARDREADER, "FormPaymentMenu|StartTicketRead", "티켓/ 카드 받을 준비 시작");
-                timer_CardReader2.Enabled = false;
-
-                if ((NPSYS.Device.UsingSettingMagneticReadType == ConfigID.CardReaderType.TItMagnetincDiscount)
-                    && NPSYS.Device.gIsUseMagneticReaderDevice)
-                {
-                    timer_CardReader2.Enabled = true;
-                    timer_CardReader2.Start();
-                }
-
-                if (NPSYS.Device.UsingSettingCardReadType != ConfigID.CardReaderType.None
-                 && NPSYS.Device.UsingSettingMagneticReadType != ConfigID.CardReaderType.None
-                 && NPSYS.Device.gIsUseCreditCardDevice == false && NPSYS.Device.gIsUseMagneticReaderDevice == false)
-                {
-                    TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|StopTicketCardRead", "카드러더기 장비 두곳다 에러");
-                }
-
-                TextCore.ACTION(TextCore.ACTIONS.CARDREADER, "FormPaymentMenu|StartTicketRead", "티켓/ 카드 받을 준비 종료");
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|StartTicketRead", ex.ToString());
-            }
-        }
+        #region 언어변경
 
         /// <summary>
-        /// 스마트로 추가로 이함수 모두 변경
+        /// 언어변경
         /// </summary>
-        private void StopTicketCardRead()
+        public void SetLanguage(NPCommon.ConfigID.LanguageType pLanguageType)
         {
-            try
+
+            Control[] currentControl = GetAllControlsUsingRecursive(this);
+            foreach (Control controlItem in currentControl)
             {
-                TextCore.ACTION(TextCore.ACTIONS.CARDREADER, "FormPaymentMenu|StopTicketCardRead", "티켓/ 카드 받을 준비 중지 작업 시작");
 
-                if (NPSYS.Device.UsingSettingMagneticReadType == ConfigID.CardReaderType.TItMagnetincDiscount
-                    && NPSYS.Device.gIsUseMagneticReaderDevice)
+                switch (controlItem)
                 {
-                    timer_CardReader2.Enabled = false;
-                    timer_CardReader2.Stop();
-                    NPSYS.Device.CardDevice2.TIcketFrontEject();
-                }
-
-                if (NPSYS.Device.UsingSettingCardReadType != ConfigID.CardReaderType.None
-                 && NPSYS.Device.UsingSettingMagneticReadType != ConfigID.CardReaderType.None
-                 && NPSYS.Device.gIsUseCreditCardDevice == false && NPSYS.Device.gIsUseMagneticReaderDevice == false)
-                {
-                    TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|StopTicketCardRead", "카드러더기 장비 두곳다 에러");
-                }
-                TextCore.ACTION(TextCore.ACTIONS.CARDREADER, "FormPaymentMenu|StopTicketCardRead", "티켓/ 카드 받을 준비 중지 종료");
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|StopTicketCardRead", ex.ToString());
-            }
-        }
-
-        private void timer_CardReader2_Tick(object sender, EventArgs e)
-        {
-            int lTicketActionResult = 0;
-
-            if (!NPSYS.Device.gIsUseMagneticReaderDevice)
-            {
-                timer_CardReader2.Enabled = false;
-                return;
-            }
-            try
-            {
-                // 2016.10.27 KIS_DIP 추가
-                if (CurrentNormalCarInfo.Current_Money > 0 
-                    || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardPaySuccess 
-                    || CurrentNormalCarInfo.VanAmt > 0)
-                {
-                    return;
-                }
-                // 2016.10.27 KIS_DIP 추가종료
-
-                Result _TIcketStatus = NPSYS.Device.CardDevice2.GetStatus();
-                if (_TIcketStatus.Success == false)  // 티켓장비가 정상이 아니면
-                {
-                    if (NPSYS.Device.CardDevice2.IsCreditCardSuccessStatus(_TIcketStatus.ReultIntMessage))
-                    {
-                        if (_TIcketStatus.ReultIntMessage == (int)TicketCardDevice.TicketAndCardResult.Read_and_Verify_Fail)
+                    case Label labelType:
+                        if (labelType.Tag != null && labelType.Tag.ToString().Trim().Length > 0)
                         {
-                            NPSYS.Device.CardDevice2.TIcketFrontEject();
-                            TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "신용카드상태체크에러:" + "잘못들어갔을때 발생:" + _TIcketStatus.Message);
-                            TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:");
-                            Thread.Sleep(5000);
-                            return;
+
+                            labelType.Text = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.transaction, labelType.Tag.ToString());
                         }
-                        TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "신용카드상태체크에러:" + "잘못들어갔거나 비었을때 발생:" + _TIcketStatus.Message);
-                        return;
-                    }
-                    NPSYS.Device.CardDevice2.TIcketFrontEject(); //카드 앞으로 배출
-
-                    TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "카드장비 소프트리셋:" + _TIcketStatus.Message);
-                    _TIcketStatus = NPSYS.Device.CardDevice2.SoftResetCreditDevice();
-                    TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "카드장비 소프트리셋 결과:" + _TIcketStatus.Message);
-                    Thread.Sleep(3000);
-                    _TIcketStatus = NPSYS.Device.CardDevice2.GetStatus();
-                    if (_TIcketStatus.Success == false)  // 티켓장비가 정상이 아니면
-                    {
-
-                        if (NPSYS.Device.CardDevice2.IsCreditCardSuccessStatus(_TIcketStatus.ReultIntMessage))
+                        break;
+                    case ImageButton imageButtonType:
+                        if (imageButtonType.Tag != null && imageButtonType.Tag.ToString().Trim().Length > 0)
                         {
-                            if (_TIcketStatus.ReultIntMessage == (int)TicketCardDevice.TicketAndCardResult.Read_and_Verify_Fail)
-                            {
-                                NPSYS.Device.CardDevice2.TIcketFrontEject();
-                                TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "신용카드상태체크에러:" + "잘못들어갔을때 발생:" + _TIcketStatus.Message);
-                                TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:");
-                                TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "카드장비 소프트리셋");
-                                _TIcketStatus = NPSYS.Device.CardDevice2.SoftResetCreditDevice();
-                                TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "카드장비 소프트리셋 결과:" + _TIcketStatus.Message);
-                                Thread.Sleep(3000);
-                                NPSYS.Device.CardDevice2.CurrentTicketCardDeviceStatusManageMent.SetDeviceStatus(TicketCardDevice.TicketAndCardResult.OK, true);
-
-                                return;
-                            }
-                            TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "신용카드상태체크에러:" + "잘못들어갔거나 비었을때 발생:" + _TIcketStatus.Message);
-                            NPSYS.Device.CardDevice2.CurrentTicketCardDeviceStatusManageMent.SetDeviceStatus(TicketCardDevice.TicketAndCardResult.OK, true);
-                            return;
+                            imageButtonType.Text = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.transaction, imageButtonType.Tag.ToString());
                         }
-
-
-                        NPSYS.Device.CardDevice2.CurrentTicketCardDeviceStatusManageMent.SetDeviceStatus((TicketCardDevice.TicketAndCardResult)_TIcketStatus.ReultIntMessage, false);
-
-                        NPSYS.Device.CreditCardDeviceErrorMessage2 = _TIcketStatus.Message;
-                        SetLanuageDynamic(NPSYS.CurrentLanguageType);
-                        NPSYS.LedLight();
-                        StartTicketCardRead();
-                        TextCore.DeviceError(TextCore.DEVICE.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", _TIcketStatus.Message);
-                        // CommProtocol.MakeDevice_RestfulStatus(CommProtocol.device.CA2, _TIcketStatus.ReultIntMessage); // 희주주석
-
-                        return;
-                    }
-                }
-
-                Result _result = NPSYS.Device.CardDevice2.readingTicketCardStart(); //카드 읽기
-                Result l_ReadingTrackdata = NPSYS.Device.CardDevice2.readingTicketCardEnd();
-
-                timer_CardReader2.Stop(); //Timer 잠시 멈춤
-                paymentControl.ErrorMessage = string.Empty;
-
-                //카드 읽기 결과에 문제가 없고 정기권 차량일 경우
-                if (l_ReadingTrackdata.ReultIntMessage != (int)TicketCardDevice.TicketAndCardResult.No_Return_Sensor_Ticket 
-                    && l_ReadingTrackdata.ReultIntMessage != (int)TicketCardDevice.TicketAndCardResult.Empy
-                    && (
-                        CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Outcar_Season 
-                        || CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Precar_Season
-                        )
-                    )
-                {
-                    lTicketActionResult = NPSYS.Device.CardDevice2.TIcketFrontEject(); //카드 앞으로 배출
-                    TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:" + lTicketActionResult.ToString());
-                    System.Threading.Thread.Sleep(200);
-                    EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NoRegExtensDiscount);
-                    return;
-                }
-
-                if (l_ReadingTrackdata.Success)    // 카드 또는 티켓이 삽입된 상태이고 정보값을 읽었다면
-                {
-                    inputtime = paymentInputTimer;
-
-                    if (l_ReadingTrackdata.CurrentReadingType == Result.ReadingTypes.DiscountTIcket)  // 티켓정보라면
-                    {
-                        if (!NPSYS.Device.UsingSettingDiscountCard)   // 할인권 설정에서 사용안함일때 VCat사용시
+                        break;
+                    case TextBox textBoxType:
+                        if (textBoxType.Tag != null && textBoxType.Tag.ToString().Trim().Length > 0)
                         {
-                            lTicketActionResult = NPSYS.Device.CardDevice2.TIcketFrontEject();
-                            TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:" + lTicketActionResult.ToString());
-                            System.Threading.Thread.Sleep(200);
-                            EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NoDiscountTicket);
-                            return;
+                            textBoxType.Text = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.transaction, textBoxType.Tag.ToString());
                         }
-
-                        Payment paymentAfterDisocunt = mHttpProcess.Discount(CurrentNormalCarInfo, DcDetail.DIscountTicketType.MI, l_ReadingTrackdata.Message);
-
-                        //=========== 할인권 처리 ==============
-                        if (paymentAfterDisocunt.status.Success) // 정상적인 티켓이라면
+                        break;
+                    case Button buttoType:
+                        if (buttoType.Tag != null && buttoType.Tag.ToString().Trim().Length > 0)
                         {
-                            int prepayment = CurrentNormalCarInfo.PaymentMoney;
-
-                            CurrentNormalCarInfo.ParkingMin = paymentAfterDisocunt.parkingMin;
-                            CurrentNormalCarInfo.TotFee = Convert.ToInt32(paymentAfterDisocunt.totFee);
-                            CurrentNormalCarInfo.TotDc = Convert.ToInt32(paymentAfterDisocunt.totDc);
-                            CurrentNormalCarInfo.Change = Convert.ToInt32(paymentAfterDisocunt.change); //시제설정누락처리
-                            CurrentNormalCarInfo.RecvAmt = Convert.ToInt32(paymentAfterDisocunt.recvAmt); //시제설정누락처리
-                            CurrentNormalCarInfo.DcCnt = paymentAfterDisocunt.dcCnt;
-                            CurrentNormalCarInfo.RealFee = Convert.ToInt32(paymentAfterDisocunt.realFee);
-                            //할인권 입수수량 표출
-                            paymentControl.DiscountInputCount = (Convert.ToInt32(paymentControl.DiscountInputCount) + 1).ToString();
-                            //할인권 입수수량 표출 주석완료
-
-                            //요금할인권처리
-                            paymentControl.ParkingFee = TextCore.ToCommaString(CurrentNormalCarInfo.TotFee.ToString());
-                            paymentControl.RecvMoney = TextCore.ToCommaString((CurrentNormalCarInfo.RecvAmt - CurrentNormalCarInfo.Change).ToString()); //시제설정누락처리
-
-                            TextCore.INFO(TextCore.INFOS.DISCOUNTTICEKT_SUCCESS, "FormPaymentMenu|timer_CardReader2_Tick", "결제성공");
-                            lTicketActionResult = NPSYS.Device.CardDevice2.TIcketBackEject();
-                            TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 뒤로배출:" + lTicketActionResult.ToString());
-                            paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
-                            paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
-
-                            if (prepayment == CurrentNormalCarInfo.PaymentMoney)
-                            {
-                                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|timer_CardReader1_Tick", "할인에 성공했지만 할인금액이 없음");
-                                return;
-                            }
-
-                            //할인 요금 적용 전 카드결제 동작 중지
-                            BeforeChangePayValueAsCardReader();
-
-                            if (CurrentNormalCarInfo.PaymentMoney == 0)
-                            {
-                                //카드실패전송
-                                CurrentNormalCarInfo.PaymentMethod = PaymentType.DiscountCard;
-                                //카드실패전송완료
-                                PaymentComplete();
-
-                                // db에 저장
-                                // 영수증 출력화면
-                                return;
-                            }
-                            else
-                            {
-                                //할인 요금 적용 된 상태로 카드결제 동작 시작
-                                ChangePayValueAsCardReader();
-                            }
+                            buttoType.Text = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.transaction, buttoType.Tag.ToString());
                         }
-                        else // 잘못된 티켓
-                        {
-                            lTicketActionResult = NPSYS.Device.CardDevice2.TIcketFrontEject();
-                            TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:" + lTicketActionResult.ToString());
-                            System.Threading.Thread.Sleep(200);
+                        break;
 
-                            if (paymentAfterDisocunt.status.currentStatus == Status.BodyStatus.DiscountMod_NotAdd)
-                            {
-                                //할인권 수량 제한
-                                EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NoAddDiscountTIcket);
-                                return;
-                            }
-                            else if (paymentAfterDisocunt.status.currentStatus == Status.BodyStatus.Discount_PreUsed)
-                            {
-                                //동일 할인권 사용 제한
-                                EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.DuplicateDiscountTicket);
-                                return;
-                            }
-                            else
-                            {
-                                //잘못된 할인권
-                                EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NoDiscountTicket);
-                                return;
-                            }
-                        }
-                    }
-                    else if (l_ReadingTrackdata.CurrentReadingType == Result.ReadingTypes.CreditCard)   // 카드정보라면
-                    {
-                        lTicketActionResult = NPSYS.Device.CardDevice2.TIcketFrontEject();
-                        TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "카드 앞으로 배출:" + lTicketActionResult.ToString());
-                        System.Threading.Thread.Sleep(500);
-                        inputtime = paymentInputTimer;
-                        EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NotCardPay);
-                        return;
-                    }
-                    else
-                    {
-                        lTicketActionResult = NPSYS.Device.CardDevice2.TIcketFrontEject();
-                        TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "카드 앞으로 배출:" + lTicketActionResult.ToString());
-                        System.Threading.Thread.Sleep(500);
-                        TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu|timer_CardReader2_Tick", l_ReadingTrackdata.CurrentReadingType.ToString());
-                        EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NotCardPay);
-                        return;
-                    }
+
                 }
-                else if (l_ReadingTrackdata.ReultIntMessage == (int)TicketCardDevice.TicketAndCardResult.No_TICEKT)
+
+            }
+            SetLanuageDynamic(pLanguageType);
+        }
+
+        private void SetLanuageDynamic(NPCommon.ConfigID.LanguageType pLanguageType)
+        {
+            paymentControl.SetLanguage(pLanguageType, CurrentNormalCarInfo);
+
+            //m_DiscountAndPayAndCreditAndTMoneyMovie = "할인권_현금_신용카드_교통카드.avi";
+            m_DiscountAndPayAndCreditAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Discount_Cash_Card_Tmoney.ToString());
+
+            //m_PayAndCreditAndTMoneyMovie = "현금_신용카드_교통카드.avi";
+            m_PayAndCreditAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Cash_Card_Tmoney.ToString());
+            //m_DiscountAndCreditAndTMoneyMovie = "할인권_신용카드_교통카드.avi";
+            m_DiscountAndCreditAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Discount_Card_Tmoney.ToString());
+
+            //m_CreditAndTmoneyMovie = "신용카드_교통카드.avi";
+            m_CreditAndTmoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Card_Tmoney.ToString());
+
+            // m_DiscountAndPayAndCreditMovie = "할인권_현금_신용카드.avi";
+            m_DiscountAndPayAndCreditMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Discount_Cash_Card.ToString());
+
+            //m_PayAndCreditMovie = "현금_신용카드.avi";
+            m_PayAndCreditMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Cash_Card.ToString());
+
+            //m_DiscountAndPayMovie = "할인권_현금.avi";
+            m_DiscountAndPayMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Discount_Cash.ToString());
+
+            // m_PayMovie = "현금.avi";
+            m_PayMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Cash.ToString());
+
+            //m_CreditMovie = "신용카드.avi";
+            m_CreditMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Card.ToString());
+
+            //m_DiscountAndCreditMovie = "할인권_신용카드.avi";
+            m_DiscountAndCreditMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Discount_Card.ToString());
+
+            //m_DiscountAndTmoneyMovie = "할인권_교통카드.avi";
+            m_DiscountAndTmoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Discount_Tmoney.ToString());
+
+            //m_TmoneyMovie = "교통카드.avi";
+            m_TmoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Tmoney.ToString());
+
+
+            //m_DiscountMovie = "할인권.avi";
+            m_DiscountMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Discount.ToString());
+
+            //m_JuminDIscountMovie = "감면혜택.wav";
+            m_JuminDIscountMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DiscountReduce.ToString());
+
+            // m_Junggi = "정기권연장.wav";
+            m_Junggi = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_CommuterExtendedPeriod.ToString());
+
+            //m_CancleCard = "카드취소.wav";
+            m_CancleCard = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_CardCancle.ToString());
+
+            //m_DiscountBarcodeCreditMovie = "할인권바코드_신용카드.wav";
+            m_DiscountBarcodeCreditMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DiscountBarcode_Card.ToString());
+
+            //m_BarAndDiscountAndCreditAndPayAndTMoneyMovie = "바코드_할인권_신용카드_현금_교통카드.wav";
+            m_BarAndDiscountAndCreditAndPayAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Discount_Card_Cash_Tmoney.ToString());
+
+            //m_BarAndCreditAndPayAndTMoneyMovie = "바코드_신용카드_현금_교통카드.wav";
+            m_BarAndCreditAndPayAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Card_Cash_Tmoney.ToString());
+
+            //m_BarAndDiscountAndPayAndTMoneyMovie = "바코드_할인권_현금_교통카드.wav";
+            m_BarAndDiscountAndPayAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Discount_Cash_Tmoney.ToString());
+
+            //m_BarAndPayAndTMoneyMovie = "바코드_현금_교통카드.wav";
+            m_BarAndPayAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Cash_Tmoney.ToString());
+
+            //m_BarAndDiscountAndCreditAndPayMovie = "바코드_할인권_신용카드_현금.wav";
+            m_BarAndDiscountAndCreditAndPayMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Discount_Card_Cash.ToString());
+
+            //m_BarAndCreditAndPayMovie = "바코드_신용카드_현금.wav";
+            m_BarAndCreditAndPayMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Card_Cash.ToString());
+
+            //m_BarAndDiscountAndPayMovie = "바코드_할인권_현금.wav";
+            m_BarAndDiscountAndPayMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Discount_Cash.ToString());
+
+            // m_BarAndPayMovie = "바코드_현금.wav";
+            m_BarAndPayMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Cash.ToString());
+
+            //m_BarAndDiscountAndCreditAndTMoneyMovie = "바코드_할인권_신용카드_교통카드.wav";
+            m_BarAndDiscountAndCreditAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Discount_Card_Tmoney.ToString());
+
+            //m_BarAndCreditAndTMoneyMovie = "바코드_신용카드_교통카드.wav";
+            m_BarAndCreditAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Card_Tmoney.ToString());
+
+            //m_BarAndDiscountAndTMoneyMovie = "바코드_할인권_교통카드.wav";
+            m_BarAndDiscountAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Discount_Tmoney.ToString());
+
+            //m_BarAndDiscountAndCreditMovie = "바코드_할인권_신용카드.wav";
+            m_BarAndDiscountAndCreditMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Discount_Card.ToString());
+
+            //m_BarAndCreditMovie = "바코드_신용카드.wav";
+            m_BarAndCreditMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Card.ToString());
+
+            //m_BarAndTMoneyMovie = "바코드_교통카드.wav";
+            m_BarAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_DBarcode_Tmoney.ToString());
+
+            Action_DeviceEnableMovie();
+        }
+
+        private Control[] GetAllControlsUsingRecursive(Control containerControl)
+        {
+            List<Control> allControls = new List<Control>();
+            foreach (Control control in containerControl.Controls)
+            {
+                //자식 컨트롤을 컬렉션에 추가한다
+                allControls.Add(control);
+
+                //만일 자식 컨트롤이 또 다른 자식 컨트롤을 가지고 있다면…
+                if (control.Controls.Count > 0)
                 {
-                    paymentControl.ErrorMessage = "투입방향 오류.투입방향을 확인하세요";
-                    TextCore.INFO(TextCore.INFOS.DISCOUNTTICEKT_ERRPR, "FormPaymentMenu|timer_CardReader2_Tick", "투입방향 오류.투입방향을 확인하세요");
-                    NPSYS.Device.CardDevice2.TIcketFrontEject();
-                    TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:" + lTicketActionResult.ToString());
-                    System.Threading.Thread.Sleep(500);
-                    EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.CorrectCard);
-                    return;
-
-                }
-                else if (l_ReadingTrackdata.ReultIntMessage == (int)TicketCardDevice.TicketAndCardResult.Read_and_Verify_Fail)
-                {
-                    paymentControl.ErrorMessage = "투입방향 오류.투입방향을 확인하세요";
-                    TextCore.INFO(TextCore.INFOS.DISCOUNTTICEKT_ERRPR, "FormPaymentMenu|timer_CardReader2_Tick", "투입방향 오류.투입방향을 확인하세요");
-                    NPSYS.Device.CardDevice2.TIcketFrontEject();
-                    TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:" + lTicketActionResult.ToString());
-                    System.Threading.Thread.Sleep(500);
-
-                    EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NotCardPay);
-                    return;
-                }
-
-                else if (l_ReadingTrackdata.ReultIntMessage == (int)TicketCardDevice.TicketAndCardResult.No_Return_Sensor_Ticket || l_ReadingTrackdata.ReultIntMessage == (int)TicketCardDevice.TicketAndCardResult.Empy)
-                {
-                    // TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "else if:" + l_ReadingTrackdata.ReultIntMessage);
-                }
-                else
-                {
-                    paymentControl.ErrorMessage = l_ReadingTrackdata.Message;
-                    TextCore.INFO(TextCore.INFOS.DISCOUNTTICEKT_ERRPR, "FormPaymentMenu|timer_CardReader2_Tick", l_ReadingTrackdata.Message);
-                    NPSYS.Device.CardDevice2.TIcketFrontEject();
-                    TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 앞으로 배출:");
+                    //자신을 재귀적으로 호출한다
+                    allControls.AddRange(GetAllControlsUsingRecursive(control));
                 }
             }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|timer_CardReader2_Tick", ex.ToString());
-                paymentControl.ErrorMessage = "timer_CardReader2_Tick():" + ex.ToString();
-            }
-            finally
-            {
-                if (NPSYS.Device.gIsUseMagneticReaderDevice && CurrentNormalCarInfo.PaymentMoney > 0)
-                {
-                    timer_CardReader2.Start();
-                }
-            }
+
+            //모든 컨트롤을 반환한다
+            return allControls.ToArray();
         }
 
-        #endregion
-
-        private void Back()
-        {
-            this.Close();
-        }
-
-        private void FormPaymentMenu_FormClosed(object sender, FormClosedEventArgs e)
-        {
-            try
-            {
-                //SettingDisableEvent();
-                //axWindowsMediaPlayer1.Ctlcontrols.stop();
-                //axWindowsMediaPlayer1.close();
-
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymentMenu|FormPaymentMenu_FormClosed", "요금화면 처리작업 종료");
-                //this.Close();
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|FormPaymentMenu_FormClosed", ex.ToString());
-            }
-        }
-
-        private void playVideo(string p_MovieName)
-        {
-            try
-            {
-                axWindowsMediaPlayer1.URL = Application.StartupPath + @"\MOVIE\" + p_MovieName;
-                mCurrentMovieName = p_MovieName; // 2016-03-17 카드관련 동영상 떄문에 추가
-                axWindowsMediaPlayer1.uiMode = "none";
-                //if (mIsPlayerOkStatus)
-                //{
-                axWindowsMediaPlayer1.Ctlcontrols.play();
-                //}
-                MovieTimer.Enabled = true;
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|playVideo", ex.ToString());
-            }
-        }
-
-        private void btn_home_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                NPSYS.buttonSoundDingDong();
-                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | btn_home_Click", "고객이 홈버튼 누름");
-                if (CurrentNormalCarInfo.ListDcDetail.Count > 0)
-                {
-                    foreach (DcDetail detailDcDetail in CurrentNormalCarInfo.ListDcDetail)
-                    {
-                        if (detailDcDetail.UseYn == true && detailDcDetail.currentDiscountTicketType == DcDetail.DIscountTicketType.BR)
-                        {
-                            mHttpProcess.DiscountCancle(CurrentNormalCarInfo, detailDcDetail);
-                            detailDcDetail.UseYn = false;
-                        }
-                    }
-                }
-                EventExitPayForm(mCurrentFormType);
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|btn_home_Click", ex.ToString());
-            }
-        }
-
-        private int inputtime = NPSYS.SettingInputTimeValue;
-
-        private void inputTimer_Tick(object sender, EventArgs e)
-        {
-            if (inputtime < 0)
-            {
-                inputtime = 50000000;
-                TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu | inputTimer_Tick", "시간이지나서 처음으로 돌아감");
-                CashCancleFormCloseAction(false);
-                if (CurrentNormalCarInfo.ListDcDetail.Count > 0)
-                {
-                    foreach (DcDetail detailDcDetail in CurrentNormalCarInfo.ListDcDetail)
-                    {
-                        if (detailDcDetail.UseYn == true && detailDcDetail.currentDiscountTicketType == DcDetail.DIscountTicketType.BR)
-                        {
-                            mHttpProcess.DiscountCancle(CurrentNormalCarInfo, detailDcDetail);
-                            detailDcDetail.UseYn = false;
-                        }
-                    }
-                }
-                CurrentNormalCarInfo.ListDcDetail = new List<DcDetail>();
-                EventExitPayForm(mCurrentFormType);
-                return;
-
-            }
-            inputtime = inputtime - 3000;
-        }
-
-        private void button1_Click_1(object sender, EventArgs e)
-        {
-            InsertMoney("100QTY");
-            if (CurrentNormalCarInfo.PaymentMoney == 0)
-            {
-                //카드실패전송
-                CurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
-                //카드실패전송완료
-                PaymentComplete();
-            }
-        }
-
-        private void button1_Click(object sender, EventArgs e)
-        {
-            EventExitPayForm(mCurrentFormType);
-        }
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-            m_PayCardandCash.CreditCardPayResult(txtCardInfo.Text, CurrentNormalCarInfo);
-            if (CurrentNormalCarInfo.PaymentMoney == 0)
-            {
-                //카드실패전송
-                CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
-                //카드실패전송완료
-                PaymentComplete();
-            }
-        }
-
-        private void btn_PrePage_Click(object sender, EventArgs e)
-        {
-            NPSYS.buttonSoundDingDong();
-            TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu | btn_PrePage_Click", "이전 버튼 클릭");
-            if (CurrentNormalCarInfo.Current_Money > 0)
-            {
-                //CashCancleAction();
-            }
-            if (CurrentNormalCarInfo.ListDcDetail.Count > 0)
-            {
-                foreach (DcDetail detailDcDetail in CurrentNormalCarInfo.ListDcDetail)
-                {
-                    if (detailDcDetail.UseYn == true && detailDcDetail.currentDiscountTicketType == DcDetail.DIscountTicketType.BR)
-                    {
-                        mHttpProcess.DiscountCancle(CurrentNormalCarInfo, detailDcDetail);
-                        detailDcDetail.UseYn = false;
-                    }
-                }
-            }
-            CurrentNormalCarInfo.ListDcDetail = new List<DcDetail>();
-            EventExitPayForm(mCurrentFormType, NPSYS.FormType.Select);
-        }
-
-        private void btn_home_Click_1(object sender, EventArgs e)
-        {
-            NPSYS.buttonSoundDingDong();
-
-            if (CurrentNormalCarInfo.Current_Money > 0)
-            {
-                //CashCancleAction();
-            }
-
-            TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu | btn_MainPage_Click", "메인으로 이동버튼 클릭");
-            EventExitPayForm(mCurrentFormType);
-        }
-
-        private void btnDiscountButton_Click(object sender, EventArgs e)
-        {
-            PausePlayVideo();
-            playVideo(m_JuminDIscountMovie);
-        }
+        #endregion 언어변경
 
         #region 정기권처리
         //정기권관련기능(만료요금부과/연장관련)
@@ -3384,157 +3821,23 @@ namespace NPAutoBooth.UI
         //나이스개월연장기능 주석완료
         #endregion
 
-        private int GoConfigSequence = 0;
-
-        private void panel_ConfigClick1_Click(object sender, EventArgs e)
+        private void playVideo(string p_MovieName)
         {
-
-            GoConfigSequence = 1;
-            NPSYS.buttonSoundDingDong();
-        }
-
-        private void panel_ConfigClick2_Click(object sender, EventArgs e)
-        {
-            NPSYS.buttonSoundDingDong();
-
-            if (GoConfigSequence == 1)
+            try
             {
-                EventExitPayForm(mCurrentFormType);
-                TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu | panel_ConfigClick2_Click", "메인화면으로 강제로 이동시킴");
+                axWindowsMediaPlayer1.URL = Application.StartupPath + @"\MOVIE\" + p_MovieName;
+                mCurrentMovieName = p_MovieName; // 2016-03-17 카드관련 동영상 떄문에 추가
+                axWindowsMediaPlayer1.uiMode = "none";
+                //if (mIsPlayerOkStatus)
+                //{
+                axWindowsMediaPlayer1.Ctlcontrols.play();
+                //}
+                MovieTimer.Enabled = true;
             }
-            else
+            catch (Exception ex)
             {
-                GoConfigSequence = 0;
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|playVideo", ex.ToString());
             }
-        }
-
-        private void btnBarcodeTestDiscount_Click(object sender, EventArgs e)
-        {
-            BarcodeAction(txtTestBarcodeDiscount.Text);
-        }
-
-        private void btnSamSungPay_Click(object sender, EventArgs e)
-        {
-
-            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | btnSamSungPay_Click", "삼성페이 결제버튼 누름");
-
-            if (CurrentNormalCarInfo.PaymentMoney > 0 && CurrentNormalCarInfo.Current_Money == 0
-                && (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KICC_DIP_IFM || NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KOCES_TCM || NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KOCES_PAYMGATE))
-            {
-
-                if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KICC_DIP_IFM)
-                {
-                    try
-                    {
-                        paymentControl.ButtonEnable(ButtonEnableType.SamsumPayStart);
-                        SettingDisableDevice();
-                        if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED || NPSYS.Device.KICC_TIT.GetCardInsert())
-                        {
-                            NPSYS.Device.KICC_TIT.CardEject();
-                            mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
-                        }
-                        Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, CurrentNormalCarInfo);
-                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
-                        if (_CardpaySuccess.Success) // 정상적인 티켓이라면
-                        {
-                            NPSYS.CashCreditCount += 1;
-                            NPSYS.CashCreditMoney += CurrentNormalCarInfo.VanAmt;
-                            paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
-                            paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
-                            TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | btnSamSungPay_Click", "정상적인 카드결제됨");
-
-                            if (CurrentNormalCarInfo.PaymentMoney == 0)
-                            {
-                                //카드실패전송
-                                CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
-                                //카드실패전송완료
-                                PaymentComplete();
-
-                                return;
-                            }
-                        }
-                        else // 잘못된 티켓
-                        {
-                            TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu | btnSamSungPay_Click", "정상적인 카드결제안됨 사유 : " + _CardpaySuccess.Message);
-                            paymentControl.ErrorMessage = _CardpaySuccess.Message;
-                            mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
-                            EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NotCardPay);
-                            return;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu | btnSamSungPay_Click", "KICC 결제중 예외 발생 : 사유 : " + ex.ToString());
-                    }
-                    finally
-                    {
-                        if (CurrentNormalCarInfo.PaymentMoney > 0)
-                        {
-                            SettingEnableDevice();
-                            paymentControl.ButtonEnable(ButtonEnableType.SamsunPayEnd);
-                        }
-                    }
-                }
-                else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KOCES_TCM || NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KOCES_PAYMGATE)
-                {
-                    try
-                    {
-                        paymentControl.ButtonEnable(ButtonEnableType.SamsumPayStart);
-                        SettingDisableDevice();
-                        if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED || KocesTcmMotor.CardState() == 2)
-                        {
-                            KocesTcmMotor.CardEject();
-                            mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
-                        }
-
-                        Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, CurrentNormalCarInfo);
-                        if (_CardpaySuccess.Success)
-                        {
-                            NPSYS.CashCreditCount += 1;
-                            NPSYS.CashCreditMoney += CurrentNormalCarInfo.VanAmt;
-                            paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
-                            paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
-                            TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | btnSamSungPay_Click", "정상적인 카드결제됨");
-
-                            if (CurrentNormalCarInfo.PaymentMoney == 0)
-                            {
-                                //카드실패전송
-                                CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
-                                //카드실패전송완료
-                                PaymentComplete();
-
-                                return;
-                            }
-                        }
-                        else
-                        {
-                            TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu | btnSamSungPay_Click", "정상적인 카드결제안됨");
-                            paymentControl.ErrorMessage = _CardpaySuccess.Message;
-                            mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
-                            EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NotCardPay);
-                            return;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu | btnSamSungPay_Click", "KOCES 결제중 예외 발생 : 사유 : " + ex.ToString());
-                    }
-                    finally
-                    {
-                        if (CurrentNormalCarInfo.PaymentMoney > 0)
-                        {
-                            SettingEnableDevice();
-                            paymentControl.ButtonEnable(ButtonEnableType.SamsunPayEnd);
-                        }
-                    }
-                }
-
-            }
-            else
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | btnSamSungPay_Click", "삼성페이 결제되지 않는장비임");
-            }
-
         }
 
         public void SetRemoteDiscount(int pPrePayMoney, Payment pRemotePayment)
@@ -3604,17 +3907,66 @@ namespace NPAutoBooth.UI
             }
         }
 
-        private void btnEnglish_Click(object sender, EventArgs e)
+        #region 테스트
+
+        /// <summary>
+        /// btnCurrentMoneyTest
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void button1_Click_1(object sender, EventArgs e)
+        {
+            InsertMoney("100QTY");
+            if (CurrentNormalCarInfo.PaymentMoney == 0)
+            {
+                //카드실패전송
+                CurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
+                //카드실패전송완료
+                PaymentComplete();
+            }
+        }
+
+        /// <summary>
+        /// btnCredTest
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void button2_Click(object sender, EventArgs e)
+        {
+            m_PayCardandCash.CreditCardPayResult(txtCardInfo.Text, CurrentNormalCarInfo);
+            if (CurrentNormalCarInfo.PaymentMoney == 0)
+            {
+                //카드실패전송
+                CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
+                //카드실패전송완료
+                PaymentComplete();
+            }
+        }
+
+        private void btnBarcodeTestDiscount_Click(object sender, EventArgs e)
+        {
+            BarcodeAction(txtTestBarcodeDiscount.Text);
+        }
+
+        private void btnTestBarcodeJehan_Click(object sender, EventArgs e)
+        {
+            DcDetail dcDetail = new DcDetail();
+            dcDetail.currentDiscountTicketType = DcDetail.DIscountTicketType.BR;
+            dcDetail.DcTkno = txtTestBarcodeDiscount.Text;
+            dcDetail.UseYn = true;
+            CurrentNormalCarInfo.ListDcDetail.Add(dcDetail);
+        }
+
+        /// <summary>
+        /// 테스트 결제
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void button1_Click_2(object sender, EventArgs e)
         {
 
         }
 
-        private void btnJapan_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        #region 강제테스트
         private void btnTestJson_Click(object sender, EventArgs e)
         {
             CurrentNormalCarInfo.VanCheck = 1;
@@ -3676,80 +4028,9 @@ namespace NPAutoBooth.UI
 
 
         }
-        #endregion
 
-        #region 정기권 연장버튼처리
-
-        private void btnOneMonthAdd_Click(object sender, EventArgs e)
-        {
-            SetNextRegExipire(1);
-        }
-
-        private void btnTwoMonthAdd_Click(object sender, EventArgs e)
-        {
-            SetNextRegExipire(2);
-
-        }
-
-        private void btnThreeMonthAdd_Click(object sender, EventArgs e)
-        {
-            SetNextRegExipire(3);
-
-        }
-
-        private void btnFourMonthAdd_Click(object sender, EventArgs e)
-        {
-            SetNextRegExipire(4);
-
-        }
-
-        private void btnFiveMonthAdd_Click(object sender, EventArgs e)
-        {
-            SetNextRegExipire(5);
-
-        }
-
-        private void btnSixMonthAdd_Click(object sender, EventArgs e)
-        {
-            SetNextRegExipire(6);
-
-        }
-
-        private void SetNextRegExipire(int pMonth)
-        {
-            paymentControl.ButtonEnable(ButtonEnableType.AddMonthStart);
-            int pPrePayMoney = CurrentNormalCarInfo.PaymentMoney;
-            CurrentNormalCarInfo.SetRegCurrMonthSetting(pMonth);
-            paymentControl.ElapsedTime = NPSYS.ConvetYears_Dash(CurrentNormalCarInfo.NextExpiredYmd);
-            paymentControl.ParkingFee = TextCore.ToCommaString(CurrentNormalCarInfo.TotFee);
-            paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
-            paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
-            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | SetNextRegExipire", "정기권연장일선택 개월수:" + pMonth.ToString() + " 연장가능일:" + NPSYS.ConvetYears_Dash(CurrentNormalCarInfo.NextExpiredYmd));
-
-            if (pPrePayMoney > CurrentNormalCarInfo.PaymentMoney) // 현재 할인되서 금액이 할인됬다면
-            {
-                BeforeChangePayValueAsCardReader();
-                ChangePayValueAsCardReader();
-            }
-
-            paymentControl.ButtonEnable(ButtonEnableType.AddMonthEnd);
-        }
-
-        #endregion
-
-        private void button1_Click_2(object sender, EventArgs e)
-        {
-
-        }
-
-        private void btnTestBarcodeJehan_Click(object sender, EventArgs e)
-        {
-            DcDetail dcDetail = new DcDetail();
-            dcDetail.currentDiscountTicketType = DcDetail.DIscountTicketType.BR;
-            dcDetail.DcTkno = txtTestBarcodeDiscount.Text;
-            dcDetail.UseYn = true;
-            CurrentNormalCarInfo.ListDcDetail.Add(dcDetail);
-        }
+        #endregion 테스트
+ 
     }
 }
 

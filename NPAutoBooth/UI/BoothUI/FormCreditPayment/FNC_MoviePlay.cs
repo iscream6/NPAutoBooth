@@ -53,28 +53,7 @@ namespace NPAutoBooth.UI
 
         #region 동영상 관련 이벤트처리
 
-        private void MovieTimer_Tick(object sender, EventArgs e)
-        {
-            try
-            {
-                if (IsNextFormPlaying == false)
-                {
-                    MovieStopPlay -= 1000;
-                }
-                if (MovieStopPlay == 0 && IsNextFormPlaying == false)
-                {
-                    //if (mIsPlayerOkStatus == true)
-                    //{
-                    axWindowsMediaPlayer1.Ctlcontrols.pause();
-                    axWindowsMediaPlayer1.Ctlcontrols.play();
-                    //}
-                }
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|MovieTimer_Tick", "예외사항:" + ex.ToString());
-            }
-        }
+        
 
         void Player_MediaError(object sender, AxWMPLib._WMPOCXEvents_MediaErrorEvent e)
         {

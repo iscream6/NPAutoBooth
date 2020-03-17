@@ -379,6 +379,7 @@ namespace NPCommon.Van
 
             RequestSendByte("S", body);
         }
+
         /// <summary>
         /// 결제 요청
         /// </summary>
@@ -395,12 +396,18 @@ namespace NPCommon.Van
             //송신
             RequestSendByte("B", body);
         }
+        ///// <summary>
+        ///// 결제취소 요청
+        ///// </summary>
+        ///// <param name="pPayMoney">취소 할 금액</param>
+        ///// <param name="pAcceptDateTime">yyyyMMddHHmmss</param>
         /// <summary>
         /// 결제취소 요청
         /// </summary>
         /// <param name="pPayMoney">취소 할 금액</param>
         /// <param name="pAcceptDateTime">yyyyMMddHHmmss</param>
-        public void RequestApprovalCancle(string pPayMoney, string pAcceptDateTime)
+        /// <param name="pAcceptNum">승인번호</param>
+        public void RequestApprovalCancle(string pPayMoney, string pAcceptDateTime, string pAcceptNum)
         {
             //바디
             SendApprovalCancel body = new SendApprovalCancel();
@@ -411,7 +418,7 @@ namespace NPCommon.Van
             body.Service = string.Empty;
             body.InstMonth = string.Empty;
             body.SignYN = "1";
-            body.AcceptNo = string.Empty;
+            body.AcceptNo = pAcceptNum; //거래 승인번호 VanRegNo
             body.AcceptDate = pAcceptDateTime.SafeSubstring(0, 8);
             body.AcceptTime = pAcceptDateTime.SafeSubstring(8, 6);
             //송신

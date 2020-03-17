@@ -13,19 +13,6 @@ namespace NPAutoBooth.UI
     /// </summary>
     partial class FormCreditPaymentMenu
     {
-        private void timerCardPay_Tick(object sender, EventArgs e)
-        {
-            if (CurrentNormalCarInfo.VanAmt > 0)
-            {
-                timerKisCardPay.Enabled = false;
-                timerKisCardPay.Stop();
-                //카드실패전송
-                CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
-                //카드실패전송완료
-                PaymentComplete();
-            }
-        }
-
         public bool SetKisDipIFM()
         {
             if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KIS_TIT_DIP_IFM)

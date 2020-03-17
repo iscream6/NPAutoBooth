@@ -943,8 +943,6 @@ namespace NPAutoBooth.UI
                 case NPHttpServer.CmdType.remote_cacnel_payments:
                     Payment remote_cardPayment = mHttpProcess.GetRemoteCardPayment(pData);
 
-
-
                     if (remote_cardPayment == null)
                     {
                         byte[] sendData = Encoding.UTF8.GetBytes(mHttpProcess.GetReturnData(pCmdType, "전문Parsing오류", "원격카드취소 통신데이터 잘못된 데이터라 처리안함", false));
