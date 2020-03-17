@@ -16,7 +16,7 @@ namespace NPAutoBooth.Common
     /// </summary>
     public class PayCardandCash
     {
-        public Result CreditCardPayResult(string pCrditCardInfo, NormalCarInfo pNormalCarInfo)
+        public Result CreditCardPayResult(string pCrditCardInfo, NormalCarInfo pNormalCarInfo, SmartroDTO receiveData = null)
         {
 
             TextCore.INFO(TextCore.INFOS.CARD, "FormPaymentMenu|CreditCardPayResult", "카드 결제시작");
@@ -31,45 +31,10 @@ namespace NPAutoBooth.Common
             try
             {
                 //KOCSE 카드리더기 추가
-                if (pCrditCardInfo.Trim().Length>0)
-                { 
-                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|CreditCardPayResult", "카드 정보:" + pCrditCardInfo.Split('=')[0].Substring(0, 4) + "-" + pCrditCardInfo.Split('=')[0].Substring(4, 4) + "-****-****");
+                if (pCrditCardInfo.Trim().Length > 0)
+                {
+                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|CreditCardPayResult", "카드 정보:" + pCrditCardInfo.Split('=')[0].Substring(0, 4) + "-" + pCrditCardInfo.Split('=')[0].Substring(4, 4) + "-****-****");
                 }
-                //KOCSE 카드리더기 추가 주석
-                //if (!NPSYS.isBoothRealMode)
-                //{
-                //    string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                //    pNormalCarInfo.PaymentMethod = NormalCarInfo.PaymentType.CreditCard;
-                //    LPRDbSelect.LogMoney(logDate, pNormalCarInfo, MoneyType.CreditCard, pNormalCarInfo.PaymentMoney, 0, "");
-                //    pNormalCarInfo.VanCheck = 1;
-                //    pNormalCarInfo.VanCardNumber = "1234";
-                //    pNormalCarInfo.VanRegNo = "1111";
-                //    pNormalCarInfo.VanDate = "201404";
-                //    pNormalCarInfo.VanRescode = "0000";
-                //    pNormalCarInfo.VanResMsg = "성공";
-                //    pNormalCarInfo.VanSupplyPay = Convert.ToInt32(SupplyPay);
-                //    pNormalCarInfo.VanTaxPay = Convert.ToInt32(taxsResult);
-                //    pNormalCarInfo.VanCardName = "하나SK카드";
-                //    pNormalCarInfo.VanBeforeCardPay = pNormalCarInfo.PaymentMoney;
-                //    pNormalCarInfo.VanCardApproveYmd = NPSYS.ConvetYears_Dash("20" + "140404");
-                //    pNormalCarInfo.VanCardApproveHms = DateTime.Now.ToString("HH:mm:ss");
-                //    pNormalCarInfo.VanCardApprovalYmd = NPSYS.ConvetYears_Dash("20" + "140404");
-                //    pNormalCarInfo.VanCardApprovalHms = DateTime.Now.ToString("HH:mm:ss");
-                //    pNormalCarInfo.VanIssueCode = "01";
-                //    pNormalCarInfo.VanIssueName = "하나은행";
-                //    pNormalCarInfo.VanCardAcquirerCode = "11";
-                //    pNormalCarInfo.VanCardAcquirerName = "성공";
-                     
-                //    LPRDbSelect.Creditcard_Log_INsert(pNormalCarInfo);
-
-                //    //LPRDbSelect.SaveCardPay(pNormalCarInfo);
-                //    // 카드결제후 무언가 완료된거를 보내야한다
-
-
-                //    pNormalCarInfo.VanAmt = pNormalCarInfo.PaymentMoney;
-                //    TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu|CreditCardPayResult", "카드 결제성공");
-                //    return new Result(true, "성공");
-                //}
                 if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.VAN_FIRSTDATA)
                 {
                     Thread.Sleep(2000);
@@ -86,7 +51,7 @@ namespace NPAutoBooth.Common
 
                         string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
-                        LPRDbSelect.LogMoney(PaymentType.CreditCard,logDate, pNormalCarInfo, MoneyType.CreditCard, pNormalCarInfo.PaymentMoney, 0, "");
+                        LPRDbSelect.LogMoney(PaymentType.CreditCard, logDate, pNormalCarInfo, MoneyType.CreditCard, pNormalCarInfo.PaymentMoney, 0, "");
                         string[] lCardNumData = pCrditCardInfo.Split('=');
 
                         pNormalCarInfo.VanCardNumber = lCardNumData[0].Substring(0, 4) + "-" + lCardNumData[0].Substring(4, 4) + "-****-" + lCardNumData[0].Substring(12);
@@ -145,8 +110,7 @@ namespace NPAutoBooth.Common
                     }
                 }
                 //KOCSE 카드리더기 추가
-                
-                else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KOCES_TCM|| NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KOCES_PAYMGATE)
+                else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KOCES_TCM || NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KOCES_PAYMGATE)
                 {
                     KocesTcmMotor.CreditAuthSimpleExData result = null;
 
@@ -174,8 +138,8 @@ namespace NPAutoBooth.Common
                     if (returnCode == "0000")
                     {
                         string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                        
-                        LPRDbSelect.LogMoney(PaymentType.CreditCard,logDate, pNormalCarInfo, MoneyType.CreditCard, pNormalCarInfo.PaymentMoney, 0, "");
+
+                        LPRDbSelect.LogMoney(PaymentType.CreditCard, logDate, pNormalCarInfo, MoneyType.CreditCard, pNormalCarInfo.PaymentMoney, 0, "");
 
                         pNormalCarInfo.VanCheck = 1;
                         pNormalCarInfo.VanRegNo = result.AuthNumber.Trim();
@@ -217,17 +181,13 @@ namespace NPAutoBooth.Common
 
                     }
                 }
-                //KOCSE 카드리더기 추가 주석
- 
-
                 //KICC DIP적용
-
                 else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KICC_DIP_IFM)
                 {
                     if (pNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar
                        || pNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar)
                     {
-                        NPSYS.Device.KICC_TIT.SendData_D4(Creditpaymoneys.ToString(),pNormalCarInfo.VanDate_Cancle.Replace("-","").Substring(2,6) ,pNormalCarInfo.VanRegNo_Cancle, "10");
+                        NPSYS.Device.KICC_TIT.SendData_D4(Creditpaymoneys.ToString(), pNormalCarInfo.VanDate_Cancle.Replace("-", "").Substring(2, 6), pNormalCarInfo.VanRegNo_Cancle, "10");
 
                     }
                     else
@@ -249,9 +209,9 @@ namespace NPAutoBooth.Common
                     {
                         TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "PayCardandCash | CreditCardPayResult", "[카드결제성공]");
 
-                       string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                        string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
-                        LPRDbSelect.LogMoney(PaymentType.CreditCard,logDate, pNormalCarInfo, MoneyType.CreditCard, pNormalCarInfo.PaymentMoney, 0, "");
+                        LPRDbSelect.LogMoney(PaymentType.CreditCard, logDate, pNormalCarInfo, MoneyType.CreditCard, pNormalCarInfo.PaymentMoney, 0, "");
                         pNormalCarInfo.VanCheck = 1;
                         string[] lCardNumData = result.RQ04.Split('=');
                         if (lCardNumData[0].Length > 13)
@@ -312,7 +272,7 @@ namespace NPAutoBooth.Common
                         pNormalCarInfo.VanCheck = 2;
                         // syc 01  USER CANCLE
                         // suc 00 rescode 8037
-                        
+
                         if (returnCode != string.Empty)
                         {
                             //카드실패전송
@@ -341,7 +301,7 @@ namespace NPAutoBooth.Common
                             pNormalCarInfo.VanIssueName = result.RS12.Trim();
                             pNormalCarInfo.VanCardAcquirerCode = result.RS05.Trim();
                             pNormalCarInfo.VanCardAcquirerName = result.RS14.Trim();
-                            
+
                             //카드실패전송 완료
                         }
                         else
@@ -352,9 +312,9 @@ namespace NPAutoBooth.Common
                         string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                         TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "PayCardandCash | CreditCardPayResult", "[카드결제실패]");
 
-                        
 
-                        
+
+
 
                         pNormalCarInfo.VanAmt = 0;
                         if (result.RS16 == null)
@@ -375,7 +335,6 @@ namespace NPAutoBooth.Common
 
                     }
                 }
-                //KICC DIP적용완료
                 //FIRSTDATA처리 
                 else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.FIRSTDATA_DIP)
                 {
@@ -392,7 +351,7 @@ namespace NPAutoBooth.Common
                     {
 
                         string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                        LPRDbSelect.LogMoney(PaymentType.CreditCard,logDate, pNormalCarInfo, MoneyType.CreditCard, pNormalCarInfo.PaymentMoney, 0, "");
+                        LPRDbSelect.LogMoney(PaymentType.CreditCard, logDate, pNormalCarInfo, MoneyType.CreditCard, pNormalCarInfo.PaymentMoney, 0, "");
                         pNormalCarInfo.VanCheck = 1;
 
                         pNormalCarInfo.VanCardNumber = result.CardNumber.Substring(0, 4) + "-" + result.CardNumber.Substring(4, 4) + "-" + result.CardNumber.Substring(8, 4) + "-" + result.CardNumber.Substring(12);
@@ -442,8 +401,6 @@ namespace NPAutoBooth.Common
 
                     }
                 }
-
-                //FIRSTDATA처리 주석완료
                 else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KSNET)
                 {
                     KSR01.CreditAuthSimpleExData result = KSR01.CreditAuthSimpleEx(NPSYS.gVanIp, Convert.ToInt32(NPSYS.gVanPort), terminalNo, pNormalCarInfo.PaymentMoney.ToString(), SupplyPay.ToString(), taxsResult.ToString());
@@ -458,7 +415,7 @@ namespace NPAutoBooth.Common
                     {
 
                         string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                        LPRDbSelect.LogMoney(PaymentType.CreditCard,logDate, pNormalCarInfo, MoneyType.CreditCard, pNormalCarInfo.PaymentMoney, 0, "");
+                        LPRDbSelect.LogMoney(PaymentType.CreditCard, logDate, pNormalCarInfo, MoneyType.CreditCard, pNormalCarInfo.PaymentMoney, 0, "");
                         pNormalCarInfo.VanCheck = 1;
                         string lCardNumData = result.CreditInfo;
                         pNormalCarInfo.VanCardNumber = lCardNumData.Substring(0, 4) + "-" + lCardNumData.Substring(4, 4) + "-****-" + lCardNumData.Substring(12);
@@ -507,6 +464,92 @@ namespace NPAutoBooth.Common
 
                     }
                 }
+                else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.SMATRO_TL3500S)
+                {
+                    Thread.Sleep(500);
+
+                    if (receiveData == null)
+                    {
+                        TextCore.INFO(TextCore.INFOS.CARD_ERRPR, "FormPaymentMenu|CreditCardPayResult", "신용카드 서버 접속안됨");
+                        TextCore.DeviceError(TextCore.DEVICE.TCPIP, "FormPaymentMenu|CreditCardPayResult", "신용카드 서버 접속안됨");
+                        return new Result(false, "신용카드 서버 접속안됨");
+                    }
+                    else //정상 데이터
+                    {
+                        Header header = receiveData.HeaderData as Header;
+                        ReceiveApproval receiveApproval = receiveData.BodyData as ReceiveApproval;
+
+                        string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                        LPRDbSelect.LogMoney(PaymentType.CreditCard, logDate, pNormalCarInfo, MoneyType.CreditCard, pNormalCarInfo.PaymentMoney, 0, "");
+
+                        if (receiveApproval.TradCode == "1") //신용승인
+                        {
+                            if (receiveApproval.TradCode == "X") //거래거절 시
+                            {
+                                pNormalCarInfo.VanCardNumber = receiveApproval.CardNo.Substring(0, 4) + "-" + receiveApproval.CardNo.Substring(4, 4) + "-" + receiveApproval.CardNo.Substring(8, 4) + "-" + receiveApproval.CardNo.Substring(12);
+                                pNormalCarInfo.VanRegNo = receiveApproval.AcceptNo;
+                                pNormalCarInfo.VanDate = receiveApproval.AcceptDate;
+                                pNormalCarInfo.VanRescode = header.ResponseCode == 0x00 ? "0000" : "9999";//receiveApproval.TradNo;
+                                pNormalCarInfo.VanResMsg = receiveApproval.DenyMessage;
+                                pNormalCarInfo.VanSupplyPay = Convert.ToInt32(SupplyPay);
+                                pNormalCarInfo.VanTaxPay = Convert.ToInt32(taxsResult);
+                                //pNormalCarInfo.VanCardName = result.CardName.Trim(); //<====== 어디서 가져와야 하는가??
+                                pNormalCarInfo.VanBeforeCardPay = pNormalCarInfo.PaymentMoney;
+                                pNormalCarInfo.VanCardApproveYmd = NPSYS.ConvetYears_Dash(receiveApproval.AcceptDate);
+                                pNormalCarInfo.VanCardApproveHms = NPSYS.ConvetDay_Dash(receiveApproval.AcceptTime); //DateTime.Now.ToString("HH:mm:ss");
+                                pNormalCarInfo.VanCardApprovalYmd = NPSYS.ConvetYears_Dash(receiveApproval.AcceptDate);
+                                pNormalCarInfo.VanCardApprovalHms = NPSYS.ConvetDay_Dash(receiveApproval.AcceptTime);//DateTime.Now.ToString("HH:mm:ss");
+                                pNormalCarInfo.VanIssueCode = "";
+                                pNormalCarInfo.VanIssueName = "";
+                                pNormalCarInfo.VanCardAcquirerCode = "";
+                                pNormalCarInfo.VanCardAcquirerName = "";
+
+                                pNormalCarInfo.VanCheck = 2;
+                                pNormalCarInfo.VanAmt = 0;
+                                TextCore.INFO(TextCore.INFOS.CARD_ERRPR, "FormPaymentMenu|CreditCardPayResult", "카드 결제실패:" + pNormalCarInfo.VanResMsg + pNormalCarInfo.VanResMsg2);
+                                return new Result(false, pNormalCarInfo.VanRescode + ":" + pNormalCarInfo.VanResMsg + pNormalCarInfo.VanResMsg2);
+
+                            }
+                            else //거래 승인 시
+                            {
+                                pNormalCarInfo.VanCardNumber = receiveApproval.CardNo.Substring(0, 4) + "-" + receiveApproval.CardNo.Substring(4, 4) + "-" + receiveApproval.CardNo.Substring(8, 4) + "-" + receiveApproval.CardNo.Substring(12);
+                                pNormalCarInfo.VanRegNo = receiveApproval.AcceptNo;
+                                pNormalCarInfo.VanDate = receiveApproval.AcceptDate;
+                                pNormalCarInfo.VanRescode = header.ResponseCode == 0x00 ? "0000" : "9999";//receiveApproval.TradNo;
+                                pNormalCarInfo.VanResMsg = "";
+                                pNormalCarInfo.VanSupplyPay = Convert.ToInt32(SupplyPay);
+                                pNormalCarInfo.VanTaxPay = Convert.ToInt32(taxsResult);
+                                //pNormalCarInfo.VanCardName = result.CardName.Trim(); //<====== 어디서 가져와야 하는가??
+                                pNormalCarInfo.VanBeforeCardPay = pNormalCarInfo.PaymentMoney;
+                                pNormalCarInfo.VanCardApproveYmd = NPSYS.ConvetYears_Dash(receiveApproval.AcceptDate);
+                                pNormalCarInfo.VanCardApproveHms = NPSYS.ConvetDay_Dash(receiveApproval.AcceptTime); //DateTime.Now.ToString("HH:mm:ss");
+                                pNormalCarInfo.VanCardApprovalYmd = NPSYS.ConvetYears_Dash(receiveApproval.AcceptDate);
+                                pNormalCarInfo.VanCardApprovalHms = NPSYS.ConvetDay_Dash(receiveApproval.AcceptTime);//DateTime.Now.ToString("HH:mm:ss");
+                                pNormalCarInfo.VanIssueCode = receiveApproval.IssuerCode.Trim();
+                                pNormalCarInfo.VanIssueName = receiveApproval.IssuerName.Trim();
+                                pNormalCarInfo.VanCardAcquirerCode = receiveApproval.AcquirerCode.Trim();
+                                pNormalCarInfo.VanCardAcquirerName = receiveApproval.AcquirerName.Trim();
+
+                                pNormalCarInfo.VanCheck = 1;
+                                LPRDbSelect.Creditcard_Log_INsert(pNormalCarInfo);
+                                //LPRDbSelect.SaveCardPay(pNormalCarInfo);
+                                // 카드결제후 무언가 완료된거를 보내야한다
+                                pNormalCarInfo.VanAmt = pNormalCarInfo.PaymentMoney;
+                                TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu|CreditCardPayResult", "카드 결제성공");
+                                return new Result(true, "성공");
+                            }
+                        }
+                        else if (receiveApproval.TradCode == "3") //선불카드
+                        {
+                            return new Result(true, "성공");
+                        }
+                        else
+                        {
+                            return new Result(true, "성공");
+                        }
+                    }
+
+                }
                 else
                 {
                     SMATROCREDIT.CreditAuthSimpleExData result = SMATROCREDIT.CreditAuthSimpleEx(NPSYS.gVanIp, Convert.ToInt32(NPSYS.gVanPort), terminalNo, pCrditCardInfo, pNormalCarInfo.PaymentMoney.ToString(), taxsResult.ToString());
@@ -521,7 +564,7 @@ namespace NPAutoBooth.Common
                     {
 
                         string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-    
+
                         LPRDbSelect.LogMoney(PaymentType.CreditCard, logDate, pNormalCarInfo, MoneyType.CreditCard, pNormalCarInfo.PaymentMoney, 0, "");
                         pNormalCarInfo.VanCheck = 1;
                         string[] lCardNumData = pCrditCardInfo.Split('=');

@@ -429,24 +429,82 @@ namespace NPCommon.Van
     public class ReceiveApproval : ISerializable
     {
         private const ushort length = 157;
-
+        /// <summary>
+        /// 거래구분코드
+        /// </summary>
         public string TradCode;     //[01 Byte] 거래구분코드 "1"[승인], "3"[선불카드], "X"[거래거절]:거래매체~단말기번호 Space 채움, 취소시 "2"인 경우 태그한 카드가 이전 거래 내역이 없거나 이미 취소한 카드인 경우 거래취소 요청전문에 대한 응답전문은 카드조회 응답전문이 전송
+        /// <summary>
+        /// 거래매체
+        /// </summary>
         public string TradType;     //[01 Byte] 거래매체 "1"[IC], "2"[MS], "3"[RF]
+        /// <summary>
+        /// 카드번호
+        /// </summary>
         public string CardNo;       //[20 Byte] 카드번호 신용카드 앞 6자리외 나머지 마스킹 처리 우측 정렬, 좌측 "0" 채움
+        /// <summary>
+        /// 승인금액
+        /// </summary>
         public string PayMoney;     //[10 Byte] 승인요청금액(원거래+세금+봉사료) 우측 정렬, 좌측 "0" 채움
+        /// <summary>
+        /// 세금
+        /// </summary>
         public string Vat;          //[08 Byte] 부가세 선불카드의 경우 거래 전 잔액 우측 정렬, 좌측 "0" 채움
+        /// <summary>
+        /// 봉사료
+        /// </summary>
         public string Service;      //[08 Byte] 봉사료 우측 정렬, 좌측 "0" 채움
+        /// <summary>
+        /// 할부개월
+        /// </summary>
         public string InstMonth;    //[02 Byte] 할부개월 우측 정렬, 좌측 "0" 채움
+        /// <summary>
+        /// 승인번호/선불카드정보
+        /// </summary>
         public string AcceptNo;     //[12 Byte] 선불카드 정보 카드종류[1B]+"0"[5B]+잔액[6B] 카드종류 "T"[티머니], "E"[캐시비], "M"[마이비], "U"[유페이], "H"[한페이], "K"[코레일]
+        /// <summary>
+        /// 매출일자(YYYYMMDDD)
+        /// </summary>
         public string AcceptDate;   //[08 Byte] 매출발생 일자[YYYYMMDD]
+        /// <summary>
+        /// 매출시간(hhmmss)
+        /// </summary>
         public string AcceptTime;   //[06 Byte] 매출발생 시간[hhmmss]
+        /// <summary>
+        /// 거래고유번호
+        /// </summary>
         public string TradNo;       //[12 Byte] 거래일련번호
+        /// <summary>
+        /// 가맹점번호
+        /// </summary>
         public string FranchiNo;    //[15 Byte] 가맹점번호 좌측정렬 Space[0x20] 채움
+        /// <summary>
+        /// 단말기번호
+        /// </summary>
         public string TID;          //[14 Byte] 단말기번호 좌측정렬 Space[0x20] 채움
+        /// <summary>
+        /// 발급사코드
+        /// </summary>
         public string IssuerCode;   //[04 Byte] *거래거절 응답메세지 발급사코드 거래구분코드 "X"[거래거절] 시 VAN사 응답 메세지 "-" + 응답코드[2B] + 응답메세지[37B]
+        /// <summary>
+        /// 발급사명
+        /// </summary>
         public string IssuerName;   //[16 Byte] *거래거절 응답메세지 발급사명
-        public string PurchaseCode; //[04 Byte] *거래거절 응답메세지 매입사코드
-        public string PurchaseName; //[16 Byte] *거래거절 응답메세지 매입사명
+        /// <summary>
+        /// 매입사코드
+        /// </summary>
+        public string AcquirerCode; //[04 Byte] *거래거절 응답메세지 매입사코드
+        /// <summary>
+        /// 매입사명
+        /// </summary>
+        public string AcquirerName; //[16 Byte] *거래거절 응답메세지 매입사명
+        /// <summary>
+        /// 거래거절 응답코드
+        /// </summary>
+        public string DenyCode; //거래거절 "-" + 응답코드
+        /// <summary>
+        /// 거래거절 응답메시지
+        /// </summary>
+        public string DenyMessage; //거래거절 응답메시지
 
         public ushort Size => length;
 
@@ -465,10 +523,18 @@ namespace NPCommon.Van
             TradNo = reader.ReadFixedString(12);
             FranchiNo = reader.ReadFixedString(15).TrimEnd();
             TID = reader.ReadFixedString(14).Trim();
-            IssuerCode = reader.ReadFixedString(4);
-            IssuerName = reader.ReadFixedString(16);
-            PurchaseCode = reader.ReadFixedString(4);
-            PurchaseName = reader.ReadFixedString(16);
+            if(TradCode == "X")
+            {
+                DenyCode = reader.ReadFixedString(3);
+                DenyMessage = reader.ReadFixedString(37);
+            }
+            else
+            {
+                IssuerCode = reader.ReadFixedString(4);
+                IssuerName = reader.ReadFixedString(16);
+                AcquirerCode = reader.ReadFixedString(4);
+                AcquirerName = reader.ReadFixedString(16);
+            }
         }
 
         public void Serialize(BinaryWriter writer)
@@ -486,10 +552,18 @@ namespace NPCommon.Van
             writer.Write(TradNo.GetBytes());
             writer.Write(FranchiNo.PadRight(15).GetBytes());
             writer.Write(TID.GetBytes());
-            writer.Write(IssuerCode.GetBytes());
-            writer.Write(IssuerName.GetBytes());
-            writer.Write(PurchaseCode.GetBytes());
-            writer.Write(PurchaseName.GetBytes());
+            if(TradCode == "X")
+            {
+                writer.Write(DenyCode.GetBytes());
+                writer.Write(DenyMessage.GetBytes());
+            }
+            else
+            {
+                writer.Write(IssuerCode.GetBytes());
+                writer.Write(IssuerName.GetBytes());
+                writer.Write(AcquirerCode.GetBytes());
+                writer.Write(AcquirerName.GetBytes());
+            }
         }
     }
 

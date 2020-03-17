@@ -247,6 +247,16 @@
         public const string FeatureSettingUseCardFailSend = "FeatureSetting:UseCardFailSend";
 
         /// <summary>
+        /// 24시간 무정산 시 발송할 Error 코드
+        /// </summary>
+        public const string FeatureSettingTmap24ErrorCode = "FeatureSetting:24ErrorCode";
+        
+        /// <summary>
+        /// 무정산 체크 할 시간 설정 코드
+        /// </summary>
+        public const string FeatureSettingTmapUseInterval = "FeatureSetting:TmapUseInterval";
+
+        /// <summary>
         /// 카드 및 할인권 LED 분리표출
         /// </summary>
         public const string FeatureSettingUseCreditAndTIcketSplit = "FeatureSetting:UseCreditAndTIcketSplit";

@@ -299,7 +299,6 @@
             this.Text = "NPAutoBooth";
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.FormPaymentMenu_FormClosed);
             this.Load += new System.EventHandler(this.FormPaymentMenu_Load);
-            this.Shown += new System.EventHandler(this.FormPaymentMenu_Shown);
             ((System.ComponentModel.ISupportInitialize)(this.pic_Wait_MSG_WAIT)).EndInit();
             this.groupTest.ResumeLayout(false);
             this.groupTest.PerformLayout();

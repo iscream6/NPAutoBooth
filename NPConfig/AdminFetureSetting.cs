@@ -2,6 +2,7 @@
 using FadeFox.Utility;
 using NPCommon;
 using System;
+using System.Globalization;
 using System.Windows.Forms;
 
 namespace NPConfig
@@ -250,6 +251,9 @@ namespace NPConfig
             NPCommon.ConfigID.MoneyType MoneyTypeData = (MoneyType.Trim() == string.Empty ? NPCommon.ConfigID.MoneyType.WON : (NPCommon.ConfigID.MoneyType)Enum.Parse(typeof(NPCommon.ConfigID.MoneyType), MoneyType.Trim()));
             cbxMoneyTray.Text = MoneyTypeData.ToString();
 
+            txt24ErrCode.Text = mConfig.GetValue(ConfigID.FeatureSettingTmap24ErrorCode);
+
+            txt24Interval.Text = mConfig.GetValue(ConfigID.FeatureSettingTmapUseInterval);
         }
 
         private void btnOk_Click(object sender, EventArgs e)
@@ -541,7 +545,63 @@ namespace NPConfig
             mConfig.SetValue(ConfigID.FeatureSettingMoneyTypeDataMode, cbxMoneyTray.Text);
 
             mConfig.SetValue(ConfigID.FeatureSettingCarNumberType, cbxCarNumberType.Text);
-            //this.Close();
+
+            mConfig.SetValue(ConfigID.FeatureSettingTmap24ErrorCode, txt24ErrCode.Text);
+
+            DateTime outTime;
+            if (DateTime.TryParseExact(txt24Interval.Text, "HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out outTime))
+            {
+                mConfig.SetValue(ConfigID.FeatureSettingTmapUseInterval, txt24Interval.Text);
+            }
+            else
+            {
+                try
+                {
+                    //Validation Check~!
+                    string sInteval = txt24Interval.Text;
+                    int h;
+                    if (int.TryParse(sInteval.Substring(0, 2), out h))
+                    {
+                        if (h >= 24)
+                        {
+                            sInteval = "23" + sInteval.Substring(2);
+                        }
+                    }
+                    int m;
+                    if (int.TryParse(sInteval.Substring(3, 2), out m))
+                    {
+                        if (m >= 59 || h == 24)
+                        {
+                            sInteval = sInteval.Substring(0, 2) + ":59:" + sInteval.Substring(6);
+                        }
+                    }
+                    int s;
+                    if (int.TryParse(sInteval.Substring(6), out s))
+                    {
+                        if (s >= 59 || h == 24)
+                        {
+                            sInteval = sInteval.Substring(0, 6) + "59";
+                        }
+                    }
+                    if (DateTime.TryParseExact(sInteval, "HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out outTime))
+                    {
+                        mConfig.SetValue(ConfigID.FeatureSettingTmapUseInterval, sInteval);
+                    }
+                    else
+                    {
+                        //강제로 적용
+                        mConfig.SetValue(ConfigID.FeatureSettingTmapUseInterval, "23:59:59"); //Default 24시 시간 체크(실제론 1분 빠진다)
+                    }
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("시(2자리숫자):분(2자리숫자):초(2자리숫차) 포멧을 맞춰 입력하세요.");
+                    txt24Interval.Focus();
+                    return;
+                }
+
+            }
+
             MessageBox.Show("저장하였습니다.");
         }
 

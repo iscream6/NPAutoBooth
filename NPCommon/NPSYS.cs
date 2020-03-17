@@ -1079,6 +1079,8 @@ namespace NPCommon
             //카드실패전송 완료
             //TMAP연동
             GetUseTmap();
+            GetPaymentErrorCode();
+            GetUseCheckInterval();
             //TMAP연동완료
             GetUseReceiptSupplyPrint();
             GetCenterAliveTime();
@@ -3069,6 +3071,27 @@ namespace NPCommon
         private static void GetUseTmap()
         {
             gUseTmap = (NPSYS.Config.GetValue(ConfigID.FeatureSettingUseTmap).Trim() == "Y" ? true : false);
+        }
+
+        /// <summary>
+        /// 24시간 정산기 무가동 체크 플래그
+        /// </summary>
+        public static bool gPaymentCheck = true;
+
+        public static int gPaymentErrorCode = 1307;
+
+        private static void GetPaymentErrorCode()
+        {
+            var strCod = NPSYS.Config.GetValue(ConfigID.FeatureSettingTmap24ErrorCode);
+            gPaymentErrorCode = strCod == null || strCod == "" ? gPaymentErrorCode : int.Parse(strCod);
+        }
+
+        public static string gUseCheckInterval = "24:00:00";
+
+        private static void GetUseCheckInterval()
+        {
+            var interval = NPSYS.Config.GetValue(ConfigID.FeatureSettingTmapUseInterval);
+            gUseCheckInterval = interval == "" ? "24:00:00" : interval;
         }
 
         /// <summary>

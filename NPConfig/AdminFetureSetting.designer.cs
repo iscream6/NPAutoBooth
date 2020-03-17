@@ -138,6 +138,11 @@
             this.lblSubject = new FadeFox.UI.Text3DLabel();
             this.panel1 = new System.Windows.Forms.Panel();
             this.panel2 = new System.Windows.Forms.Panel();
+            this.label38 = new System.Windows.Forms.Label();
+            this.txt24Interval = new System.Windows.Forms.TextBox();
+            this.label36 = new System.Windows.Forms.Label();
+            this.txt24ErrCode = new System.Windows.Forms.TextBox();
+            this.label34 = new System.Windows.Forms.Label();
             this.pnlControl.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.group5.SuspendLayout();
@@ -1026,6 +1031,11 @@
             // groupBox6
             // 
             this.groupBox6.BackColor = System.Drawing.Color.Beige;
+            this.groupBox6.Controls.Add(this.label38);
+            this.groupBox6.Controls.Add(this.txt24Interval);
+            this.groupBox6.Controls.Add(this.label36);
+            this.groupBox6.Controls.Add(this.txt24ErrCode);
+            this.groupBox6.Controls.Add(this.label34);
             this.groupBox6.Controls.Add(this.cbxUseCardFailSend);
             this.groupBox6.Controls.Add(this.label33);
             this.groupBox6.Controls.Add(this.cbxUseTmap);
@@ -1435,6 +1445,58 @@
             this.panel2.Size = new System.Drawing.Size(1004, 38);
             this.panel2.TabIndex = 388;
             // 
+            // label38
+            // 
+            this.label38.AutoSize = true;
+            this.label38.BackColor = System.Drawing.Color.Transparent;
+            this.label38.Font = new System.Drawing.Font("굴림", 9F);
+            this.label38.ForeColor = System.Drawing.Color.Red;
+            this.label38.Location = new System.Drawing.Point(251, 373);
+            this.label38.Name = "label38";
+            this.label38.Size = new System.Drawing.Size(59, 12);
+            this.label38.TabIndex = 421;
+            this.label38.Text = "(시:분:초)";
+            // 
+            // txt24Interval
+            // 
+            this.txt24Interval.Location = new System.Drawing.Point(161, 368);
+            this.txt24Interval.MaxLength = 50;
+            this.txt24Interval.Name = "txt24Interval";
+            this.txt24Interval.Size = new System.Drawing.Size(84, 21);
+            this.txt24Interval.TabIndex = 420;
+            this.txt24Interval.Text = "24:00:00";
+            // 
+            // label36
+            // 
+            this.label36.AutoSize = true;
+            this.label36.BackColor = System.Drawing.Color.Transparent;
+            this.label36.Font = new System.Drawing.Font("굴림", 9F);
+            this.label36.Location = new System.Drawing.Point(19, 373);
+            this.label36.Name = "label36";
+            this.label36.Size = new System.Drawing.Size(132, 12);
+            this.label36.TabIndex = 419;
+            this.label36.Text = "TMAP 무정산 체크시간";
+            // 
+            // txt24ErrCode
+            // 
+            this.txt24ErrCode.Location = new System.Drawing.Point(161, 341);
+            this.txt24ErrCode.MaxLength = 50;
+            this.txt24ErrCode.Name = "txt24ErrCode";
+            this.txt24ErrCode.Size = new System.Drawing.Size(67, 21);
+            this.txt24ErrCode.TabIndex = 418;
+            this.txt24ErrCode.Text = "1307";
+            // 
+            // label34
+            // 
+            this.label34.AutoSize = true;
+            this.label34.BackColor = System.Drawing.Color.Transparent;
+            this.label34.Font = new System.Drawing.Font("굴림", 9F);
+            this.label34.Location = new System.Drawing.Point(19, 347);
+            this.label34.Name = "label34";
+            this.label34.Size = new System.Drawing.Size(132, 12);
+            this.label34.TabIndex = 417;
+            this.label34.Text = "TMAP 무정산 에러코드";
+            // 
             // AdminFetureSetting
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
@@ -1584,5 +1646,10 @@
         private System.Windows.Forms.Label lblUseTmap;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.Panel panel2;
+        private System.Windows.Forms.Label label38;
+        private System.Windows.Forms.TextBox txt24Interval;
+        private System.Windows.Forms.Label label36;
+        private System.Windows.Forms.TextBox txt24ErrCode;
+        private System.Windows.Forms.Label label34;
     }
 }

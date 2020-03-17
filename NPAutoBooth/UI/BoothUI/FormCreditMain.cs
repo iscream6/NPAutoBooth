@@ -42,8 +42,10 @@ namespace NPAutoBooth.UI
         private NPTimer PaymentIntervalCheck_Thread = new NPTimer();
         private DateTime paymentCheckDate = DateTime.Now;
         private bool isFirstPaymentCheck = false;
-        private const int paymentInterval = 6000000; //10분(millisecond)
-        private const int paymentCheckErrCode = 13;
+        //5분(millisecond) 마다 체크, 만일 UseCheckInterval이 더 짧으면 UseCheckInterval의 1/2 로 수정됨
+        private int paymentInterval = 3000000;
+        private bool bSendError = true;
+        private double dUseCheckInterval = 86339d; //23시 59분 59초
         //Tmap연동완료
 
         public NPSYS.FormType mMainFormType = NPSYS.FormType.Main;
@@ -185,8 +187,22 @@ namespace NPAutoBooth.UI
                 //Tmap연동
                 if (NPSYS.gUseTmap)
                 {
+                    //체크 간격 설정
+                    //dUseCheckInterval
+                    var interval = NPSYS.Config.GetValue(ConfigID.FeatureSettingTmapUseInterval);
+                    DateTime dt = DateTime.Parse(interval);
+                    dUseCheckInterval = ParseToSecond(dt.Hour, "h") + ParseToSecond(dt.Minute, "m") + dt.Second;
+
                     //정산 간격 체크 Thread 생성
-                    PaymentIntervalCheck_Thread.Interval = paymentInterval;
+                    var iInterval = (paymentInterval / 1000);
+                    //체크하는 interval보다 사용시간 check하는 interval이 더 짧을경우
+                    if (iInterval >= dUseCheckInterval)
+                    {
+                        //체크하는 interval의 반 타이밍 마다 체크하도록 하자.
+                        iInterval = (int)(dUseCheckInterval / 2);
+                        if (iInterval == 0) iInterval = 10;
+                    }
+                    PaymentIntervalCheck_Thread.Interval = (iInterval * 1000); //밀리세컨트 적용
                     PaymentIntervalCheck_Thread.Tick += PaymentIntervalCheckAction;
                     PaymentIntervalCheck_Thread.Start();
                 }
@@ -314,12 +330,35 @@ namespace NPAutoBooth.UI
 
         }
 
+        private double ParseToSecond(double value, string flag)
+        {
+            if (flag == "h")
+            {
+                double d = value * 60d; //분으로 환산
+                return ParseToSecond(d, "m");
+            }
+            else if (flag == "m")
+            {
+                double d = value * 60d; //초로 환산
+                return ParseToSecond(d, "s");
+            }
+            else
+            {
+                return value;
+            }
+        }
+
         /// <summary>
         /// 정산 간격을 체크하여 24시간 내 정산이 없을 시 서버로 알림을 전송한다.
         /// </summary>
         /// <param name="state"></param>
         private void PaymentIntervalCheckAction(object sender, EventArgs e)
         {
+            bSendError = NPSYS.gPaymentCheck;
+
+            //Error 전송이 False 이면 
+            if (bSendError == false) return;
+
             //DB에서 마지막 정산 정보를 가져온다.
             DataTable dt = LPRDbSelect.GetLastestPaymentLog();
 
@@ -327,31 +366,47 @@ namespace NPAutoBooth.UI
             {
                 paymentCheckDate = DateTime.Now;
                 isFirstPaymentCheck = true;
+                NPSYS.gPaymentCheck = true;
             }
             else if (dt == null && isFirstPaymentCheck) //이 프로그램이 켜진 이후로 여러번 체크를 했지만 한번도 정산이 발생하지 않음.
             {
-                //이 경우에도 24시간 Check를 하여 서버로 전문을 보내도록 한다.
-                TimeSpan result = DateTime.Now - paymentCheckDate;
-                if (result.TotalHours >= 24)
+                if (bSendError)
                 {
-                    //TODO : 전문 송신
-                    CommProtocol.MakeDevice_RestfulStatus(CommProtocol.device.APS, CommProtocol.DeviceStatus.NotUse, paymentCheckErrCode);
-                    paymentCheckDate = DateTime.Now;
+                    //이 경우에도 24시간 Check를 하여 서버로 전문을 보내도록 한다.
+                    TimeSpan result = DateTime.Now - paymentCheckDate;
+                    TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormMain|PaymentIntervalCheckAction", "Time Check TimeSpan:" + result.TotalHours.ToString());
+                    if (result.TotalSeconds >= dUseCheckInterval)
+                    {
+                        //TODO : 전문 송신
+                        CommProtocol.MakeDevice_RestfulStatus(CommProtocol.device.APS, CommProtocol.DeviceStatus.Fail, NPSYS.gPaymentErrorCode);
+                        paymentCheckDate = DateTime.Now;
+                        NPSYS.gPaymentCheck = false;
+                    }
                 }
+            }
+            else if (dt != null && isFirstPaymentCheck == false) //DB에 값이 있는데 장비 처음 켰음. 24시간에 걸릴 일이 없다.
+            {
+                //bSendError 가 false 이므로.... bSendError는 true 값으로 바꿔주어 Check 하도록 한다.
+                NPSYS.gPaymentCheck = true;
+                isFirstPaymentCheck = true;
             }
             else //DB에 값이 있음.
             {
-                string logDate = dt.Rows[0]["LOG_DATE"].ToString();
-                DateTime date = DateTime.ParseExact(logDate, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
-                TimeSpan result = DateTime.Now - date;
-                if (result.TotalHours >= 24)
+                if (bSendError)
                 {
-                    //TODO : 전문 송신
-                    CommProtocol.MakeDevice_RestfulStatus(CommProtocol.device.APS, CommProtocol.DeviceStatus.NotUse, paymentCheckErrCode);
-                    paymentCheckDate = DateTime.Now;
+                    string logDate = dt.Rows[0]["LOG_DATE"].ToString();
+                    DateTime date = DateTime.ParseExact(logDate, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+                    TimeSpan result = DateTime.Now - date;
+                    TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormMain|PaymentIntervalCheckAction", "DB Check TimeSpan:" + result.TotalHours.ToString() + "_DB logDate:" + date.ToString("yyyyMMddHHmmss"));
+                    if (result.TotalSeconds >= dUseCheckInterval)
+                    {
+                        //TODO : 전문 송신
+                        CommProtocol.MakeDevice_RestfulStatus(CommProtocol.device.APS, CommProtocol.DeviceStatus.Fail, NPSYS.gPaymentErrorCode);
+                        paymentCheckDate = DateTime.Now;
+                        NPSYS.gPaymentCheck = false;
+                    }
                 }
             }
-
         }
 
         private void BarcodeMoter_EventAutoRedingData(BarcodeMoter.BarcodeMotorResult pBarcodeResult)

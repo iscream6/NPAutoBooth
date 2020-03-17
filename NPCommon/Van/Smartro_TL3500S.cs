@@ -210,12 +210,12 @@ namespace NPCommon.Van
             }
 
             SmartroDTO smartroDTO = SmartroDTO.Parse(buffer);
-            if(smartroDTO.IsNull == false)
+            if (smartroDTO.IsNull == false)
             {
                 SendByte(new byte[] { _ACK_ });
                 EventTMoneyData?.Invoke(smartroDTO);
             }
-            
+
             return;
         }
 
@@ -267,7 +267,7 @@ namespace NPCommon.Van
         {
             bool isSuccess = this.IsConnect;
             if (isSuccess == false) isSuccess = this.Connect();
-             
+
             if (isSuccess)
             {
                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "TMoneySmatro_EVCAT | RequestDeviceCheck", "티머니 포트연결 성공");
@@ -339,20 +339,20 @@ namespace NPCommon.Van
             body.SAMSlot4 = "\0";
             switch (NPSYS.TmoneyTerminalSamSlot)
             {
-                case NPCommon.ConfigID.SAMSLOT.SLOT1: 
-                    body.SAMSlot1 = "1"; 
+                case NPCommon.ConfigID.SAMSLOT.SLOT1:
+                    body.SAMSlot1 = "1";
                     break;
-                case NPCommon.ConfigID.SAMSLOT.SLOT2: 
-                    body.SAMSlot2 = "1"; 
+                case NPCommon.ConfigID.SAMSLOT.SLOT2:
+                    body.SAMSlot2 = "1";
                     break;
-                case NPCommon.ConfigID.SAMSLOT.SLOT3: 
-                    body.SAMSlot3 = "1"; 
+                case NPCommon.ConfigID.SAMSLOT.SLOT3:
+                    body.SAMSlot3 = "1";
                     break;
-                case NPCommon.ConfigID.SAMSLOT.SLOT4: 
-                    body.SAMSlot4 = "1"; 
+                case NPCommon.ConfigID.SAMSLOT.SLOT4:
+                    body.SAMSlot4 = "1";
                     break;
             }
-            
+
             body.DeviceType = DeviceType;
             body.EthernetIP = EthernetIP;
             body.EthernetPort = EthernetPort;
@@ -398,7 +398,9 @@ namespace NPCommon.Van
         /// <summary>
         /// 결제취소 요청
         /// </summary>
-        public void RequestApprovalCancle(string pPayMoney, string pAcceptDate, string pAcceptTime)
+        /// <param name="pPayMoney">취소 할 금액</param>
+        /// <param name="pAcceptDateTime">yyyyMMddHHmmss</param>
+        public void RequestApprovalCancle(string pPayMoney, string pAcceptDateTime)
         {
             //바디
             SendApprovalCancel body = new SendApprovalCancel();
@@ -410,8 +412,8 @@ namespace NPCommon.Van
             body.InstMonth = string.Empty;
             body.SignYN = "1";
             body.AcceptNo = string.Empty;
-            body.AcceptDate = pAcceptDate;
-            body.AcceptTime = pAcceptTime;
+            body.AcceptDate = pAcceptDateTime.SafeSubstring(0, 8);
+            body.AcceptTime = pAcceptDateTime.SafeSubstring(8, 6);
             //송신
             RequestSendByte("C", body);
         }
@@ -422,8 +424,8 @@ namespace NPCommon.Van
             Header header;
             Tail tail;
 
-            using(MemoryStream ms = new MemoryStream())
-            using(BinaryWriter bw = new BinaryWriter(ms))
+            using (MemoryStream ms = new MemoryStream())
+            using (BinaryWriter bw = new BinaryWriter(ms))
             {
                 /*========헤더========*/
                 //일단... GetNewDTO 에서 헤더랑...뭐시기 초기화 하는건 빼도 될듯....
@@ -453,6 +455,59 @@ namespace NPCommon.Van
                 SendByte(ms.ToArray());
             }
         }
+        #endregion
+
+        #region 응답
+
+        //장치체크 응답전문 처리
+
+        /// <summary>
+        /// 장치체크 응답전문을 처리한다.
+        /// </summary>
+        /// <param name="deviceCheck"></param>
+        /// <returns></returns>
+        public static string ResponseDeviceCheckHandler(ReceiveDeviceCheck deviceCheck)
+        {
+            string status = "";
+
+            switch (deviceCheck.CardConnectStat)
+            {
+                case "N":
+                    status = "카드 모듈 통신 상태 미설치";
+                    break;
+                case "X":
+                    status = "카드 모듈 통신 상태 오류";
+                    break;
+                case "O":
+                    status = "장치체크정상";
+                    break;
+            }
+
+            if (deviceCheck.RFConnectStat == "X")
+            {
+                status = "Rf 모듈 통신 상태 오류";
+            }
+
+            switch (deviceCheck.VANConnectStat)
+            {
+                case "N":
+                    status = "VAN 서버 연결 상태 미설치";
+                    break;
+                case "X":
+                    status = "VAN 서버 연결 디바이스 오류";
+                    break;
+                case "F":
+                    status = "VAN 서버 연결 실패";
+                    break;
+                case "O":
+                    status = "장치체크정상";
+                    break;
+            }
+
+            return status;
+        }
+
+
         #endregion
     }
 }

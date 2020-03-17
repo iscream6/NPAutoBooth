@@ -155,6 +155,12 @@ namespace NPCommon.REST
                     else p_IO_TYPE = "CASH";
 
                     LPRDbSelect.LastestPayment_LOG_Insert(pCarInfo.OutCarNo1, pCarInfo.ReceiveMoney, p_IO_TYPE, "PaymentCancel");
+
+                    if (NPSYS.gPaymentCheck == false)
+                    {
+                        CommProtocol.MakeDevice_RestfulStatus(CommProtocol.device.APS, CommProtocol.DeviceStatus.Success, NPSYS.gPaymentErrorCode);
+                        NPSYS.gPaymentCheck = true;
+                    }
                 }
                 //Tmap연동완료
 
@@ -235,7 +241,6 @@ namespace NPCommon.REST
                                 return currentCar;
 
                             }
-
                             else
                             {
                                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "HttpProcess | PaySave", "[정기차량정기권연장관련 재전송을 위해 DB에저장]");
@@ -258,6 +263,12 @@ namespace NPCommon.REST
                         else p_IO_TYPE = "CASH";
 
                         LPRDbSelect.LastestPayment_LOG_Insert(pCarInfo.OutCarNo1, pCarInfo.ReceiveMoney, p_IO_TYPE, "SeasonPayment");
+
+                        if (NPSYS.gPaymentCheck == false)
+                        {
+                            CommProtocol.MakeDevice_RestfulStatus(CommProtocol.device.APS, CommProtocol.DeviceStatus.Success, NPSYS.gPaymentErrorCode);
+                            NPSYS.gPaymentCheck = true;
+                        }
                     }
                     //Tmap연동완료
                 }
@@ -347,6 +358,12 @@ namespace NPCommon.REST
                         else p_IO_TYPE = "CASH";
 
                         LPRDbSelect.LastestPayment_LOG_Insert(pCarInfo.OutCarNo1, pCarInfo.ReceiveMoney, p_IO_TYPE, "NormalPayment");
+
+                        if (NPSYS.gPaymentCheck == false)
+                        {
+                            CommProtocol.MakeDevice_RestfulStatus(CommProtocol.device.APS, CommProtocol.DeviceStatus.Success, NPSYS.gPaymentErrorCode);
+                            NPSYS.gPaymentCheck = true;
+                        }
                     }
                     //Tmap연동완료
                 }

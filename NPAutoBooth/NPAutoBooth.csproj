@@ -130,17 +130,41 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="UI\Booth1024\FormCreditInfomation.cs">
+    <Compile Include="UI\BoothUI\FormCreditInfomation.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="UI\Booth1024\FormCreditInfomation.designer.cs">
+    <Compile Include="UI\BoothUI\FormCreditInfomation.designer.cs">
       <DependentUpon>FormCreditInfomation.cs</DependentUpon>
     </Compile>
-    <Compile Include="UI\Booth1024\FormCreditPaymentMenu.cs">
+    <Compile Include="UI\BoothUI\FormCreditPaymentMenu.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="UI\Booth1024\FormCreditPaymentMenu.designer.cs">
+    <Compile Include="UI\BoothUI\FormCreditPaymentMenu.designer.cs">
       <DependentUpon>FormCreditPaymentMenu.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\BoothUI\FormCreditPayment\DIV_Barcode.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUI\FormCreditPayment\DIV_SinbunReader.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUI\FormCreditPayment\FNC_MoviePlay.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUI\FormCreditPayment\VAN_FirstData.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUI\FormCreditPayment\VAN_KICC.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUI\FormCreditPayment\VAN_Koces.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUI\FormCreditPayment\VAN_Smartro.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUI\FormCreditPayment\VAN_Kis.cs">
+      <SubType>Form</SubType>
     </Compile>
     <Compile Include="UI\BoothUC\BaseBoothUC\InformationUC.cs">
       <SubType>UserControl</SubType>
@@ -261,28 +285,28 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="UI\Booth1024\FormCreditMain.cs">
+    <Compile Include="UI\BoothUI\FormCreditMain.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="UI\Booth1024\FormCreditMain.designer.cs">
+    <Compile Include="UI\BoothUI\FormCreditMain.designer.cs">
       <DependentUpon>FormCreditMain.cs</DependentUpon>
     </Compile>
-    <Compile Include="UI\Booth1024\FormCreditRecipt.cs">
+    <Compile Include="UI\BoothUI\FormCreditRecipt.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="UI\Booth1024\FormCreditRecipt.designer.cs">
+    <Compile Include="UI\BoothUI\FormCreditRecipt.designer.cs">
       <DependentUpon>FormCreditRecipt.cs</DependentUpon>
     </Compile>
-    <Compile Include="UI\Booth1024\FormCreditSearchCarNumber.cs">
+    <Compile Include="UI\BoothUI\FormCreditSearchCarNumber.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="UI\Booth1024\FormCreditSearchCarNumber.designer.cs">
+    <Compile Include="UI\BoothUI\FormCreditSearchCarNumber.designer.cs">
       <DependentUpon>FormCreditSearchCarNumber.cs</DependentUpon>
     </Compile>
-    <Compile Include="UI\Booth1024\FormCreditSelectCarnumber.cs">
+    <Compile Include="UI\BoothUI\FormCreditSelectCarnumber.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="UI\Booth1024\FormCreditSelectCarnumber.designer.cs">
+    <Compile Include="UI\BoothUI\FormCreditSelectCarnumber.designer.cs">
       <DependentUpon>FormCreditSelectCarnumber.cs</DependentUpon>
     </Compile>
     <Compile Include="UI\UICOMMON\FormLauncher.cs">
@@ -333,10 +357,10 @@
     <Compile Include="UI\UserContorl\UserControl_SearchCar.designer.cs">
       <DependentUpon>UserControl_SearchCar.cs</DependentUpon>
     </Compile>
-    <EmbeddedResource Include="UI\Booth1024\FormCreditInfomation.resx">
+    <EmbeddedResource Include="UI\BoothUI\FormCreditInfomation.resx">
       <DependentUpon>FormCreditInfomation.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="UI\Booth1024\FormCreditPaymentMenu.resx">
+    <EmbeddedResource Include="UI\BoothUI\FormCreditPaymentMenu.resx">
       <DependentUpon>FormCreditPaymentMenu.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="UI\BoothUC\BaseBoothUC\MainUC.resx">
@@ -395,16 +419,16 @@
       <SubType>Designer</SubType>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="UI\Booth1024\FormCreditMain.resx">
+    <EmbeddedResource Include="UI\BoothUI\FormCreditMain.resx">
       <DependentUpon>FormCreditMain.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="UI\Booth1024\FormCreditRecipt.resx">
+    <EmbeddedResource Include="UI\BoothUI\FormCreditRecipt.resx">
       <DependentUpon>FormCreditRecipt.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="UI\Booth1024\FormCreditSearchCarNumber.resx">
+    <EmbeddedResource Include="UI\BoothUI\FormCreditSearchCarNumber.resx">
       <DependentUpon>FormCreditSearchCarNumber.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="UI\Booth1024\FormCreditSelectCarnumber.resx">
+    <EmbeddedResource Include="UI\BoothUI\FormCreditSelectCarnumber.resx">
       <DependentUpon>FormCreditSelectCarnumber.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="UI\UICOMMON\FormLauncher.resx">
