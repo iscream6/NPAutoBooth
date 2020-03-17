@@ -26,41 +26,38 @@ namespace NPAutoBooth.UI
         /// Design 추가 이벤트 핸들러(필수)
         /// </summary>
         public event EventHandlerAddCtrl OnAddCtrl;
-
-        public NormalCarInfo mCurrentNormalCarInfo = new NormalCarInfo();
+        public bool mIsPlayerOkStatus = true;
+        private HttpProcess mHttpProcess = new HttpProcess();
         private PayCardandCash m_PayCardandCash = new PayCardandCash();
+
         private SmartroVCat mSmartroVCat = new SmartroVCat();  // 스마트로 추가
+        private Smatro_TITDIP_EVCAT mSmartro_TITDIP_EVCat = new Smatro_TITDIP_EVCAT();
+        private KIS_TITDIPDevice mKIS_TITDIPDevice = new KIS_TITDIPDevice();
+        private CardDeviceStatus mCardStatus = new CardDeviceStatus();
 
         private ManualResetEvent mCreditCardThreadLock = new ManualResetEvent(true);
-        public bool mIsPlayerOkStatus = true;
+        
         private string mCurrentMovieName = string.Empty; // 2016-03-17 카드관련 동영상 떄문에 추가
         private NPSYS.FormType mPreFomrType = NPSYS.FormType.NONE;
         private NPSYS.FormType mCurrentFormType = NPSYS.FormType.Payment;
-        // 2016.10.27  KIS_DIP 
-        private KIS_TITDIPDevice mKIS_TITDIPDevice = new KIS_TITDIPDevice();
-        private CardDeviceStatus mCardStatus = new CardDeviceStatus();
-        // 2016.10.27  KIS_DIP 추가종료
-
-        //스마트로 TIT_DIP EV-CAT 적용
-        private Smatro_TITDIP_EVCAT mSmartro_TITDIP_EVCat = new Smatro_TITDIP_EVCAT();
-        private System.Windows.Forms.Timer timerSmatro_TITDIP_Evcat = new System.Windows.Forms.Timer();
-        //스마트로 TIT_DIP EV-CAT 적용완료
 
         //바코드할인 리스트로변경
-
         private List<string> mListBarcodeData = new List<string>();
         //바코드할인 리스트로변경 주석처리
 
         //바코드모터드리블 사용
         private List<BarcodeMoter.BarcodeMotorResult> mListBarcodeMotorData = new List<BarcodeMoter.BarcodeMotorResult>();
         //바코드모터드리블 사용완료
-        private HttpProcess mHttpProcess = new HttpProcess();
 
         private PaymentUC paymentControl;
 
-        int paymentInputTimer = (NPSYS.PaymentInsertInfinite == true ? 12000000 : NPSYS.SettingInputTimeValue);
-        int MovieStopPlay = -1000;
-        bool IsNextFormPlaying = false;
+        private int paymentInputTimer = (NPSYS.PaymentInsertInfinite == true ? 12000000 : NPSYS.SettingInputTimeValue);
+        private int MovieStopPlay = -1000;
+        private bool IsNextFormPlaying = false;
+
+        private System.Windows.Forms.Timer timerSmatro_TITDIP_Evcat = new System.Windows.Forms.Timer();
+
+        public NormalCarInfo CurrentNormalCarInfo { get; set; } = new NormalCarInfo();
 
         #region 폼이동 이벤트
 
@@ -81,8 +78,8 @@ namespace NPAutoBooth.UI
 
         #endregion
 
-        #region 폼로딩시
-
+        #region 생성자
+        
         public FormCreditPaymentMenu()
         {
             InitializeComponent();
@@ -104,6 +101,10 @@ namespace NPAutoBooth.UI
             }
         }
 
+        #endregion
+
+        #region 폼로딩시
+
         private void FormPaymentMenu_Load(object sender, EventArgs e)
         {
             this.Location = new Point(0, 0);
@@ -114,130 +115,6 @@ namespace NPAutoBooth.UI
 
             SettingEnableEvent();
         }
-
-        /// <summary>
-        /// Form Design 컨트롤을 생성한다.
-        /// </summary>
-        void AddCtrl()
-        {
-            this.Controls.Add((Control)paymentControl);
-            paymentControl.Dock = DockStyle.Fill;
-            paymentControl.BringToFront();
-        }
-
-        /// <summary>
-        /// 화면 컨트롤을 초기화 한다.
-        /// </summary>
-        private void InitializeControl()
-        {
-            paymentControl.Initialize();
-
-            if (!NPSYS.isBoothRealMode) groupTest.Visible = true;
-            
-            if (NPSYS.gUseMultiLanguage) paymentControl.ForeignLanguageVisible(true);
-            else paymentControl.ForeignLanguageVisible(false);
-
-            //picWait 화면을 부모폼 중앙에 위치시켜야 겠다.
-            //picWait의 Location 위치를 잡자. 잡는 방법은
-            //부모폼의 Location은 0,0 이므로 부모폼의 Width 에서 picWait의 Width를 뺀 값의 반이 X좌표
-            //Y좌표 또한 X좌표 구하는 방법과 동일하다.
-            pic_Wait_MSG_WAIT.Location = new Point
-            {
-                X = (this.Width - pic_Wait_MSG_WAIT.Width) / 2,
-                Y = (this.Height - pic_Wait_MSG_WAIT.Height) / 2,
-            };
-        }
-
-        private void Close_Callback()
-        {
-            NPSYS.buttonSoundDingDong();
-            EventExitPayForm(mCurrentFormType);
-            TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu | panel_ConfigClick2_Click", "메인화면으로 강제로 이동시킴");
-        }
-
-        /// <summary>
-        /// 변수초기화 및 장비초기화
-        /// </summary>
-        private void ClearView()
-        {
-            paymentControl.Clear();
-            mListBarcodeData = new List<string>();
-            mCurrentNormalCarInfo.ListDcDetail = new List<DcDetail>();
-            BillReader.g_billValue = string.Empty;
-            if (NPSYS.Device.CoinReader != null)
-            {
-                NPSYS.Device.CoinReader.mLIstQty = new List<string>();
-            }
-            mListBarcodeMotorData = new List<BarcodeMoter.BarcodeMotorResult>();
-            NPSYS.CurrentBusyType = NPSYS.BusyType.None;
-        }
-
-        private void GetImage()
-        {
-            try
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|GetImage", "이미지 불러오기 작업시작");
-                if (NPSYS.gIsAutoBooth)
-                {
-                    if (mCurrentNormalCarInfo.OutImage1 != null && mCurrentNormalCarInfo.OutImage1.Trim().Length > 0)
-                    {
-                        TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|GetImage", "이미지경로" + mCurrentNormalCarInfo.OutImage1);
-                        paymentControl.CarImage = NPSYS.WebImageView(mCurrentNormalCarInfo.OutImage1);
-                    }
-                    else if (mCurrentNormalCarInfo.InImage1 != null && mCurrentNormalCarInfo.InImage1.Trim().Length > 0)
-                    {
-                        TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|GetImage", "이미지경로" + mCurrentNormalCarInfo.InImage1);
-                        paymentControl.CarImage = NPSYS.WebImageView(mCurrentNormalCarInfo.InImage1);
-                    }
-                }
-                else
-                {
-                    paymentControl.CarImage = NPSYS.WebImageView(mCurrentNormalCarInfo.InImage1);
-                }
-                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|GetImage", "이미지 불러오기 작업종료");
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu | GetImage", ex.ToString());
-            }
-        }
-
-
-        /// <summary>
-        /// 카드만 사용해야 하는 상황인지 확인
-        /// </summary>
-        /// <returns></returns>
-        public bool isOnlyCard()
-        {
-            switch (mCurrentNormalCarInfo.CurrentCarPayStatus)
-            {
-                case NormalCarInfo.CarPayStatus.Reg_Outcar_Season:
-                    return true;
-                case NormalCarInfo.CarPayStatus.Reg_Precar_Season:
-                    return true;
-                case NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar:
-                    return true;
-                case NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar:
-                    return true;
-                default:
-                    return false;
-
-            }
-        }
-
-        /// <summary>
-        /// 획득한 차량정보 및 출차시간을 가지고 요금 등을 계산하고 화면표시
-        /// </summary>
-        /// <param name="pPrevNormalCarInfo"></param>
-        public void SetCarInfo(NormalCarInfo pPrevNormalCarInfo)
-        {
-            mCurrentNormalCarInfo = pPrevNormalCarInfo;
-            paymentControl.SetCarInfo(mCurrentNormalCarInfo);
-        }
-
-        #endregion
-
-        #region 폼활성화 / 종료시 이벤트 
 
         /// <summary>
         /// Event를 설정한다.
@@ -295,6 +172,84 @@ namespace NPAutoBooth.UI
             }
         }
 
+        /// <summary>
+        /// Form Design 컨트롤을 생성한다.
+        /// </summary>
+        void AddCtrl()
+        {
+            this.Controls.Add((Control)paymentControl);
+            paymentControl.Dock = DockStyle.Fill;
+            paymentControl.BringToFront();
+        }
+
+        /// <summary>
+        /// 화면 컨트롤을 초기화 한다.
+        /// </summary>
+        private void InitializeControl()
+        {
+            paymentControl.Initialize();
+
+            if (!NPSYS.isBoothRealMode) groupTest.Visible = true;
+            
+            if (NPSYS.gUseMultiLanguage) paymentControl.ForeignLanguageVisible(true);
+            else paymentControl.ForeignLanguageVisible(false);
+
+            //picWait 화면을 부모폼 중앙에 위치시켜야 겠다.
+            //picWait의 Location 위치를 잡자. 잡는 방법은
+            //부모폼의 Location은 0,0 이므로 부모폼의 Width 에서 picWait의 Width를 뺀 값의 반이 X좌표
+            //Y좌표 또한 X좌표 구하는 방법과 동일하다.
+            pic_Wait_MSG_WAIT.Location = new Point
+            {
+                X = (this.Width - pic_Wait_MSG_WAIT.Width) / 2,
+                Y = (this.Height - pic_Wait_MSG_WAIT.Height) / 2,
+            };
+        }
+
+        /// <summary>
+        /// 카드만 사용해야 하는 상황인지 확인
+        /// </summary>
+        /// <returns></returns>
+        public bool isOnlyCard()
+        {
+            switch (CurrentNormalCarInfo.CurrentCarPayStatus)
+            {
+                case NormalCarInfo.CarPayStatus.Reg_Outcar_Season:
+                    return true;
+                case NormalCarInfo.CarPayStatus.Reg_Precar_Season:
+                    return true;
+                case NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar:
+                    return true;
+                case NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar:
+                    return true;
+                default:
+                    return false;
+
+            }
+        }
+
+        /// <summary>
+        /// 획득한 차량정보 및 출차시간을 가지고 요금 등을 계산하고 화면표시
+        /// </summary>
+        /// <param name="pPrevNormalCarInfo"></param>
+        public void SetCarInfo(NormalCarInfo pPrevNormalCarInfo)
+        {
+            CurrentNormalCarInfo = pPrevNormalCarInfo;
+            paymentControl.SetCarInfo(CurrentNormalCarInfo);
+        }
+
+        #endregion
+
+        #region Form Initialize
+
+        
+
+        private void Close_Callback()
+        {
+            NPSYS.buttonSoundDingDong();
+            EventExitPayForm(mCurrentFormType);
+            TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu | panel_ConfigClick2_Click", "메인화면으로 강제로 이동시킴");
+        }
+
         // 결제종료시 이벤트를 종료한다
         private void SettingDisableEvent()
         {
@@ -338,9 +293,201 @@ namespace NPAutoBooth.UI
         }
         #endregion
 
+        #region 폼 활성화 시작/폼 활성화 종료시 호출함수
+
+        /// <summary>
+        /// View Open
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="pFormType"></param>
+        /// <param name="param">NormalCarInfo Type Only</param>
+        public void OpenView<T>(NPSYS.FormType pFormType, T param)
+        {
+            try
+            {
+                if (this.Visible == false)
+                {
+                    NormalCarInfo normalCarInfo = param.To<NormalCarInfo>();
+                    NPSYS.CurrentFormType = mCurrentFormType;
+                    mPreFomrType = pFormType;
+                    ClearView();
+
+                    inputtime = NPSYS.SettingInputTimeValue;
+                    MovieStopPlay = NPSYS.SettingMoviePlayTimeValue;
+                    //화면 Display(mCurrentNormalCarInfo를 아래 함수에서 셋팅함.)
+                    SetCarInfo(normalCarInfo);
+
+                    pic_Wait_MSG_WAIT.SendToBack();
+                    pic_Wait_MSG_WAIT.Visible = false;
+                    paymentControl.CancelButtonVisible = false; //현금 취소 버튼 비활성화
+
+                    if (normalCarInfo.PaymentMoney == 0)
+                    {
+                        TextCore.INFO(TextCore.INFOS.MEMORY, "FormPaymentMenu|FormPaymentMenu_Load", "요금화면 로드바로영수증으로");
+                        //카드실패전송
+                        normalCarInfo.PaymentMethod = PaymentType.Free;
+                        //카드실패전송완료
+
+                        PaymentComplete();
+                        return;
+                    }
+
+                    GetImage();
+
+                    inputTimer.Enabled = true;
+                    MovieTimer.Enabled = true;
+
+                    //SettingEnableEvent();
+                    SettingEnableDevice(); //결제장비 동작 시작
+                    paymentControl.ButtonEnable(ButtonEnableType.PayFormStart);
+                    SetLanuageDynamic(NPSYS.CurrentLanguageType);
+
+                    this.TopMost = true;
+                    this.Show();
+                    this.Activate();
+                    TextCore.INFO(TextCore.INFOS.MEMORY, "FormPaymentMenu | OpenView", "요금화면 로드|사용메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu | OpenView", ex.ToString());
+            }
+            finally
+            {
+
+            }
+        }
+
+        /// <summary>
+        /// 변수초기화 및 장비초기화
+        /// </summary>
+        private void ClearView()
+        {
+            paymentControl.Clear();
+            mListBarcodeData = new List<string>();
+            CurrentNormalCarInfo.ListDcDetail = new List<DcDetail>();
+            BillReader.g_billValue = string.Empty;
+            if (NPSYS.Device.CoinReader != null)
+            {
+                NPSYS.Device.CoinReader.mLIstQty = new List<string>();
+            }
+            mListBarcodeMotorData = new List<BarcodeMoter.BarcodeMotorResult>();
+            NPSYS.CurrentBusyType = NPSYS.BusyType.None;
+        }
+
+        private void GetImage()
+        {
+            try
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|GetImage", "이미지 불러오기 작업시작");
+                if (NPSYS.gIsAutoBooth)
+                {
+                    if (CurrentNormalCarInfo.OutImage1 != null && CurrentNormalCarInfo.OutImage1.Trim().Length > 0)
+                    {
+                        TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|GetImage", "이미지경로" + CurrentNormalCarInfo.OutImage1);
+                        paymentControl.CarImage = NPSYS.WebImageView(CurrentNormalCarInfo.OutImage1);
+                    }
+                    else if (CurrentNormalCarInfo.InImage1 != null && CurrentNormalCarInfo.InImage1.Trim().Length > 0)
+                    {
+                        TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|GetImage", "이미지경로" + CurrentNormalCarInfo.InImage1);
+                        paymentControl.CarImage = NPSYS.WebImageView(CurrentNormalCarInfo.InImage1);
+                    }
+                }
+                else
+                {
+                    paymentControl.CarImage = NPSYS.WebImageView(CurrentNormalCarInfo.InImage1);
+                }
+                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|GetImage", "이미지 불러오기 작업종료");
+            }
+            catch (Exception ex)
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu | GetImage", ex.ToString());
+            }
+        }
+
+        public void CloseView()
+        {
+            if (this.Visible)
+            {
+                this.Hide();
+                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CloseView", "요금화면 화면종료시작됨");
+                paymentControl.ButtonEnable(ButtonEnableType.PayFormEnd);
+                axWindowsMediaPlayer1.Ctlcontrols.stop();
+                paymentControl.CarImage = null;
+
+                MovieTimer.Enabled = false;
+
+                stopVideo();
+                if (CurrentNormalCarInfo.PaymentMoney != 0) // 주차요금이 있는상태에서 폼이종료된다면
+                {
+                    SettingDisableDevice();
+                    CashCancleFormCloseAction(false);
+                }
+
+                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CloseView", "요금화면 화면종료됨");
+            }
+        }
+
+        public void CloseViewBeforeInfo()
+        {
+            if (this.Visible)
+            {
+                paymentControl.ButtonEnable(ButtonEnableType.PayFormEnd);
+                axWindowsMediaPlayer1.Ctlcontrols.stop();
+                paymentControl.CarImage = null;
+
+                MovieTimer.Enabled = false;
+
+                stopVideo();
+                SettingDisableDevice();
+                this.Hide();
+                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CloseViewBeforeInfo", "요금화면 인포메이션 화면으로 인하여 화면종료됨");
+            }
+        }
+
+        public void OpenViewBeforeInfo(NPSYS.FormType pFormType)
+        {
+            try
+            {
+                if (this.Visible == false)
+                {
+                    NPSYS.CurrentFormType = mCurrentFormType;
+                    mPreFomrType = pFormType;
+                    inputtime = NPSYS.SettingInputTimeValue;
+                    MovieStopPlay = NPSYS.SettingMoviePlayTimeValue;
+                    pic_Wait_MSG_WAIT.SendToBack();
+                    pic_Wait_MSG_WAIT.Visible = false;
+                    paymentControl.CancelButtonVisible = false;
+                    inputTimer.Enabled = true;
+                    MovieTimer.Enabled = true;
+
+                    SettingEnableDevice();
+                    paymentControl.ButtonEnable(ButtonEnableType.PayFormStart);
+                    SetLanuageDynamic(NPSYS.CurrentLanguageType);
+                    this.TopMost = true;
+                    this.Activate();
+                    this.Show();
+                    TextCore.INFO(TextCore.INFOS.MEMORY, "FormPaymentMenu | OpenViewBeforeInfo", "요금화면 다시로드|사용메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
+                }
+
+            }
+            catch (Exception ex)
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu | OpenView", ex.ToString());
+            }
+            finally
+            {
+
+            }
+        }
+
+        #endregion //==========
+
         #region 폼활성화 / 종료시 장비동작처리 
 
-        // 결제 시작시 장비 동작처리
+        /// <summary>
+        /// 결제 시작시 장비 동작처리
+        /// </summary>
         private void SettingEnableDevice()
         {
 
@@ -377,7 +524,7 @@ namespace NPAutoBooth.UI
                 case ConfigID.CardReaderType.SMATRO_TIT_DIP:
                     //   NPSYS.Device.Smartro_TITDIP_Evcat.QueryResults += SmartroEvcat_QueryResults;
                     timerKisCardPay.Enabled = true;
-                    if (mCurrentNormalCarInfo.PaymentMoney > 0)
+                    if (CurrentNormalCarInfo.PaymentMoney > 0)
                     {
                         timerSmatro_TITDIP_Evcat.Interval = 500;
                         timerSmatro_TITDIP_Evcat.Tick += timerSmatro_TITDIP_Evcat_Tick;
@@ -417,7 +564,7 @@ namespace NPAutoBooth.UI
                     break;
                 case ConfigID.CardReaderType.KIS_TIT_DIP_IFM:
                     timerKisCardPay.Enabled = true;
-                    if (mCurrentNormalCarInfo.PaymentMoney > 0)
+                    if (CurrentNormalCarInfo.PaymentMoney > 0)
                     {
                         mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
                         SetKisDipIFM();
@@ -458,18 +605,18 @@ namespace NPAutoBooth.UI
                         Thread.Sleep(100); //잠시 대기
                         //결제 요청 전문 송신
                         //0원 결제일 경우를 제외시켜야 함.
-                        if(mCurrentNormalCarInfo.PaymentMoney != 0)
+                        if(CurrentNormalCarInfo.PaymentMoney != 0)
                         {
-                            if(mCurrentNormalCarInfo.CurrentCarPayStatus  == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar ||
-                                mCurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar)
+                            if(CurrentNormalCarInfo.CurrentCarPayStatus  == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar ||
+                                CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar)
                             {
                                 //결제 취소 요청
-                                NPSYS.Device.TmoneySmartro3500.RequestApprovalCancle(mCurrentNormalCarInfo.PaymentMoney.ToString(), mCurrentNormalCarInfo.VanDate_Cancle.Replace("-", ""));
+                                NPSYS.Device.TmoneySmartro3500.RequestApprovalCancle(CurrentNormalCarInfo.PaymentMoney.ToString(), CurrentNormalCarInfo.VanDate_Cancle.Replace("-", ""));
                             }
                             else
                             {
                                 //결제 승인 요청
-                                NPSYS.Device.TmoneySmartro3500.RequestApproval(mCurrentNormalCarInfo.PaymentMoney.ToString());
+                                NPSYS.Device.TmoneySmartro3500.RequestApproval(CurrentNormalCarInfo.PaymentMoney.ToString());
                             }
                         }
                         else
@@ -479,158 +626,6 @@ namespace NPAutoBooth.UI
                     }
 
                     break;
-            }
-        }
-
-        /// <summary>
-        /// TMoney 스마트로 Receive Data 처리 이벤트 핸들러
-        /// </summary>
-        /// <param name="pDTO"></param>
-        private void TmoneySmartro3500_EventTMoneyData(SmartroDTO pDTO)
-        {
-            // =========[수신 받은 JOB 코드 목록]=========
-            // a : 장치체크 응답전문
-            // b : 거래승인 응답전문
-            // c : 거래취소 응답전문
-            // d : 카드조회 응답전문
-            // e : 결제대기 응답전문
-            // f : 카드 UID 읽기 응답전문
-            // @ : 이벤트 응답전문
-            // g : 부가정보 추가 거래승인 응답전문
-            // i : 설정 정보 셋팅 응답전문
-            // j : 설정 정보 응답전문
-            // K : 설정 정보 메모리 WRITING 응답전문
-            // I : 마지막 승인 응답전문
-            // v : 버전 체크 응답전문
-            // s : 화면&음성 설정 응답전문
-            // =========[이벤트 코드 목록]=========
-            // M : MS카드 인식
-            // R : RF카드 인식
-            // I : IC카드 인식
-            // O : IC카드 제거
-            // F : IC카드 FallBack
-            // =========[결제/결제취소 Process]=========
-            //결제 : 결제대기 요청 -> 결제대기 응답 -> 카드 삽입 이벤트 응답 -> 거래 승인 요청 -> 거래 승인 응답 -> [카드를 제거해주세요] -> 이벤트 응답
-            //결제취소 : 결제대기 요청 -> 결제대기 응답 -> 카드 삽입 이벤트 응답 -> 거래 취소 요청 -> 거래 취소 응답 -> [카드를 제거해주세요] -> 이벤트 응답
-
-            try
-            {
-                Header header = pDTO?.HeaderData as Header;
-                if (header != null)
-                {
-                    switch (header.JobCode)
-                    {
-                        case "a": //장치체크 응답전문
-                            ReceiveDeviceCheck deviceCheck = pDTO.BodyData as ReceiveDeviceCheck;
-                            if(deviceCheck != null)
-                            {
-                                //장치체크 응답전문 처리
-                                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | TmoneySmartro3500_EventTMoneyData", 
-                                    Smartro_TL3500S.ResponseDeviceCheckHandler(deviceCheck));
-                            }
-                            else
-                            {
-                                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | TmoneySmartro3500_EventTMoneyData", 
-                                    "장치체크 전문 오류");
-                            }
-                            break;
-                        case "b": //거래승인 응답전문
-                            ReceiveApproval receiveApproval = pDTO.BodyData as ReceiveApproval;
-
-                            if (mCurrentNormalCarInfo.PaymentMoney > 0 && mCurrentNormalCarInfo.Current_Money == 0)
-                            {
-                                NPSYS.CurrentBusyType = NPSYS.BusyType.Paying;
-                                Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, mCurrentNormalCarInfo, pDTO);
-                                NPSYS.CurrentBusyType = NPSYS.BusyType.None;
-
-                                if (_CardpaySuccess.Success) // 정상적인 티켓이라면
-                                {
-                                    NPSYS.CashCreditCount += 1;
-                                    NPSYS.CashCreditMoney += mCurrentNormalCarInfo.VanAmt;
-                                    paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
-                                    paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc);
-                                    TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | timerKICC_DIP_IFM_Tick", "정상적인 카드결제됨");
-
-                                    if (mCurrentNormalCarInfo.PaymentMoney == 0)
-                                    {
-                                        //0원 결제
-                                        mCurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
-                                        //0원 결제완료
-                                        PaymentComplete();
-
-                                        return;
-                                    }
-                                }
-                                else // 잘못된 티켓
-                                {
-                                    //if (mCurrentNormalCarInfo.VanRescode != KICC_TIT.KICC_USER_CANCLECODE)
-                                    //{
-                                    //    //카드실패전송
-                                    //    if (NPSYS.gUseCardFailSend)
-                                    //    {
-                                    //        DateTime paydate = DateTime.Now;
-                                    //        //카드실패전송
-                                    //        mCurrentNormalCarInfo.PaymentMethod = PaymentType.Fail_Card;
-                                    //        //카드실패전송 완료
-                                    //        Payment currentCar = mHttpProcess.PaySave(mCurrentNormalCarInfo, paydate);
-                                    //    }
-                                    //    //카드실패전송 완료
-                                    //}
-                                    //카드실패전송
-                                    if (NPSYS.gUseCardFailSend)
-                                    {
-                                        DateTime paydate = DateTime.Now;
-                                        //카드실패전송
-                                        mCurrentNormalCarInfo.PaymentMethod = PaymentType.Fail_Card;
-                                        //카드실패전송 완료
-                                        Payment currentCar = mHttpProcess.PaySave(mCurrentNormalCarInfo, paydate);
-                                    }
-                                    //카드실패전송 완료
-                                    TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu | timerKICC_DIP_IFM_Tick", "정상적인 카드결제안됨");
-                                    paymentControl.ErrorMessage = _CardpaySuccess.Message;
-                                    mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
-                                    EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NotCardPay);
-                                    return;
-                                }
-                            }
-                            
-                            break;
-                        case "c": //거래취소 응답전문
-                            ReceiveApproval receiveCancelApproval = pDTO.BodyData as ReceiveApproval;
-                            
-                            break;
-                        case "d": //카드조회 응답전문
-                            break;
-                        case "e": //결제대기 응답전문
-                            break;
-                        case "f": //카드 UID 읽기 응답전문
-                            break;
-                        case "@": //이벤트 응답전문
-                            break;
-                        case "g": //부가정보 추가 거래승인 응답전문
-                            break;
-                        case "i": //설정 정보 셋팅 응답전문
-                            break;
-                        case "j": //설정 정보 응답전문
-                            break;
-                        case "K": //설정 정보 메모리 WRITING 응답전문
-                            break;
-                        case "I": //마지막 승인 응답전문
-                            break;
-                        case "v": //버전 체크 응답전문
-                            break;
-                        case "s": //화면 & 음성 설정 응답전문
-                            break;
-                    }
-                }
-                else
-                {
-                    throw new Exception();
-                }
-            }
-            catch (Exception)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | TmoneySmartro3500_EventTMoneyData", "[전문수신오류]");
             }
         }
 
@@ -707,149 +702,6 @@ namespace NPAutoBooth.UI
         }
         #endregion
 
-        #region 폼 활성화 시작/폼 활성화 종료시 호출함수
-
-        /// <summary>
-        /// View Open
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="pFormType"></param>
-        /// <param name="param">NormalCarInfo Type Only</param>
-        public void OpenView<T>(NPSYS.FormType pFormType, T param)
-        {
-            try
-            {
-                if (this.Visible == false)
-                {
-                    NormalCarInfo normalCarInfo = param.To<NormalCarInfo>();
-                    NPSYS.CurrentFormType = mCurrentFormType;
-                    mPreFomrType = pFormType;
-                    ClearView();
-
-                    inputtime = NPSYS.SettingInputTimeValue;
-                    MovieStopPlay = NPSYS.SettingMoviePlayTimeValue;
-                    //화면 Display(mCurrentNormalCarInfo를 아래 함수에서 셋팅함.)
-                    SetCarInfo(normalCarInfo);
-
-                    pic_Wait_MSG_WAIT.SendToBack();
-                    pic_Wait_MSG_WAIT.Visible = false;
-                    paymentControl.CancelButtonVisible = false; //현금 취소 버튼 비활성화
-
-                    if (normalCarInfo.PaymentMoney == 0)
-                    {
-                        TextCore.INFO(TextCore.INFOS.MEMORY, "FormPaymentMenu|FormPaymentMenu_Load", "요금화면 로드바로영수증으로");
-                        //카드실패전송
-                        normalCarInfo.PaymentMethod = PaymentType.Free;
-                        //카드실패전송완료
-
-                        PaymentComplete();
-                        return;
-                    }
-
-                    GetImage();
-
-                    inputTimer.Enabled = true;
-                    MovieTimer.Enabled = true;
-
-                    //SettingEnableEvent();
-                    SettingEnableDevice(); //결제장비 동작 시작
-                    paymentControl.ButtonEnable(ButtonEnableType.PayFormStart);
-                    SetLanuageDynamic(NPSYS.CurrentLanguageType);
-
-                    this.TopMost = true;
-                    this.Show();
-                    this.Activate();
-                    TextCore.INFO(TextCore.INFOS.MEMORY, "FormPaymentMenu | OpenView", "요금화면 로드|사용메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
-                }
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu | OpenView", ex.ToString());
-            }
-            finally
-            {
-
-            }
-        }
-
-        public void CloseView()
-        {
-            if (this.Visible)
-            {
-                this.Hide();
-                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CloseView", "요금화면 화면종료시작됨");
-                paymentControl.ButtonEnable(ButtonEnableType.PayFormEnd);
-                axWindowsMediaPlayer1.Ctlcontrols.stop();
-                paymentControl.CarImage = null;
-
-                MovieTimer.Enabled = false;
-
-                stopVideo();
-                if (mCurrentNormalCarInfo.PaymentMoney != 0) // 주차요금이 있는상태에서 폼이종료된다면
-                {
-                    SettingDisableDevice();
-                    CashCancleFormCloseAction(false);
-                }
-
-                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CloseView", "요금화면 화면종료됨");
-            }
-        }
-
-        public void CloseViewBeforeInfo()
-        {
-            if (this.Visible)
-            {
-                paymentControl.ButtonEnable(ButtonEnableType.PayFormEnd);
-                axWindowsMediaPlayer1.Ctlcontrols.stop();
-                paymentControl.CarImage = null;
-
-                MovieTimer.Enabled = false;
-
-                stopVideo();
-                SettingDisableDevice();
-                this.Hide();
-                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CloseViewBeforeInfo", "요금화면 인포메이션 화면으로 인하여 화면종료됨");
-            }
-        }
-
-        public void OpenViewBeforeInfo(NPSYS.FormType pFormType)
-        {
-            try
-            {
-                if (this.Visible == false)
-                {
-                    NPSYS.CurrentFormType = mCurrentFormType;
-                    mPreFomrType = pFormType;
-                    inputtime = NPSYS.SettingInputTimeValue;
-                    MovieStopPlay = NPSYS.SettingMoviePlayTimeValue;
-                    pic_Wait_MSG_WAIT.SendToBack();
-                    pic_Wait_MSG_WAIT.Visible = false;
-                    paymentControl.CancelButtonVisible = false;
-                    inputTimer.Enabled = true;
-                    MovieTimer.Enabled = true;
-
-                    SettingEnableDevice();
-                    paymentControl.ButtonEnable(ButtonEnableType.PayFormStart);
-                    SetLanuageDynamic(NPSYS.CurrentLanguageType);
-                    this.TopMost = true;
-                    this.Activate();
-                    this.Show();
-                    TextCore.INFO(TextCore.INFOS.MEMORY, "FormPaymentMenu | OpenViewBeforeInfo", "요금화면 다시로드|사용메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
-                }
-
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu | OpenView", ex.ToString());
-            }
-            finally
-            {
-
-            }
-        }
-
-        #endregion //==========
-
         #region 언어변경
         /// <summary>
         /// 언어변경
@@ -898,7 +750,7 @@ namespace NPAutoBooth.UI
 
         private void SetLanuageDynamic(NPCommon.ConfigID.LanguageType pLanguageType)
         {
-            paymentControl.SetLanguage(pLanguageType, mCurrentNormalCarInfo);
+            paymentControl.SetLanguage(pLanguageType, CurrentNormalCarInfo);
 
             //m_DiscountAndPayAndCreditAndTMoneyMovie = "할인권_현금_신용카드_교통카드.avi";
             m_DiscountAndPayAndCreditAndTMoneyMovie = NPSYS.LanguageConvert.GetLanguageData(pLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_WAV_Discount_Cash_Card_Tmoney.ToString());
@@ -1070,7 +922,7 @@ namespace NPAutoBooth.UI
             else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.SMATRO_TIT_DIP)
             {
                 mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardStop;
-                mSmartro_TITDIP_EVCat.ChangePayMoney(NPSYS.Device.Smartro_TITDIP_Evcat, mCurrentNormalCarInfo.PaymentMoney.ToString());
+                mSmartro_TITDIP_EVCat.ChangePayMoney(NPSYS.Device.Smartro_TITDIP_Evcat, CurrentNormalCarInfo.PaymentMoney.ToString());
                 mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardReady;
 
                 Thread.Sleep(1000);
@@ -1083,7 +935,7 @@ namespace NPAutoBooth.UI
             else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.SMATRO_TL3500S)
             {
                 //할인 된 금액으로 다시 재결제 요청
-                NPSYS.Device.TmoneySmartro3500.RequestApproval(mCurrentNormalCarInfo.PaymentMoney.ToString());
+                NPSYS.Device.TmoneySmartro3500.RequestApproval(CurrentNormalCarInfo.PaymentMoney.ToString());
             }
         }
 
@@ -1114,7 +966,7 @@ namespace NPAutoBooth.UI
             }
             finally
             {
-                if (mCurrentNormalCarInfo.PaymentMoney != 0)
+                if (CurrentNormalCarInfo.PaymentMoney != 0)
                 {
                     timerAutoCardReading.Start();
                 }
@@ -1128,7 +980,7 @@ namespace NPAutoBooth.UI
 
         private void btnCardAction_Click(object sender, EventArgs e)
         {
-            if (mCurrentNormalCarInfo.Current_Money > 0 || mCurrentNormalCarInfo.PaymentMoney == 0)
+            if (CurrentNormalCarInfo.Current_Money > 0 || CurrentNormalCarInfo.PaymentMoney == 0)
             {
                 return;
             }
@@ -1139,400 +991,6 @@ namespace NPAutoBooth.UI
 
         #endregion
         // 2016.10.27  KIS_DIP 추가종료
-
-
-
-        //스마트로 TIT_DIP EV-CAT 적용
-       
-
-        #region 지폐 및 동전관련
-
-        private void StartMoneyInsert()
-        {
-            try
-            {
-                if (isOnlyCard())
-                {
-                    TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymenu|StartInsert", "카드결제라 동전지폐 관련시작 모든 작업 시작안함");
-                    return;
-                }
-
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymenu|StartInsert", "동전지폐 관련 모든 작업 시작");
-                if (!NPSYS.Device.UsingSettingCoinReader && !NPSYS.Device.UsingSettingBill)
-                {
-                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|StartMoneyInsert", "지폐/동전 사용안함");
-
-                    return;
-                }
-                if (NPSYS.Device.isUseDeviceCoinReaderDevice && NPSYS.Device.UsingSettingCoinReader)
-                {
-
-                    TextCore.ACTION(TextCore.ACTIONS.COINREADER, "FormPaymentMenu|StartMoneyInsert", "동전 입수가능동작 시작진행");
-                    CoinReader.CoinReaderStatusType l_CoinReaderResult = NPSYS.Device.CoinReader.EnableCoinRead();
-                    TextCore.ACTION(TextCore.ACTIONS.COINREADER, "FormPaymentMenu|StartMoneyInsert", "동전 입수가능동작 시작종료:" + l_CoinReaderResult.ToString());
-                    if (l_CoinReaderResult != CoinReader.CoinReaderStatusType.OK)
-                    {
-                        TextCore.ACTION(TextCore.ACTIONS.COINREADER, "FormPaymentMenu|StartMoneyInsert", "다시한번 동전 받는동작 작동");
-                        l_CoinReaderResult = NPSYS.Device.CoinReader.EnableCoinRead();
-                        if (l_CoinReaderResult != CoinReader.CoinReaderStatusType.OK)
-                        {
-                            NPSYS.Device.CoinReader.DisableCoinRead();
-                            NPSYS.Device.CoinReaderDeviceErrorMessage = l_CoinReaderResult.ToString();
-                            TextCore.DeviceError(TextCore.DEVICE.COINREADER, "FormPaymentMenu|StartMoneyInsert", l_CoinReaderResult.ToString());
-                            SetLanuageDynamic(NPSYS.CurrentLanguageType);
-
-                            NPSYS.LedLight();
-                        }
-                    }
-
-                }
-
-                if (NPSYS.Device.isUseDeviceBillReaderDevice && NPSYS.Device.UsingSettingBillReader)
-                {
-                    TextCore.ACTION(TextCore.ACTIONS.BILLREADER, "FormPaymentMenu | StartMoneyInsert", "지폐 입수가능동작 시작진행");
-                    BillReader.BillRederStatusType curentBillRederStatusType = NPSYS.Device.BillReader.BillEnableAccept();
-                    TextCore.ACTION(TextCore.ACTIONS.BILLREADER, "FormPaymentMenu | StartMoneyInsert", "지폐 입수가능동작 시작종료 성공유무:" + curentBillRederStatusType.ToString());
-
-                    if (NPSYS.Device.isUseDeviceBillReaderDevice == false)
-                    {
-                        NPSYS.Device.BillReader.Reset();
-                        curentBillRederStatusType = NPSYS.Device.BillReader.BillEnableAccept();
-                        TextCore.ACTION(TextCore.ACTIONS.BILLREADER, "FormPaymentMenu|StartMoneyInsert", "지폐을 받는 동작 작동 문제가 생겨서 다시시도 성공유무:" + curentBillRederStatusType.ToString());
-                        if (NPSYS.Device.isUseDeviceBillReaderDevice == false)
-                        {
-                            NPSYS.Device.BillReader.Reset();
-                            curentBillRederStatusType = NPSYS.Device.BillReader.BillEnableAccept();
-                            if (NPSYS.Device.isUseDeviceBillReaderDevice == false)
-                            {
-                                SetLanuageDynamic(NPSYS.CurrentLanguageType);
-                                NPSYS.LedLight();
-                            }
-                        }
-                    }
-                }
-                if (NPSYS.Device.isUseDeviceBillReaderDevice || NPSYS.Device.isUseDeviceCoinReaderDevice)
-                {
-                    tmrReadAccount.Enabled = true;
-                    tmrReadAccount.Start();
-                }
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymenu|StartInsert", ex.ToString());
-            }
-            finally
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymenu|StartInsert", "동전지폐 관련 모든 작업 종료");
-            }
-        }
-
-        private void StopMoneyInsert()
-        {
-            try
-            {
-                if (isOnlyCard())
-                {
-                    TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymenu|StartInsert", "카드만결제라 동전지폐 종료관련 모든 작업 시작안함");
-                    return;
-                }
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymenu|StopMoneyInsert", "동전지폐 관련 모든 작업 시작");
-                if (!NPSYS.Device.UsingSettingCoinReader && !NPSYS.Device.UsingSettingBill)
-                {
-                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|StartMoneyInsert", "지폐/동전 사용안함");
-                    return;
-                }
-
-                if (NPSYS.Device.isUseDeviceCoinReaderDevice && NPSYS.Device.UsingSettingCoinReader)
-                {
-                    TextCore.ACTION(TextCore.ACTIONS.COINREADER, "FormPaymentMenu|StopMoneyInsert", "동전을 받는 동작 작동 행위를 멈춤 시작");
-                    CoinReader.CoinReaderStatusType Result = NPSYS.Device.CoinReader.DisableCoinRead();
-                    TextCore.ACTION(TextCore.ACTIONS.COINREADER, "FormPaymentMenu|StopMoneyInsert", "동전을 받는 동작 작동 행위를 멈춤 종료:" + Result.ToString());
-                }
-                if (NPSYS.Device.isUseDeviceBillReaderDevice && NPSYS.Device.UsingSettingBillReader)
-                {
-                    TextCore.ACTION(TextCore.ACTIONS.BILLREADER, "FormPaymentMenu|StopMoneyInsert", "지폐를 받는 동작 작동 행위를 멈춤 시작");
-                    NPSYS.Device.BillReader.BillDIsableAccept();
-                    TextCore.ACTION(TextCore.ACTIONS.BILLREADER, "FormPaymentMenu|StopMoneyInsert", "지폐를 받는 동작 작동 행위를 멈춤 종료 성공유무:" + NPSYS.Device.BillReader.BillDIsableAccept().ToString());
-                }
-
-                if (tmrReadAccount.Enabled == true)
-                {
-                    tmrReadAccount.Enabled = false;
-                    tmrReadAccount.Stop();
-                }
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymenu|StopMoneyInsert", ex.ToString());
-            }
-            finally
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymenu|StopMoneyInsert", "동전지폐 관련 모든 작업 종료");
-            }
-        }
-
-        /// <summary>
-        /// 들어온 지폐 및 동전을 로컬 DB에 저장한다.
-        /// </summary>
-        /// <param name="p_BillVaule"></param>
-        private void InsertMoney(string p_BillVaule)
-        {
-            try
-            {
-                inputtime = paymentInputTimer;
-
-                string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                int inMoney = 0;
-                inMoney = Convert.ToInt32(p_BillVaule.ToUpper().Replace("QTY", ""));
-                if (inMoney <= 0)
-                {
-                    TextCore.INFO(TextCore.INFOS.PAYINFO, "FormPaymentMenu|InsertMoney", "들어온 돈:0");
-                    return;
-                }
-
-                paymentControl.ErrorMessage = "현금취소시 카드결제가능 합니다";
-
-                // 스마트로 추가
-                if (mCurrentNormalCarInfo.Current_Money == 0) // 최초동전넣었다면 취소
-                {
-                    paymentControl.ButtonEnable(ButtonEnableType.InsertCoin);
-                    if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.SmartroVCat)
-                    {
-                        timerSmartroVCat.Enabled = false;
-                        timerSmartroVCat.Stop();
-                        SmatroDeveinCancle();
-                    }
-                    // 2016.10.27 KIS_DIP 추가
-                    else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KIS_TIT_DIP_IFM)
-                    {
-                        // Kis_TIT_DIpDeveinCancle();
-
-                    }
-                    if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.SMATRO_TIT_DIP)
-                    {
-
-                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardStop;
-                        timerKisCardPay.Enabled = false;
-                        timerKisCardPay.Stop();
-                        timerSmatro_TITDIP_Evcat.Tick -= timerSmatro_TITDIP_Evcat_Tick;
-                        this.timerSmatro_TITDIP_Evcat.Enabled = false;
-                        this.timerSmatro_TITDIP_Evcat.Stop();
-                        paymentControl.ErrorMessage = string.Empty;
-                        UnsetSmatro_DIPTIT_Evcat();
-
-                    }
-                    // 2016.10.27  KIS_DIP 추가종료
-
-                }
-                InsertMoneyChangeValue(p_BillVaule);
-                TextCore.INFO(TextCore.INFOS.PAYINFO, "FormPaymentMenu|InsertMoney", "지불해야할 요금:" + mCurrentNormalCarInfo.PaymentMoney.ToString() + "총투입금액:" + mCurrentNormalCarInfo.GetInComeMoney.ToString() + " 투입금액:" + inMoney.ToString() + " 거스름돈:" + mCurrentNormalCarInfo.GetChargeMoney);
-                paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
-                paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc);
-                // 스마트로 추가 종료
-
-                //BoothControl.ProtocolData sendDiscountProtocol = new BoothControl.ProtocolData();
-                //sendDiscountProtocol.CurrentCommand = BoothControl.ProtocolData.Command.GETCURRENT_PAYMONEY;
-                //NPSYS.sendJunsanInfo(sendDiscountProtocol, mNormalCarInfo);
-                //통합처리 동전들어갔을때 전문보내야함
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|InsertMoney", ex.ToString());
-            }
-        }
-
-        /// <summary>
-        /// 현재 투입금액을 증가시킨다.
-        /// </summary>
-        /// <param name="message"></param>
-        public void InsertMoneyChangeValue(string message)
-        {
-            if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.WON)
-            {
-                switch (message.ToUpper())
-                {
-                    case "50QTY":
-                        mCurrentNormalCarInfo.InCome50Qty = mCurrentNormalCarInfo.InCome50Qty + 1;
-                        break;
-                    case "100QTY":
-                        mCurrentNormalCarInfo.InCome100Qty = mCurrentNormalCarInfo.InCome100Qty + 1;
-                        break;
-                    case "500QTY":
-                        mCurrentNormalCarInfo.InCome500Qty = mCurrentNormalCarInfo.InCome500Qty + 1;
-                        break;
-                    case "1000QTY":
-                        mCurrentNormalCarInfo.InCome1000Qty = mCurrentNormalCarInfo.InCome1000Qty + 1;
-                        break;
-                    case "5000QTY":
-                        mCurrentNormalCarInfo.InCome5000Qty = mCurrentNormalCarInfo.InCome5000Qty + 1;
-                        break;
-                    case "10000QTY":
-                        mCurrentNormalCarInfo.InCome10000Qty = mCurrentNormalCarInfo.InCome10000Qty + 1;
-                        break;
-                    case "50000QTY":
-                        mCurrentNormalCarInfo.InCome50000Qty = mCurrentNormalCarInfo.InCome50000Qty + 1;
-                        break;
-                }
-            }
-            else if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.PHP)
-            {
-                switch (message.ToUpper())
-                {
-                    case "1QTY":
-                        mCurrentNormalCarInfo.InCome50Qty = mCurrentNormalCarInfo.InCome50Qty + 1;
-                        break;
-                    case "5QTY":
-                        mCurrentNormalCarInfo.InCome100Qty = mCurrentNormalCarInfo.InCome100Qty + 1;
-                        break;
-                    case "10QTY":
-                        mCurrentNormalCarInfo.InCome500Qty = mCurrentNormalCarInfo.InCome500Qty + 1;
-                        break;
-                    case "20QTY":
-                        mCurrentNormalCarInfo.InCome1000Qty = mCurrentNormalCarInfo.InCome1000Qty + 1;
-                        break;
-                    case "50QTY":
-                        mCurrentNormalCarInfo.InCome5000Qty = mCurrentNormalCarInfo.InCome5000Qty + 1;
-                        break;
-                    case "100QTY":
-                        mCurrentNormalCarInfo.InCome10000Qty = mCurrentNormalCarInfo.InCome10000Qty + 1;
-                        break;
-                }
-            }
-        }
-
-        ///// <summary>
-        ///// 지폐를 돈통에 넣는 작업 , 지폐입수후 BillAccept 명령 실행하지 않을시 자동으로 돈이 앞으로 리젝된다
-        ///// </summary>
-        //private byte[] getBillInsert()
-        //{
-        //    return NPSYS.Device.BillReader.BillAccept();
-
-        //}
-
-        ///// <summary>
-        ///// 지폐를 돈통에 넣지않는 작업 Reject
-        ///// </summary>
-        //private byte[] getBillReject()
-        //{
-        //    return NPSYS.Device.BillReader.BillReject();
-
-        //}
-
-        private void tmrReadAccount_Tick(object sender, EventArgs e)
-        {
-            tmrReadAccount.Stop();
-
-            if (!NPSYS.Device.isUseDeviceBillReaderDevice && !NPSYS.Device.isUseDeviceCoinReaderDevice)  // 지폐 및 동전 리더기 둘다 동시 작동이 안될때
-            {
-                tmrReadAccount.Enabled = false;
-                return;
-            }
-            try
-            {
-                tmrReadAccount.Stop();
-
-                string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                if (NPSYS.Device.isUseDeviceCoinReaderDevice)
-                {
-                    //동전연속투입관련 변경
-                    if (NPSYS.Device.CoinReader.mLIstQty.Count > 0)
-                    {
-                        string coinmessage = NPSYS.Device.CoinReader.mLIstQty[0].ToString();
-                        NPSYS.Device.CoinReader.mLIstQty.RemoveAt(0);
-                        TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu|tmrReadAccount_Tick", "동전 넣음");
-                        TextCore.ACTION(TextCore.ACTIONS.COINREADER, "FormPaymentMenu|tmrReadAccount_Tick", "동전 들어옴");
-                        InsertMoney(coinmessage);
-                    }
-                }
-                
-                //동전연속투입관련 변경
-                if (BillReader.g_billValue.Trim() != "")
-                {
-                    string billValue = BillReader.g_billValue;
-                    BillReader.g_billValue = "";
-                    if (billValue.ToUpper().Trim() == "REJECT")
-                    {
-                        NPSYS.Device.BillReader.BillReject();
-                        TextCore.ACTION(TextCore.ACTIONS.BILLREADER, "FormPaymentMenu|tmrReadAccount_Tick", "지폐불량으로 리젝트");
-                    }
-                    else
-                    {
-                        BillReader.BillRederStatusType currentInsertStatus = BillReader.BillRederStatusType.OK;
-                        TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu|tmrReadAccount_Tick", "지폐 넣음:" + billValue);
-                        if (NPSYS.SettingUse50000QtyBill == true)
-                        {
-                            currentInsertStatus = NPSYS.Device.BillReader.BillAccept();
-                            if (currentInsertStatus == BillReader.BillRederStatusType.OK)
-                            {
-                                InsertMoney(billValue);
-                            }
-                            else
-                            {
-                                currentInsertStatus = NPSYS.Device.BillReader.BillReject();
-                                TextCore.ACTION(TextCore.ACTIONS.BILLREADER, "FormPaymentMenu | tmrReadAccount_Tick", "지폐불량으로 리젝트:" + currentInsertStatus.ToString());
-                            }
-                        }
-                        else if (billValue.ToUpper() == "50000QTY")
-                        {
-                            currentInsertStatus = NPSYS.Device.BillReader.BillReject(); ;
-                            TextCore.ACTION(TextCore.ACTIONS.BILLREADER, "FormPaymentMenu | tmrReadAccount_Tick", "5만원권 사용불가처리로 리젝트:" + currentInsertStatus.ToString());
-                        }
-                        else
-                        {
-                            currentInsertStatus = NPSYS.Device.BillReader.BillAccept();
-                            if (currentInsertStatus == BillReader.BillRederStatusType.OK)
-                            {
-                                InsertMoney(billValue);
-                            }
-                            else
-                            {
-                                currentInsertStatus = NPSYS.Device.BillReader.BillReject();
-                                TextCore.ACTION(TextCore.ACTIONS.BILLREADER, "FormPaymentMenu | tmrReadAccount_Tick", "지폐불량으로 리젝트:" + currentInsertStatus.ToString());
-                            }
-                        }
-                    }
-                }
-
-                if (mCurrentNormalCarInfo.Current_Money > 0)
-                {
-                    paymentControl.CancelButtonVisible = true;
-                }
-                else
-                {
-                    paymentControl.CancelButtonVisible = false;
-                }
-
-                if (mCurrentNormalCarInfo.Current_Money == 0)
-                {
-                    tmrReadAccount.Start();
-                    return;
-                }
-
-                if (mCurrentNormalCarInfo.PaymentMoney == 0)
-                {
-                    //카드실패전송
-                    mCurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
-                    //카드실패전송완료
-                    PaymentComplete();
-
-                    return;
-                }
-
-                tmrReadAccount.Start();
-                return;
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|tmrReadAccount_Tick", ex.ToString());
-                tmrReadAccount.Start();
-            }
-            finally
-            {
-
-            }
-        }
-
-        #endregion
 
         #endregion
 
@@ -1548,15 +1006,15 @@ namespace NPAutoBooth.UI
 
                 PaymentEndAction();
                 CashRecipt();
-                if (mCurrentNormalCarInfo.GetInComeMoney > 0)
+                if (CurrentNormalCarInfo.GetInComeMoney > 0)
                 {
                     if (CompletOutChargeAction() != PaymentResult.Success)
                     {
                         //시제설정누락처리
-                        mCurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.SuccessNotOut; //시제설정누락처리
+                        CurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.SuccessNotOut; //시제설정누락처리
                         ReceiptChargeErrorActions();
                         //카드실패전송
-                        mCurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
+                        CurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
                         //카드실패전송완료
 
                     }
@@ -1564,14 +1022,14 @@ namespace NPAutoBooth.UI
 
                 TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymentMenu | Payment", "결제처리 전송시작");
                 DateTime paydate = DateTime.Now;
-                Payment currentCar = mHttpProcess.PaySave(mCurrentNormalCarInfo, paydate);
+                Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
                 if (currentCar.status.Success == false)
                 {
                     // DB에 저장하고 재전송처리해야함
                     return;
                 }
                 NormalCarInfo SendcarInfo = new NormalCarInfo();
-                SendcarInfo = CommonFuction.Clone<NormalCarInfo>(mCurrentNormalCarInfo);
+                SendcarInfo = CommonFuction.Clone<NormalCarInfo>(CurrentNormalCarInfo);
                 EventExitPayForm_NextReceiptForm(mCurrentFormType, NPSYS.FormType.Receipt, SendcarInfo);
                 return;
 
@@ -1588,10 +1046,10 @@ namespace NPAutoBooth.UI
         /// <returns></returns>
         private bool CashRecipt()
         {
-            if (NPSYS.Device.UsingUsingSettingCashReceipt && mCurrentNormalCarInfo.Current_Money > 0) // 현금영수증 사용이라면
+            if (NPSYS.Device.UsingUsingSettingCashReceipt && CurrentNormalCarInfo.Current_Money > 0) // 현금영수증 사용이라면
             {
                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CashRecipt", "[현금영수증 처리시도]");
-                Result cashResult = m_PayCardandCash.CashRecipt(mCurrentNormalCarInfo);
+                Result cashResult = m_PayCardandCash.CashRecipt(CurrentNormalCarInfo);
                 return cashResult.Success;
             }
             return false;
@@ -1612,7 +1070,7 @@ namespace NPAutoBooth.UI
 
         private void btn_CashCancle_Click(object sender, EventArgs e)
         {
-            if (mCurrentNormalCarInfo.PaymentMoney == 0 || mCurrentNormalCarInfo.Current_Money == 0)
+            if (CurrentNormalCarInfo.PaymentMoney == 0 || CurrentNormalCarInfo.Current_Money == 0)
             {
                 return;
             }
@@ -1642,7 +1100,7 @@ namespace NPAutoBooth.UI
         {
             try
             {
-                if (mCurrentNormalCarInfo.Current_Money > 0)  // 투입된 금액이 있다면
+                if (CurrentNormalCarInfo.Current_Money > 0)  // 투입된 금액이 있다면
                 {
                     paymentControl.ButtonEnable(ButtonEnableType.CashCancle);
                     SettingDisableDevice();
@@ -1651,20 +1109,20 @@ namespace NPAutoBooth.UI
 
                     if (result == PaymentResult.Success) // 지폐나 동전불출할수 있으면
                     {
-                        mCurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.CancelOut; //시제설정누락처리
+                        CurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.CancelOut; //시제설정누락처리
                         TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymentMenu | Payment", "취소시 결제처리 전송시작");
                         DateTime paydate = DateTime.Now;
                         //카드실패전송
-                        mCurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
+                        CurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
                         //카드실패전송완료
-                        Payment currentCar = mHttpProcess.PaySave(mCurrentNormalCarInfo, paydate);
+                        Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
                         if (currentCar.status.Success == false)
                         {
                             // DB에 저장하고 재전송처리해야함
                             return;
                         }
 
-                        mCurrentNormalCarInfo.CanCleClear();
+                        CurrentNormalCarInfo.CanCleClear();
                         NormalCarInfo lCanclecarInfo = new NormalCarInfo();
                         lCanclecarInfo.CurrentPayment = CommonFuction.Clone<Payment>(currentCar);
                         lCanclecarInfo.SetCurrentPayment(NormalCarInfo.PaymentSetType.NormalPaymnet);
@@ -1677,19 +1135,19 @@ namespace NPAutoBooth.UI
                     {
                         paymentControl.CancelButtonVisible = false;
                         //카드실패전송
-                        mCurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
+                        CurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
                         //카드실패전송완료
-                        mCurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.CancelNotOut; //시제설정누락처리
+                        CurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.CancelNotOut; //시제설정누락처리
                         TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymentMenu | Payment", "취소시 결제처리 전송시작");
                         DateTime paydate = DateTime.Now;
-                        Payment currentCar = mHttpProcess.PaySave(mCurrentNormalCarInfo, paydate);
+                        Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
                         if (currentCar.status.Success == false)
                         {
                             // DB에 저장하고 재전송처리해야함
                             return;
                         }
                         ReceiptCancleErrorActions();
-                        mCurrentNormalCarInfo.CanCleClear();
+                        CurrentNormalCarInfo.CanCleClear();
                         NormalCarInfo lCanclecarInfo = new NormalCarInfo();
                         lCanclecarInfo.CurrentPayment = CommonFuction.Clone<Payment>(currentCar);
                         lCanclecarInfo.SetCurrentPayment(NormalCarInfo.PaymentSetType.NormalPaymnet);
@@ -1716,9 +1174,9 @@ namespace NPAutoBooth.UI
         {
             try
             {
-                if (mCurrentNormalCarInfo.Current_Money > 0)  // 투입된 금액이 있다면
+                if (CurrentNormalCarInfo.Current_Money > 0)  // 투입된 금액이 있다면
                 {
-                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|CashCancleFormCloseAction", "시간초과로 입수된 돈 방출처리 방출금액:" + mCurrentNormalCarInfo.GetInComeMoney.ToString());
+                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|CashCancleFormCloseAction", "시간초과로 입수된 돈 방출처리 방출금액:" + CurrentNormalCarInfo.GetInComeMoney.ToString());
 
                     paymentControl.ButtonEnable(ButtonEnableType.CashCancle);
                     if (pIsSetDisable)
@@ -1732,14 +1190,14 @@ namespace NPAutoBooth.UI
 
                         if (result == PaymentResult.Success) // 지폐나 동전불출할수 있으면
                         {
-                            mCurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.CancelOut; //시제설정누락처리
+                            CurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.CancelOut; //시제설정누락처리
                             TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymentMenu | Payment", "시간초과로 취소시 결제처리 전송시작");
                             DateTime paydate = DateTime.Now;
                             //카드실패전송
-                            mCurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
+                            CurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
                             //카드실패전송완료
 
-                            Payment currentCar = mHttpProcess.PaySave(mCurrentNormalCarInfo, paydate);
+                            Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
                             if (currentCar.status.Success == false)
                             {
                                 // DB에 저장하고 재전송처리해야함
@@ -1749,14 +1207,14 @@ namespace NPAutoBooth.UI
                         }
                         else
                         {
-                            mCurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.CancelNotOut; //시제설정누락처리
+                            CurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.CancelNotOut; //시제설정누락처리
                             TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymentMenu | Payment", "시간초과로 취소시 결제처리 전송시작");
                             DateTime paydate = DateTime.Now;
                             //카드실패전송
-                            mCurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
+                            CurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
                             //카드실패전송완료
 
-                            Payment currentCar = mHttpProcess.PaySave(mCurrentNormalCarInfo, paydate);
+                            Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
                             if (currentCar.status.Success == false)
                             {
                                 // DB에 저장하고 재전송처리해야함
@@ -1764,21 +1222,21 @@ namespace NPAutoBooth.UI
                             }
                             paymentControl.CancelButtonVisible = false;
                             ReceiptCancleErrorActions(true);
-                            mCurrentNormalCarInfo.CanCleClear();
+                            CurrentNormalCarInfo.CanCleClear();
                         }
                     }
                     else
                     {
-                        mCurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.CommandOut; //시제설정누락처리
+                        CurrentNormalCarInfo.CurrentMoneyInOutType = NormalCarInfo.MoneyInOutType.CommandOut; //시제설정누락처리
                         TextCore.INFO(TextCore.INFOS.PROGRAM_ING, "FormPaymentMenu | Payment", "시간초과로 취소시 강제입금 결제처리 전송시작");
                         DateTime paydate = DateTime.Now;
-                        Payment currentCar = mHttpProcess.PaySave(mCurrentNormalCarInfo, paydate);
+                        Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
                         if (currentCar.status.Success == false)
                         {
                             // DB에 저장하고 재전송처리해야함
                             return;
                         }
-                        mCurrentNormalCarInfo.CanCleClear();
+                        CurrentNormalCarInfo.CanCleClear();
                     }
                     //시제설정누락처리 완료
                 }
@@ -1800,9 +1258,9 @@ namespace NPAutoBooth.UI
         private void ReceiptCancleErrorActions(bool isFormClose = false)   // 보관증출력
         {
 
-            LPRDbSelect.LogMoney(PaymentType.CashTicket, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), mCurrentNormalCarInfo, MoneyType.CashTicket, 0, mCurrentNormalCarInfo.GetNotDisChargeMoney, "보관증");
-            TextCore.INFO(TextCore.INFOS.PAYINFO, "FormPaymentMenu|ReceiptErrorActions", "보관증발행액" + mCurrentNormalCarInfo.GetNotDisChargeMoney);
-            Print.CashTicketNotCoinPrint(mCurrentNormalCarInfo, false, this.Name);
+            LPRDbSelect.LogMoney(PaymentType.CashTicket, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), CurrentNormalCarInfo, MoneyType.CashTicket, 0, CurrentNormalCarInfo.GetNotDisChargeMoney, "보관증");
+            TextCore.INFO(TextCore.INFOS.PAYINFO, "FormPaymentMenu|ReceiptErrorActions", "보관증발행액" + CurrentNormalCarInfo.GetNotDisChargeMoney);
+            Print.CashTicketNotCoinPrint(CurrentNormalCarInfo, false, this.Name);
             if (isFormClose == false)
             {
                 EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NotEnoghfMoney);
@@ -1819,9 +1277,9 @@ namespace NPAutoBooth.UI
             try
             {
 
-                LPRDbSelect.LogMoney(PaymentType.CashTicket, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), mCurrentNormalCarInfo, MoneyType.CashTicket, 0, mCurrentNormalCarInfo.GetNotDisChargeMoney, "보관증");
-                TextCore.INFO(TextCore.INFOS.CHARGE, "FormRecipt|ReceiptErrorActions", "보관증발행액:" + mCurrentNormalCarInfo.GetNotDisChargeMoney);
-                Print.CashTicketNotCoinPrint(mCurrentNormalCarInfo, true, this.Name);
+                LPRDbSelect.LogMoney(PaymentType.CashTicket, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), CurrentNormalCarInfo, MoneyType.CashTicket, 0, CurrentNormalCarInfo.GetNotDisChargeMoney, "보관증");
+                TextCore.INFO(TextCore.INFOS.CHARGE, "FormRecipt|ReceiptErrorActions", "보관증발행액:" + CurrentNormalCarInfo.GetNotDisChargeMoney);
+                Print.CashTicketNotCoinPrint(CurrentNormalCarInfo, true, this.Name);
 
                 System.Threading.Thread.Sleep(500);
                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormRecipt|ReceiptErrorActions", "보관증발행");
@@ -1861,7 +1319,7 @@ namespace NPAutoBooth.UI
                 if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.WON)
                 {
                     string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "취소명령시 입금액:" + mCurrentNormalCarInfo.GetInComeMoney.ToString());
+                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "취소명령시 입금액:" + CurrentNormalCarInfo.GetInComeMoney.ToString());
 
                     //////////
                     //지폐 방출
@@ -1869,34 +1327,34 @@ namespace NPAutoBooth.UI
 
                     CheckCurrentOutCancelMoney();
 
-                    mCurrentNormalCarInfo.ClearDischargeMoney(); // 보관증 금액 초기화
-                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "방출할금액: 5000원수량:" + mCurrentNormalCarInfo.Cancle5000Qty.ToString() + "  1000원수량:" + mCurrentNormalCarInfo.Cancle1000Qty.ToString() + "  500원수량:" + mCurrentNormalCarInfo.Cancle500Qty.ToString() + "  100원수량:" + mCurrentNormalCarInfo.Cancle100Qty.ToString() + "  50원수량:" + mCurrentNormalCarInfo.Cancle50Qty.ToString());
+                    CurrentNormalCarInfo.ClearDischargeMoney(); // 보관증 금액 초기화
+                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "방출할금액: 5000원수량:" + CurrentNormalCarInfo.Cancle5000Qty.ToString() + "  1000원수량:" + CurrentNormalCarInfo.Cancle1000Qty.ToString() + "  500원수량:" + CurrentNormalCarInfo.Cancle500Qty.ToString() + "  100원수량:" + CurrentNormalCarInfo.Cancle100Qty.ToString() + "  50원수량:" + CurrentNormalCarInfo.Cancle50Qty.ToString());
                     if (NPSYS.Device.gIsUseDeviceBillDischargeDevice)
                     {
                         int currentTime = Convert.ToInt32(DateTime.Now.ToString("HHmmss").ToString());
-                        if (currentTime >= 235800 && (mCurrentNormalCarInfo.Cancle5000Qty > 0 || mCurrentNormalCarInfo.Cancle1000Qty > 0)) //현재시간이23시58분00초보다 크고 지폐방출할 수량이 있다면
+                        if (currentTime >= 235800 && (CurrentNormalCarInfo.Cancle5000Qty > 0 || CurrentNormalCarInfo.Cancle1000Qty > 0)) //현재시간이23시58분00초보다 크고 지폐방출할 수량이 있다면
                         {
-                            mCurrentNormalCarInfo.Cancle500Qty = mCurrentNormalCarInfo.Cancle500Qty + (mCurrentNormalCarInfo.Cancle1000Qty * 2) + (mCurrentNormalCarInfo.Cancle5000Qty * 10);
-                            mCurrentNormalCarInfo.Cancle1000Qty = 0;
-                            mCurrentNormalCarInfo.Cancle5000Qty = 0;
+                            CurrentNormalCarInfo.Cancle500Qty = CurrentNormalCarInfo.Cancle500Qty + (CurrentNormalCarInfo.Cancle1000Qty * 2) + (CurrentNormalCarInfo.Cancle5000Qty * 10);
+                            CurrentNormalCarInfo.Cancle1000Qty = 0;
+                            CurrentNormalCarInfo.Cancle5000Qty = 0;
 
-                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "[지폐대신 동전방출로 변경] 방출할500원 수량: " + mCurrentNormalCarInfo.Cancle500Qty.ToString());
+                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "[지폐대신 동전방출로 변경] 방출할500원 수량: " + CurrentNormalCarInfo.Cancle500Qty.ToString());
 
                         }
                         else
                         {
-                            if (mCurrentNormalCarInfo.Cancle5000Qty > 0)
+                            if (CurrentNormalCarInfo.Cancle5000Qty > 0)
                             {
-                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "5000원권 방출명령 내림:" + mCurrentNormalCarInfo.Cancle5000Qty.ToString() + "개");
-                                int out5000Qty = mCurrentNormalCarInfo.Cancle5000Qty; // 방출해야할 수량
+                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "5000원권 방출명령 내림:" + CurrentNormalCarInfo.Cancle5000Qty.ToString() + "개");
+                                int out5000Qty = CurrentNormalCarInfo.Cancle5000Qty; // 방출해야할 수량
                                 Result _result = MoneyBillOutDeviice.OutPut5000Qty(ref out5000Qty);
                                 BillCancleDischarge5000(logDate, out5000Qty, _result);
                             }
 
-                            if (mCurrentNormalCarInfo.Cancle1000Qty > 0)
+                            if (CurrentNormalCarInfo.Cancle1000Qty > 0)
                             {
-                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "1000원권 방출명령 내림:" + mCurrentNormalCarInfo.Cancle1000Qty.ToString() + "개");
-                                int out1000Qty = mCurrentNormalCarInfo.Cancle1000Qty; // 방출해야할 수량
+                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "1000원권 방출명령 내림:" + CurrentNormalCarInfo.Cancle1000Qty.ToString() + "개");
+                                int out1000Qty = CurrentNormalCarInfo.Cancle1000Qty; // 방출해야할 수량
                                 Result _result = MoneyBillOutDeviice.OutPut1000Qty(ref out1000Qty);
                                 BillCancleDischarge1000(logDate, out1000Qty, _result);
                             }
@@ -1904,99 +1362,99 @@ namespace NPAutoBooth.UI
                     }
                     else
                     {
-                        mCurrentNormalCarInfo.Cancle500Qty = mCurrentNormalCarInfo.Cancle500Qty + (mCurrentNormalCarInfo.Cancle1000Qty * 2) + (mCurrentNormalCarInfo.Cancle5000Qty * 10);
-                        mCurrentNormalCarInfo.Cancle1000Qty = 0;
-                        mCurrentNormalCarInfo.Cancle5000Qty = 0;
+                        CurrentNormalCarInfo.Cancle500Qty = CurrentNormalCarInfo.Cancle500Qty + (CurrentNormalCarInfo.Cancle1000Qty * 2) + (CurrentNormalCarInfo.Cancle5000Qty * 10);
+                        CurrentNormalCarInfo.Cancle1000Qty = 0;
+                        CurrentNormalCarInfo.Cancle5000Qty = 0;
 
                     }
-                    if (mCurrentNormalCarInfo.CurrentCancleCoinMoney <= 0)
+                    if (CurrentNormalCarInfo.CurrentCancleCoinMoney <= 0)
                     {
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "방출할 동전이 없으므로 성공:" + mCurrentNormalCarInfo.CurrentCancleCoinMoney.ToString());
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "방출할 동전이 없으므로 성공:" + CurrentNormalCarInfo.CurrentCancleCoinMoney.ToString());
                         return PaymentResult.Success;
                     }
                     if ((NPSYS.Device.gIsUseCoinDischarger50Device || NPSYS.Device.gIsUseCoinDischarger100Device || NPSYS.Device.gIsUseCoinDischarger500Device) == false)
                     {
-                        mCurrentNormalCarInfo.NotdisChargeMoney500Qty = mCurrentNormalCarInfo.Cancle500Qty;
-                        mCurrentNormalCarInfo.NotdisChargeMoney100Qty = mCurrentNormalCarInfo.Cancle100Qty;
-                        mCurrentNormalCarInfo.NotdisChargeMoney50Qty = mCurrentNormalCarInfo.Cancle50Qty;
-                        mCurrentNormalCarInfo.Cancle50Qty = 0;
-                        mCurrentNormalCarInfo.Cancle100Qty = 0;
-                        mCurrentNormalCarInfo.Cancle500Qty = 0;
+                        CurrentNormalCarInfo.NotdisChargeMoney500Qty = CurrentNormalCarInfo.Cancle500Qty;
+                        CurrentNormalCarInfo.NotdisChargeMoney100Qty = CurrentNormalCarInfo.Cancle100Qty;
+                        CurrentNormalCarInfo.NotdisChargeMoney50Qty = CurrentNormalCarInfo.Cancle50Qty;
+                        CurrentNormalCarInfo.Cancle50Qty = 0;
+                        CurrentNormalCarInfo.Cancle100Qty = 0;
+                        CurrentNormalCarInfo.Cancle500Qty = 0;
 
                         return PaymentResult.Fail;
                     }
 
                     if (NPSYS.Device.gIsUseCoinDischarger500Device == false || NPSYS.Device.UsingSettingCoinCharger500 == false) // 500원 방출을 할수없을때
                     {
-                        if (mCurrentNormalCarInfo.Cancle500Qty > 0) // 500원 방출수량이 있다면
+                        if (CurrentNormalCarInfo.Cancle500Qty > 0) // 500원 방출수량이 있다면
                         {
-                            mCurrentNormalCarInfo.Cancle100Qty = mCurrentNormalCarInfo.Cancle100Qty + (mCurrentNormalCarInfo.Cancle500Qty * 5); // 부족한 500원 수량을 100원권 수량에 더함
-                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "500원 장비 미사용 또는 장비고장으로 500원 100원으로 교체:" + mCurrentNormalCarInfo.Cancle100Qty.ToString());
-                            mCurrentNormalCarInfo.Cancle500Qty = 0;
+                            CurrentNormalCarInfo.Cancle100Qty = CurrentNormalCarInfo.Cancle100Qty + (CurrentNormalCarInfo.Cancle500Qty * 5); // 부족한 500원 수량을 100원권 수량에 더함
+                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "500원 장비 미사용 또는 장비고장으로 500원 100원으로 교체:" + CurrentNormalCarInfo.Cancle100Qty.ToString());
+                            CurrentNormalCarInfo.Cancle500Qty = 0;
                         }
                     }
 
                     int cash500SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash500SettingQty));
-                    if (cash500SettingQty < mCurrentNormalCarInfo.Cancle500Qty) // 보유수량보다 500원 방출수량이 많을때
+                    if (cash500SettingQty < CurrentNormalCarInfo.Cancle500Qty) // 보유수량보다 500원 방출수량이 많을때
                     {
                         CheckCurrentOutCancelMoney();
                     }
 
                     PaymentResult l_resultPayment = PaymentResult.Success;
-                    if (mCurrentNormalCarInfo.Cancle500Qty > 0)
+                    if (CurrentNormalCarInfo.Cancle500Qty > 0)
                     {
-                        TextCore.ACTION(TextCore.ACTIONS.COIN500CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "500원권 방출명령 내림:" + mCurrentNormalCarInfo.Cancle500Qty.ToString() + "개");
+                        TextCore.ACTION(TextCore.ACTIONS.COIN500CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "500원권 방출명령 내림:" + CurrentNormalCarInfo.Cancle500Qty.ToString() + "개");
                         CoinOutCancleMoneyDischarge(MoneyType.Coin500, logDate, cash500SettingQty, l_resultPayment);
                     }
 
                     if (NPSYS.Device.gIsUseCoinDischarger100Device == false || NPSYS.Device.UsingSettingCoinCharger100 == false)
                     {
-                        if (mCurrentNormalCarInfo.Cancle100Qty > 0)
+                        if (CurrentNormalCarInfo.Cancle100Qty > 0)
                         {
-                            mCurrentNormalCarInfo.Cancle50Qty = mCurrentNormalCarInfo.Cancle50Qty + (mCurrentNormalCarInfo.Cancle100Qty * 2); // 부족한 100원 수량을 50원권 수량에 더함
-                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "100원 장비 미사용 또는 장비고장으로 100원 50원으로 교체:" + mCurrentNormalCarInfo.Cancle50Qty.ToString());
-                            mCurrentNormalCarInfo.Cancle100Qty = 0;
+                            CurrentNormalCarInfo.Cancle50Qty = CurrentNormalCarInfo.Cancle50Qty + (CurrentNormalCarInfo.Cancle100Qty * 2); // 부족한 100원 수량을 50원권 수량에 더함
+                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "100원 장비 미사용 또는 장비고장으로 100원 50원으로 교체:" + CurrentNormalCarInfo.Cancle50Qty.ToString());
+                            CurrentNormalCarInfo.Cancle100Qty = 0;
                         }
                     }
 
                     int cash100SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash100SettingQty));
 
-                    if (cash100SettingQty < mCurrentNormalCarInfo.Cancle100Qty)
+                    if (cash100SettingQty < CurrentNormalCarInfo.Cancle100Qty)
                     {
                         CheckCurrentOutCancelMoney();
                     }
 
-                    if (mCurrentNormalCarInfo.Cancle100Qty > 0)
+                    if (CurrentNormalCarInfo.Cancle100Qty > 0)
                     {
-                        TextCore.ACTION(TextCore.ACTIONS.COIN100CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "100원권 방출명령 내림:" + mCurrentNormalCarInfo.Cancle100Qty.ToString() + "개");
+                        TextCore.ACTION(TextCore.ACTIONS.COIN100CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "100원권 방출명령 내림:" + CurrentNormalCarInfo.Cancle100Qty.ToString() + "개");
                         CoinOutCancleMoneyDischarge(MoneyType.Coin100, logDate, cash100SettingQty, l_resultPayment);
                     }
 
                     if (NPSYS.Device.gIsUseCoinDischarger50Device == false || NPSYS.Device.UsingSettingCoinCharger50 == false)
                     {
-                        if (mCurrentNormalCarInfo.Cancle50Qty > 0)
+                        if (CurrentNormalCarInfo.Cancle50Qty > 0)
                         {
-                            mCurrentNormalCarInfo.NotdisChargeMoney50Qty = mCurrentNormalCarInfo.Cancle50Qty;
-                            mCurrentNormalCarInfo.Cancle50Qty = 0;
+                            CurrentNormalCarInfo.NotdisChargeMoney50Qty = CurrentNormalCarInfo.Cancle50Qty;
+                            CurrentNormalCarInfo.Cancle50Qty = 0;
                             return PaymentResult.Fail;
                         }
                     }
 
                     int cash50SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash50SettingQty)); // 현재 저장된 수량을 가져온다.
-                    if (cash50SettingQty < mCurrentNormalCarInfo.Cancle50Qty)
+                    if (cash50SettingQty < CurrentNormalCarInfo.Cancle50Qty)
                     {
-                        TextCore.DeviceError(TextCore.DEVICE.COIN50CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "동전 50원 잔액부족 현재보유량:" + cash50SettingQty.ToString() + "  동전요청량:" + mCurrentNormalCarInfo.Cancle50Qty.ToString());
-                        mCurrentNormalCarInfo.NotdisChargeMoney50Qty = mCurrentNormalCarInfo.Cancle50Qty - cash50SettingQty;
-                        mCurrentNormalCarInfo.Cancle50Qty = cash50SettingQty;
+                        TextCore.DeviceError(TextCore.DEVICE.COIN50CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "동전 50원 잔액부족 현재보유량:" + cash50SettingQty.ToString() + "  동전요청량:" + CurrentNormalCarInfo.Cancle50Qty.ToString());
+                        CurrentNormalCarInfo.NotdisChargeMoney50Qty = CurrentNormalCarInfo.Cancle50Qty - cash50SettingQty;
+                        CurrentNormalCarInfo.Cancle50Qty = cash50SettingQty;
                     }
 
-                    if (mCurrentNormalCarInfo.Cancle50Qty > 0)
+                    if (CurrentNormalCarInfo.Cancle50Qty > 0)
                     {
-                        TextCore.ACTION(TextCore.ACTIONS.COIN50CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "50원권 방출명령 내림:" + mCurrentNormalCarInfo.Cancle50Qty.ToString() + "개");
+                        TextCore.ACTION(TextCore.ACTIONS.COIN50CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "50원권 방출명령 내림:" + CurrentNormalCarInfo.Cancle50Qty.ToString() + "개");
                         l_resultPayment = CoinOutCancleMoneyDischarge(MoneyType.Coin50, logDate, cash50SettingQty, l_resultPayment);
                     }
 
-                    if (mCurrentNormalCarInfo.GetNotDisChargeMoney > 0)
+                    if (CurrentNormalCarInfo.GetNotDisChargeMoney > 0)
                     {
                         return PaymentResult.Fail;
                     }
@@ -2008,7 +1466,7 @@ namespace NPAutoBooth.UI
                 else if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.PHP)
                 {
                     string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "취소명령시 입금액:" + mCurrentNormalCarInfo.GetInComeMoney.ToString());
+                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "취소명령시 입금액:" + CurrentNormalCarInfo.GetInComeMoney.ToString());
 
                     //////////
                     //지폐 방출
@@ -2016,34 +1474,34 @@ namespace NPAutoBooth.UI
 
                     CheckCurrentOutCancelMoney();
 
-                    mCurrentNormalCarInfo.ClearDischargeMoney(); // 보관증 금액 초기화
-                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "방출할금액: 50PHP수량:" + mCurrentNormalCarInfo.Cancle5000Qty.ToString() + "  20pPHP원수량:" + mCurrentNormalCarInfo.Cancle1000Qty.ToString() + "  10PHP원수량:" + mCurrentNormalCarInfo.Cancle500Qty.ToString() + "  5PHP수량:" + mCurrentNormalCarInfo.Cancle100Qty.ToString() + "  1PHP수량:" + mCurrentNormalCarInfo.Cancle50Qty.ToString());
+                    CurrentNormalCarInfo.ClearDischargeMoney(); // 보관증 금액 초기화
+                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "방출할금액: 50PHP수량:" + CurrentNormalCarInfo.Cancle5000Qty.ToString() + "  20pPHP원수량:" + CurrentNormalCarInfo.Cancle1000Qty.ToString() + "  10PHP원수량:" + CurrentNormalCarInfo.Cancle500Qty.ToString() + "  5PHP수량:" + CurrentNormalCarInfo.Cancle100Qty.ToString() + "  1PHP수량:" + CurrentNormalCarInfo.Cancle50Qty.ToString());
                     if (NPSYS.Device.gIsUseDeviceBillDischargeDevice)
                     {
                         int currentTime = Convert.ToInt32(DateTime.Now.ToString("HHmmss").ToString());
-                        if (currentTime >= 235800 && (mCurrentNormalCarInfo.Cancle5000Qty > 0 || mCurrentNormalCarInfo.Cancle1000Qty > 0)) //현재시간이23시58분00초보다 크고 지폐방출할 수량이 있다면
+                        if (currentTime >= 235800 && (CurrentNormalCarInfo.Cancle5000Qty > 0 || CurrentNormalCarInfo.Cancle1000Qty > 0)) //현재시간이23시58분00초보다 크고 지폐방출할 수량이 있다면
                         {
-                            mCurrentNormalCarInfo.Cancle500Qty = mCurrentNormalCarInfo.Cancle500Qty + (mCurrentNormalCarInfo.Cancle1000Qty * 2) + (mCurrentNormalCarInfo.Cancle5000Qty * 5);
-                            mCurrentNormalCarInfo.Cancle1000Qty = 0;
-                            mCurrentNormalCarInfo.Cancle5000Qty = 0;
+                            CurrentNormalCarInfo.Cancle500Qty = CurrentNormalCarInfo.Cancle500Qty + (CurrentNormalCarInfo.Cancle1000Qty * 2) + (CurrentNormalCarInfo.Cancle5000Qty * 5);
+                            CurrentNormalCarInfo.Cancle1000Qty = 0;
+                            CurrentNormalCarInfo.Cancle5000Qty = 0;
 
-                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "[지폐대신 동전방출로 변경] 방출할10PHP 수량: " + mCurrentNormalCarInfo.Cancle500Qty.ToString());
+                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "[지폐대신 동전방출로 변경] 방출할10PHP 수량: " + CurrentNormalCarInfo.Cancle500Qty.ToString());
 
                         }
                         else
                         {
-                            if (mCurrentNormalCarInfo.Cancle5000Qty > 0)
+                            if (CurrentNormalCarInfo.Cancle5000Qty > 0)
                             {
-                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "50PHP권 방출명령 내림:" + mCurrentNormalCarInfo.Cancle5000Qty.ToString() + "개");
-                                int out5000Qty = mCurrentNormalCarInfo.Cancle5000Qty; // 방출해야할 수량
+                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "50PHP권 방출명령 내림:" + CurrentNormalCarInfo.Cancle5000Qty.ToString() + "개");
+                                int out5000Qty = CurrentNormalCarInfo.Cancle5000Qty; // 방출해야할 수량
                                 Result _result = MoneyBillOutDeviice.OutPut5000Qty(ref out5000Qty);
                                 BillCancleDischarge5000(logDate, out5000Qty, _result);
                             }
 
-                            if (mCurrentNormalCarInfo.Cancle1000Qty > 0)
+                            if (CurrentNormalCarInfo.Cancle1000Qty > 0)
                             {
-                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "20PHP원권 방출명령 내림:" + mCurrentNormalCarInfo.Cancle1000Qty.ToString() + "개");
-                                int out1000Qty = mCurrentNormalCarInfo.Cancle1000Qty; // 방출해야할 수량
+                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "20PHP원권 방출명령 내림:" + CurrentNormalCarInfo.Cancle1000Qty.ToString() + "개");
+                                int out1000Qty = CurrentNormalCarInfo.Cancle1000Qty; // 방출해야할 수량
                                 Result _result = MoneyBillOutDeviice.OutPut1000Qty(ref out1000Qty);
                                 BillCancleDischarge1000(logDate, out1000Qty, _result);
                             }
@@ -2051,21 +1509,21 @@ namespace NPAutoBooth.UI
                     }
                     else
                     {
-                        mCurrentNormalCarInfo.Cancle500Qty = mCurrentNormalCarInfo.Cancle500Qty + (mCurrentNormalCarInfo.Cancle1000Qty * 2) + (mCurrentNormalCarInfo.Cancle5000Qty * 5);
-                        mCurrentNormalCarInfo.Cancle1000Qty = 0;
-                        mCurrentNormalCarInfo.Cancle5000Qty = 0;
+                        CurrentNormalCarInfo.Cancle500Qty = CurrentNormalCarInfo.Cancle500Qty + (CurrentNormalCarInfo.Cancle1000Qty * 2) + (CurrentNormalCarInfo.Cancle5000Qty * 5);
+                        CurrentNormalCarInfo.Cancle1000Qty = 0;
+                        CurrentNormalCarInfo.Cancle5000Qty = 0;
                     }
 
-                    if (mCurrentNormalCarInfo.CurrentCancleCoinMoney <= 0)
+                    if (CurrentNormalCarInfo.CurrentCancleCoinMoney <= 0)
                     {
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "방출할 동전이 없으므로 성공:" + mCurrentNormalCarInfo.CurrentCancleCoinMoney.ToString());
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "방출할 동전이 없으므로 성공:" + CurrentNormalCarInfo.CurrentCancleCoinMoney.ToString());
                         return PaymentResult.Success;
                     }
                     if ((NPSYS.Device.gIsUseCoinDischarger50Device || NPSYS.Device.gIsUseCoinDischarger100Device || NPSYS.Device.gIsUseCoinDischarger500Device) == false)
                     {
-                        mCurrentNormalCarInfo.NotdisChargeMoney500Qty = mCurrentNormalCarInfo.Cancle500Qty;
-                        mCurrentNormalCarInfo.NotdisChargeMoney100Qty = mCurrentNormalCarInfo.Cancle100Qty;
-                        mCurrentNormalCarInfo.NotdisChargeMoney50Qty = mCurrentNormalCarInfo.Cancle50Qty;
+                        CurrentNormalCarInfo.NotdisChargeMoney500Qty = CurrentNormalCarInfo.Cancle500Qty;
+                        CurrentNormalCarInfo.NotdisChargeMoney100Qty = CurrentNormalCarInfo.Cancle100Qty;
+                        CurrentNormalCarInfo.NotdisChargeMoney50Qty = CurrentNormalCarInfo.Cancle50Qty;
                         return PaymentResult.Fail;
                     }
 
@@ -2073,76 +1531,76 @@ namespace NPAutoBooth.UI
 
                     if (NPSYS.Device.gIsUseCoinDischarger500Device == false || NPSYS.Device.UsingSettingCoinCharger500 == false) // 10PHP 방출을 할수없을때
                     {
-                        if (mCurrentNormalCarInfo.Cancle500Qty > 0) // 10PHP 방출수량이 있다면
+                        if (CurrentNormalCarInfo.Cancle500Qty > 0) // 10PHP 방출수량이 있다면
                         {
-                            mCurrentNormalCarInfo.Cancle100Qty = mCurrentNormalCarInfo.Cancle100Qty + (mCurrentNormalCarInfo.Cancle500Qty * 2); // 부족한 10PHP원 수량을 5PHP원권 수량에 더함
-                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "10PHP 장비 미사용 또는 장비고장으로 10PHP 5PHP으로 교체:" + mCurrentNormalCarInfo.Cancle100Qty.ToString());
-                            mCurrentNormalCarInfo.Cancle500Qty = 0;
+                            CurrentNormalCarInfo.Cancle100Qty = CurrentNormalCarInfo.Cancle100Qty + (CurrentNormalCarInfo.Cancle500Qty * 2); // 부족한 10PHP원 수량을 5PHP원권 수량에 더함
+                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "10PHP 장비 미사용 또는 장비고장으로 10PHP 5PHP으로 교체:" + CurrentNormalCarInfo.Cancle100Qty.ToString());
+                            CurrentNormalCarInfo.Cancle500Qty = 0;
                         }
                     }
                     
                     int cash500SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash500SettingQty));
 
-                    if (cash500SettingQty < mCurrentNormalCarInfo.Cancle500Qty) // 보유수량보다 500원 방출수량이 많을때
+                    if (cash500SettingQty < CurrentNormalCarInfo.Cancle500Qty) // 보유수량보다 500원 방출수량이 많을때
                     {
                         CheckCurrentOutCancelMoney();
                     }
 
                     PaymentResult l_resultPayment = PaymentResult.Success;
 
-                    if (mCurrentNormalCarInfo.Cancle500Qty > 0)
+                    if (CurrentNormalCarInfo.Cancle500Qty > 0)
                     {
-                        TextCore.ACTION(TextCore.ACTIONS.COIN500CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "10PHP권 방출명령 내림:" + mCurrentNormalCarInfo.Cancle500Qty.ToString() + "개");
+                        TextCore.ACTION(TextCore.ACTIONS.COIN500CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "10PHP권 방출명령 내림:" + CurrentNormalCarInfo.Cancle500Qty.ToString() + "개");
                         CoinOutCancleMoneyDischarge(MoneyType.Coin500, logDate, cash500SettingQty, l_resultPayment);
                     }
 
                     if (NPSYS.Device.gIsUseCoinDischarger100Device == false || NPSYS.Device.UsingSettingCoinCharger100 == false)
                     {
-                        if (mCurrentNormalCarInfo.Cancle100Qty > 0)
+                        if (CurrentNormalCarInfo.Cancle100Qty > 0)
                         {
-                            mCurrentNormalCarInfo.Cancle50Qty = mCurrentNormalCarInfo.Cancle50Qty + (mCurrentNormalCarInfo.Cancle100Qty * 5); // 부족한 5PHP 수량을 1PHP권 수량에 더함
-                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "5PHP 장비 미사용 또는 장비고장으로 5PHP 1PHP으로 교체:" + mCurrentNormalCarInfo.Cancle50Qty.ToString());
-                            mCurrentNormalCarInfo.Cancle100Qty = 0;
+                            CurrentNormalCarInfo.Cancle50Qty = CurrentNormalCarInfo.Cancle50Qty + (CurrentNormalCarInfo.Cancle100Qty * 5); // 부족한 5PHP 수량을 1PHP권 수량에 더함
+                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CancleRefundMoneyAction", "5PHP 장비 미사용 또는 장비고장으로 5PHP 1PHP으로 교체:" + CurrentNormalCarInfo.Cancle50Qty.ToString());
+                            CurrentNormalCarInfo.Cancle100Qty = 0;
                         }
                     }
 
                     int cash100SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash100SettingQty));
 
-                    if (cash100SettingQty < mCurrentNormalCarInfo.Cancle100Qty)
+                    if (cash100SettingQty < CurrentNormalCarInfo.Cancle100Qty)
                     {
                         CheckCurrentOutCancelMoney();
                     }
 
-                    if (mCurrentNormalCarInfo.Cancle100Qty > 0)
+                    if (CurrentNormalCarInfo.Cancle100Qty > 0)
                     {
-                        TextCore.ACTION(TextCore.ACTIONS.COIN100CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "5PHP 방출명령 내림:" + mCurrentNormalCarInfo.Cancle100Qty.ToString() + "개");
+                        TextCore.ACTION(TextCore.ACTIONS.COIN100CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "5PHP 방출명령 내림:" + CurrentNormalCarInfo.Cancle100Qty.ToString() + "개");
                         CoinOutCancleMoneyDischarge(MoneyType.Coin100, logDate, cash100SettingQty, l_resultPayment);
                     }
 
                     if (NPSYS.Device.gIsUseCoinDischarger50Device == false || NPSYS.Device.UsingSettingCoinCharger50 == false)
                     {
-                        if (mCurrentNormalCarInfo.Cancle50Qty > 0)
+                        if (CurrentNormalCarInfo.Cancle50Qty > 0)
                         {
-                            mCurrentNormalCarInfo.NotdisChargeMoney50Qty = mCurrentNormalCarInfo.Cancle50Qty;
-                            mCurrentNormalCarInfo.Cancle50Qty = 0;
+                            CurrentNormalCarInfo.NotdisChargeMoney50Qty = CurrentNormalCarInfo.Cancle50Qty;
+                            CurrentNormalCarInfo.Cancle50Qty = 0;
                             return PaymentResult.Fail;
                         }
                     }
 
-                    if (cash50SettingQty < mCurrentNormalCarInfo.Cancle50Qty)
+                    if (cash50SettingQty < CurrentNormalCarInfo.Cancle50Qty)
                     {
-                        TextCore.DeviceError(TextCore.DEVICE.COIN50CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "1PHP 잔액부족 현재보유량:" + cash50SettingQty.ToString() + "  동전요청량:" + mCurrentNormalCarInfo.Cancle50Qty.ToString());
-                        mCurrentNormalCarInfo.NotdisChargeMoney50Qty = mCurrentNormalCarInfo.Cancle50Qty - cash50SettingQty;
-                        mCurrentNormalCarInfo.Cancle50Qty = cash50SettingQty;
+                        TextCore.DeviceError(TextCore.DEVICE.COIN50CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "1PHP 잔액부족 현재보유량:" + cash50SettingQty.ToString() + "  동전요청량:" + CurrentNormalCarInfo.Cancle50Qty.ToString());
+                        CurrentNormalCarInfo.NotdisChargeMoney50Qty = CurrentNormalCarInfo.Cancle50Qty - cash50SettingQty;
+                        CurrentNormalCarInfo.Cancle50Qty = cash50SettingQty;
                     }
 
-                    if (mCurrentNormalCarInfo.Cancle50Qty > 0)
+                    if (CurrentNormalCarInfo.Cancle50Qty > 0)
                     {
-                        TextCore.ACTION(TextCore.ACTIONS.COIN50CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "1PHP 방출명령 내림:" + mCurrentNormalCarInfo.Cancle50Qty.ToString() + "개");
+                        TextCore.ACTION(TextCore.ACTIONS.COIN50CHARGER, "FormPaymentMenu | CancleRefundMoneyAction", "1PHP 방출명령 내림:" + CurrentNormalCarInfo.Cancle50Qty.ToString() + "개");
                         l_resultPayment = CoinOutCancleMoneyDischarge(MoneyType.Coin50, logDate, cash50SettingQty, l_resultPayment);
                     }
 
-                    if (mCurrentNormalCarInfo.GetNotDisChargeMoney > 0)
+                    if (CurrentNormalCarInfo.GetNotDisChargeMoney > 0)
                     {
                         return PaymentResult.Fail;
                     }
@@ -2161,12 +1619,12 @@ namespace NPAutoBooth.UI
             catch (Exception ex)
             {
                 TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymenu | CancleRefundMoneyAction", ex.ToString());
-                mCurrentNormalCarInfo.LastErrorMessage = "FormPaymenu | CancleRefundMoneyAction|Exception:" + ex.ToString();
+                CurrentNormalCarInfo.LastErrorMessage = "FormPaymenu | CancleRefundMoneyAction|Exception:" + ex.ToString();
                 return PaymentResult.Fail;
             }
             finally
             {
-                TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymenu | CancleRefundMoneyAction", "[방출한금액] 5000원수량:" + mCurrentNormalCarInfo.OutCome5000Qty.ToString() + "  1000원수량:" + mCurrentNormalCarInfo.OutCome1000Qty.ToString() + "  500원수량:" + mCurrentNormalCarInfo.OutCome500Qty.ToString() + "  100원수량:" + mCurrentNormalCarInfo.OutCome100Qty.ToString() + "  50원수량:" + mCurrentNormalCarInfo.OutCome50Qty.ToString());
+                TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymenu | CancleRefundMoneyAction", "[방출한금액] 5000원수량:" + CurrentNormalCarInfo.OutCome5000Qty.ToString() + "  1000원수량:" + CurrentNormalCarInfo.OutCome1000Qty.ToString() + "  500원수량:" + CurrentNormalCarInfo.OutCome500Qty.ToString() + "  100원수량:" + CurrentNormalCarInfo.OutCome100Qty.ToString() + "  50원수량:" + CurrentNormalCarInfo.OutCome50Qty.ToString());
                 NPSYS.NoCheckCargeMoneyOut();
             }
         }
@@ -2179,7 +1637,7 @@ namespace NPAutoBooth.UI
                 if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.WON)
                 {
                     string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "결제완료 명령시 입금액:" + mCurrentNormalCarInfo.GetInComeMoney.ToString());
+                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "결제완료 명령시 입금액:" + CurrentNormalCarInfo.GetInComeMoney.ToString());
 
                     //////////
                     //지폐 방출
@@ -2187,34 +1645,34 @@ namespace NPAutoBooth.UI
 
                     CheckCurrentOutCompleteMoney();
 
-                    mCurrentNormalCarInfo.ClearDischargeMoney(); // 보관증 금액 초기화
-                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "방출할금액: 5000원수량:" + mCurrentNormalCarInfo.Charge5000Qty.ToString() + "  1000원수량:" + mCurrentNormalCarInfo.Charge1000Qty.ToString() + "  500원수량:" + mCurrentNormalCarInfo.Charge500Qty.ToString() + "  100원수량:" + mCurrentNormalCarInfo.Charge100Qty.ToString() + "  50원수량:" + mCurrentNormalCarInfo.Charge50Qty.ToString());
+                    CurrentNormalCarInfo.ClearDischargeMoney(); // 보관증 금액 초기화
+                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "방출할금액: 5000원수량:" + CurrentNormalCarInfo.Charge5000Qty.ToString() + "  1000원수량:" + CurrentNormalCarInfo.Charge1000Qty.ToString() + "  500원수량:" + CurrentNormalCarInfo.Charge500Qty.ToString() + "  100원수량:" + CurrentNormalCarInfo.Charge100Qty.ToString() + "  50원수량:" + CurrentNormalCarInfo.Charge50Qty.ToString());
                     if (NPSYS.Device.gIsUseDeviceBillDischargeDevice)
                     {
                         int currentTime = Convert.ToInt32(DateTime.Now.ToString("HHmmss").ToString());
-                        if (currentTime >= 235800 && (mCurrentNormalCarInfo.Charge5000Qty > 0 || mCurrentNormalCarInfo.Charge1000Qty > 0)) //현재시간이23시58분00초보다 크고 지폐방출할 수량이 있다면
+                        if (currentTime >= 235800 && (CurrentNormalCarInfo.Charge5000Qty > 0 || CurrentNormalCarInfo.Charge1000Qty > 0)) //현재시간이23시58분00초보다 크고 지폐방출할 수량이 있다면
                         {
-                            mCurrentNormalCarInfo.Charge500Qty = mCurrentNormalCarInfo.Charge500Qty + (mCurrentNormalCarInfo.Charge1000Qty * 2) + (mCurrentNormalCarInfo.Charge5000Qty * 10);
-                            mCurrentNormalCarInfo.Charge1000Qty = 0;
-                            mCurrentNormalCarInfo.Charge5000Qty = 0;
+                            CurrentNormalCarInfo.Charge500Qty = CurrentNormalCarInfo.Charge500Qty + (CurrentNormalCarInfo.Charge1000Qty * 2) + (CurrentNormalCarInfo.Charge5000Qty * 10);
+                            CurrentNormalCarInfo.Charge1000Qty = 0;
+                            CurrentNormalCarInfo.Charge5000Qty = 0;
 
-                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "[지폐대신 동전방출로 변경] 방출할500원 수량: " + mCurrentNormalCarInfo.Charge500Qty.ToString());
+                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "[지폐대신 동전방출로 변경] 방출할500원 수량: " + CurrentNormalCarInfo.Charge500Qty.ToString());
 
                         }
                         else
                         {
-                            if (mCurrentNormalCarInfo.Charge5000Qty > 0)
+                            if (CurrentNormalCarInfo.Charge5000Qty > 0)
                             {
-                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CompletOutChargeAction", "5000원권 방출명령 내림:" + mCurrentNormalCarInfo.Charge5000Qty.ToString() + "개");
-                                int out5000Qty = mCurrentNormalCarInfo.Charge5000Qty; // 방출해야할 수량
+                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CompletOutChargeAction", "5000원권 방출명령 내림:" + CurrentNormalCarInfo.Charge5000Qty.ToString() + "개");
+                                int out5000Qty = CurrentNormalCarInfo.Charge5000Qty; // 방출해야할 수량
                                 Result _result = MoneyBillOutDeviice.OutPut5000Qty(ref out5000Qty);
                                 BillPaymentCompleteDischarge5000(logDate, out5000Qty, _result);
                             }
 
-                            if (mCurrentNormalCarInfo.Charge1000Qty > 0)
+                            if (CurrentNormalCarInfo.Charge1000Qty > 0)
                             {
-                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CompletOutChargeAction", "1000원권 방출명령 내림:" + mCurrentNormalCarInfo.Charge1000Qty.ToString() + "개");
-                                int out1000Qty = mCurrentNormalCarInfo.Charge1000Qty; // 방출해야할 수량
+                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CompletOutChargeAction", "1000원권 방출명령 내림:" + CurrentNormalCarInfo.Charge1000Qty.ToString() + "개");
+                                int out1000Qty = CurrentNormalCarInfo.Charge1000Qty; // 방출해야할 수량
                                 Result _result = MoneyBillOutDeviice.OutPut1000Qty(ref out1000Qty);
                                 BillPaymentCompleteDischarge1000(logDate, out1000Qty, _result);
                             }
@@ -2222,24 +1680,24 @@ namespace NPAutoBooth.UI
                     }
                     else
                     {
-                        mCurrentNormalCarInfo.Charge500Qty = mCurrentNormalCarInfo.Charge500Qty + (mCurrentNormalCarInfo.Charge1000Qty * 2) + (mCurrentNormalCarInfo.Charge5000Qty * 10);
-                        mCurrentNormalCarInfo.Charge1000Qty = 0;
-                        mCurrentNormalCarInfo.Charge5000Qty = 0;
+                        CurrentNormalCarInfo.Charge500Qty = CurrentNormalCarInfo.Charge500Qty + (CurrentNormalCarInfo.Charge1000Qty * 2) + (CurrentNormalCarInfo.Charge5000Qty * 10);
+                        CurrentNormalCarInfo.Charge1000Qty = 0;
+                        CurrentNormalCarInfo.Charge5000Qty = 0;
 
                     }
-                    if (mCurrentNormalCarInfo.ChargeCoinMoney <= 0)
+                    if (CurrentNormalCarInfo.ChargeCoinMoney <= 0)
                     {
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "방출할 동전이 없으므로 성공:" + mCurrentNormalCarInfo.ChargeCoinMoney.ToString());
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "방출할 동전이 없으므로 성공:" + CurrentNormalCarInfo.ChargeCoinMoney.ToString());
                         return PaymentResult.Success;
                     }
                     if ((NPSYS.Device.gIsUseCoinDischarger50Device || NPSYS.Device.gIsUseCoinDischarger100Device || NPSYS.Device.gIsUseCoinDischarger500Device) == false)
                     {
-                        mCurrentNormalCarInfo.NotdisChargeMoney500Qty = mCurrentNormalCarInfo.Charge500Qty;
-                        mCurrentNormalCarInfo.NotdisChargeMoney100Qty = mCurrentNormalCarInfo.Charge100Qty;
-                        mCurrentNormalCarInfo.NotdisChargeMoney50Qty = mCurrentNormalCarInfo.Charge50Qty;
-                        mCurrentNormalCarInfo.Charge50Qty = 0;
-                        mCurrentNormalCarInfo.Charge100Qty = 0;
-                        mCurrentNormalCarInfo.Charge500Qty = 0;
+                        CurrentNormalCarInfo.NotdisChargeMoney500Qty = CurrentNormalCarInfo.Charge500Qty;
+                        CurrentNormalCarInfo.NotdisChargeMoney100Qty = CurrentNormalCarInfo.Charge100Qty;
+                        CurrentNormalCarInfo.NotdisChargeMoney50Qty = CurrentNormalCarInfo.Charge50Qty;
+                        CurrentNormalCarInfo.Charge50Qty = 0;
+                        CurrentNormalCarInfo.Charge100Qty = 0;
+                        CurrentNormalCarInfo.Charge500Qty = 0;
 
                         return PaymentResult.Fail;
                     }
@@ -2250,17 +1708,17 @@ namespace NPAutoBooth.UI
 
                     if (NPSYS.Device.gIsUseCoinDischarger500Device == false || NPSYS.Device.UsingSettingCoinCharger500 == false) // 500원 방출을 할수없을때
                     {
-                        if (mCurrentNormalCarInfo.Charge500Qty > 0) // 500원 방출수량이 있다면
+                        if (CurrentNormalCarInfo.Charge500Qty > 0) // 500원 방출수량이 있다면
                         {
-                            mCurrentNormalCarInfo.Charge100Qty = mCurrentNormalCarInfo.Charge100Qty + (mCurrentNormalCarInfo.Charge500Qty * 5); // 부족한 500원 수량을 100원권 수량에 더함
-                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "500원 장비 미사용 또는 장비고장으로 500원 100원으로 교체:" + mCurrentNormalCarInfo.Charge100Qty.ToString());
-                            mCurrentNormalCarInfo.Charge500Qty = 0;
+                            CurrentNormalCarInfo.Charge100Qty = CurrentNormalCarInfo.Charge100Qty + (CurrentNormalCarInfo.Charge500Qty * 5); // 부족한 500원 수량을 100원권 수량에 더함
+                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "500원 장비 미사용 또는 장비고장으로 500원 100원으로 교체:" + CurrentNormalCarInfo.Charge100Qty.ToString());
+                            CurrentNormalCarInfo.Charge500Qty = 0;
                         }
                     }
 
 
                     int cash500SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash500SettingQty));
-                    if (cash500SettingQty < mCurrentNormalCarInfo.Charge500Qty) // 보유수량보다 500원 방출수량이 많을때
+                    if (cash500SettingQty < CurrentNormalCarInfo.Charge500Qty) // 보유수량보다 500원 방출수량이 많을때
                     {
                         CheckCurrentOutCancelMoney();
 
@@ -2269,33 +1727,33 @@ namespace NPAutoBooth.UI
 
 
                     PaymentResult l_resultPayment = PaymentResult.Success;
-                    if (mCurrentNormalCarInfo.Charge500Qty > 0)
+                    if (CurrentNormalCarInfo.Charge500Qty > 0)
                     {
-                        TextCore.ACTION(TextCore.ACTIONS.COIN500CHARGER, "FormPaymentMenu | CompletOutChargeAction", "500원권 방출명령 내림:" + mCurrentNormalCarInfo.Charge500Qty.ToString() + "개");
+                        TextCore.ACTION(TextCore.ACTIONS.COIN500CHARGER, "FormPaymentMenu | CompletOutChargeAction", "500원권 방출명령 내림:" + CurrentNormalCarInfo.Charge500Qty.ToString() + "개");
                         CoinOutChargeMoneyDischarge(MoneyType.Coin500, logDate, cash500SettingQty, l_resultPayment);
 
                     }
 
                     if (NPSYS.Device.gIsUseCoinDischarger100Device == false || NPSYS.Device.UsingSettingCoinCharger100 == false)
                     {
-                        if (mCurrentNormalCarInfo.Charge100Qty > 0)
+                        if (CurrentNormalCarInfo.Charge100Qty > 0)
                         {
-                            mCurrentNormalCarInfo.Charge50Qty = mCurrentNormalCarInfo.Charge50Qty + (mCurrentNormalCarInfo.Charge100Qty * 2); // 부족한 100원 수량을 50원권 수량에 더함
-                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "100원 장비 미사용 또는 장비고장으로 100원 50원으로 교체:" + mCurrentNormalCarInfo.Charge100Qty.ToString());
-                            mCurrentNormalCarInfo.Charge100Qty = 0;
+                            CurrentNormalCarInfo.Charge50Qty = CurrentNormalCarInfo.Charge50Qty + (CurrentNormalCarInfo.Charge100Qty * 2); // 부족한 100원 수량을 50원권 수량에 더함
+                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "100원 장비 미사용 또는 장비고장으로 100원 50원으로 교체:" + CurrentNormalCarInfo.Charge100Qty.ToString());
+                            CurrentNormalCarInfo.Charge100Qty = 0;
                         }
                     }
                     int cash100SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash100SettingQty));
-                    if (cash100SettingQty < mCurrentNormalCarInfo.Charge100Qty)
+                    if (cash100SettingQty < CurrentNormalCarInfo.Charge100Qty)
                     {
                         CheckCurrentOutCancelMoney();
 
                     }
 
-                    if (mCurrentNormalCarInfo.Charge100Qty > 0)
+                    if (CurrentNormalCarInfo.Charge100Qty > 0)
                     {
 
-                        TextCore.ACTION(TextCore.ACTIONS.COIN100CHARGER, "FormPaymentMenu | CompletOutChargeAction", "100원권 방출명령 내림:" + mCurrentNormalCarInfo.Charge100Qty.ToString() + "개");
+                        TextCore.ACTION(TextCore.ACTIONS.COIN100CHARGER, "FormPaymentMenu | CompletOutChargeAction", "100원권 방출명령 내림:" + CurrentNormalCarInfo.Charge100Qty.ToString() + "개");
                         CoinOutChargeMoneyDischarge(MoneyType.Coin100, logDate, cash100SettingQty, l_resultPayment);
 
                     }
@@ -2303,29 +1761,29 @@ namespace NPAutoBooth.UI
 
                     if (NPSYS.Device.gIsUseCoinDischarger50Device == false || NPSYS.Device.UsingSettingCoinCharger50 == false)
                     {
-                        if (mCurrentNormalCarInfo.Charge50Qty > 0)
+                        if (CurrentNormalCarInfo.Charge50Qty > 0)
                         {
-                            mCurrentNormalCarInfo.NotdisChargeMoney50Qty = mCurrentNormalCarInfo.Charge50Qty;
-                            mCurrentNormalCarInfo.Charge50Qty = 0;
+                            CurrentNormalCarInfo.NotdisChargeMoney50Qty = CurrentNormalCarInfo.Charge50Qty;
+                            CurrentNormalCarInfo.Charge50Qty = 0;
                             return PaymentResult.Fail;
                         }
                     }
 
 
-                    if (cash50SettingQty < mCurrentNormalCarInfo.Charge50Qty)
+                    if (cash50SettingQty < CurrentNormalCarInfo.Charge50Qty)
                     {
-                        TextCore.DeviceError(TextCore.DEVICE.COIN50CHARGER, "FormPaymentMenu | CompletOutChargeAction", "동전 50원 잔액부족 현재보유량:" + cash50SettingQty.ToString() + "  동전요청량:" + mCurrentNormalCarInfo.Charge50Qty.ToString());
-                        mCurrentNormalCarInfo.NotdisChargeMoney50Qty = mCurrentNormalCarInfo.Charge50Qty - cash50SettingQty;
-                        mCurrentNormalCarInfo.Charge50Qty = cash50SettingQty;
+                        TextCore.DeviceError(TextCore.DEVICE.COIN50CHARGER, "FormPaymentMenu | CompletOutChargeAction", "동전 50원 잔액부족 현재보유량:" + cash50SettingQty.ToString() + "  동전요청량:" + CurrentNormalCarInfo.Charge50Qty.ToString());
+                        CurrentNormalCarInfo.NotdisChargeMoney50Qty = CurrentNormalCarInfo.Charge50Qty - cash50SettingQty;
+                        CurrentNormalCarInfo.Charge50Qty = cash50SettingQty;
                     }
 
 
-                    if (mCurrentNormalCarInfo.Charge50Qty > 0)
+                    if (CurrentNormalCarInfo.Charge50Qty > 0)
                     {
-                        TextCore.ACTION(TextCore.ACTIONS.COIN50CHARGER, "FormPaymentMenu | CompletOutChargeAction", "50원권 방출명령 내림:" + mCurrentNormalCarInfo.Charge50Qty.ToString() + "개");
+                        TextCore.ACTION(TextCore.ACTIONS.COIN50CHARGER, "FormPaymentMenu | CompletOutChargeAction", "50원권 방출명령 내림:" + CurrentNormalCarInfo.Charge50Qty.ToString() + "개");
                         l_resultPayment = CoinOutChargeMoneyDischarge(MoneyType.Coin50, logDate, cash50SettingQty, l_resultPayment);
                     }
-                    if (mCurrentNormalCarInfo.GetNotDisChargeMoney > 0)
+                    if (CurrentNormalCarInfo.GetNotDisChargeMoney > 0)
                     {
                         return PaymentResult.Fail;
                     }
@@ -2337,7 +1795,7 @@ namespace NPAutoBooth.UI
                 else if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.PHP)
                 {
                     string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "결제완료 명령시 입금액:" + mCurrentNormalCarInfo.GetInComeMoney.ToString());
+                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "결제완료 명령시 입금액:" + CurrentNormalCarInfo.GetInComeMoney.ToString());
 
                     //////////
                     //지폐 방출
@@ -2345,34 +1803,34 @@ namespace NPAutoBooth.UI
 
                     CheckCurrentOutCompleteMoney();
 
-                    mCurrentNormalCarInfo.ClearDischargeMoney(); // 보관증 금액 초기화
-                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "방출할금액: 50PHP수량:" + mCurrentNormalCarInfo.Charge5000Qty.ToString() + "  20PHP수량:" + mCurrentNormalCarInfo.Charge1000Qty.ToString() + "  10PHP수량:" + mCurrentNormalCarInfo.Charge500Qty.ToString() + "  5PHP수량:" + mCurrentNormalCarInfo.Charge100Qty.ToString() + "  1PHP수량:" + mCurrentNormalCarInfo.Charge50Qty.ToString());
+                    CurrentNormalCarInfo.ClearDischargeMoney(); // 보관증 금액 초기화
+                    TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "방출할금액: 50PHP수량:" + CurrentNormalCarInfo.Charge5000Qty.ToString() + "  20PHP수량:" + CurrentNormalCarInfo.Charge1000Qty.ToString() + "  10PHP수량:" + CurrentNormalCarInfo.Charge500Qty.ToString() + "  5PHP수량:" + CurrentNormalCarInfo.Charge100Qty.ToString() + "  1PHP수량:" + CurrentNormalCarInfo.Charge50Qty.ToString());
                     if (NPSYS.Device.gIsUseDeviceBillDischargeDevice)
                     {
                         int currentTime = Convert.ToInt32(DateTime.Now.ToString("HHmmss").ToString());
-                        if (currentTime >= 235800 && (mCurrentNormalCarInfo.Charge5000Qty > 0 || mCurrentNormalCarInfo.Charge1000Qty > 0)) //현재시간이23시58분00초보다 크고 지폐방출할 수량이 있다면
+                        if (currentTime >= 235800 && (CurrentNormalCarInfo.Charge5000Qty > 0 || CurrentNormalCarInfo.Charge1000Qty > 0)) //현재시간이23시58분00초보다 크고 지폐방출할 수량이 있다면
                         {
-                            mCurrentNormalCarInfo.Charge500Qty = mCurrentNormalCarInfo.Charge500Qty + (mCurrentNormalCarInfo.Charge1000Qty * 2) + (mCurrentNormalCarInfo.Charge5000Qty * 5);
-                            mCurrentNormalCarInfo.Charge1000Qty = 0;
-                            mCurrentNormalCarInfo.Charge5000Qty = 0;
+                            CurrentNormalCarInfo.Charge500Qty = CurrentNormalCarInfo.Charge500Qty + (CurrentNormalCarInfo.Charge1000Qty * 2) + (CurrentNormalCarInfo.Charge5000Qty * 5);
+                            CurrentNormalCarInfo.Charge1000Qty = 0;
+                            CurrentNormalCarInfo.Charge5000Qty = 0;
 
-                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "[지폐대신 동전방출로 변경] 방출할1PHP 수량: " + mCurrentNormalCarInfo.Charge500Qty.ToString());
+                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "[지폐대신 동전방출로 변경] 방출할1PHP 수량: " + CurrentNormalCarInfo.Charge500Qty.ToString());
 
                         }
                         else
                         {
-                            if (mCurrentNormalCarInfo.Charge5000Qty > 0)
+                            if (CurrentNormalCarInfo.Charge5000Qty > 0)
                             {
-                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CompletOutChargeAction", "50PHP 방출명령 내림:" + mCurrentNormalCarInfo.Charge5000Qty.ToString() + "개");
-                                int out5000Qty = mCurrentNormalCarInfo.Charge5000Qty; // 방출해야할 수량
+                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CompletOutChargeAction", "50PHP 방출명령 내림:" + CurrentNormalCarInfo.Charge5000Qty.ToString() + "개");
+                                int out5000Qty = CurrentNormalCarInfo.Charge5000Qty; // 방출해야할 수량
                                 Result _result = MoneyBillOutDeviice.OutPut5000Qty(ref out5000Qty);
                                 BillPaymentCompleteDischarge5000(logDate, out5000Qty, _result);
                             }
 
-                            if (mCurrentNormalCarInfo.Charge1000Qty > 0)
+                            if (CurrentNormalCarInfo.Charge1000Qty > 0)
                             {
-                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CompletOutChargeAction", "20PHP 방출명령 내림:" + mCurrentNormalCarInfo.Charge1000Qty.ToString() + "개");
-                                int out1000Qty = mCurrentNormalCarInfo.Charge1000Qty; // 방출해야할 수량
+                                TextCore.ACTION(TextCore.ACTIONS.BILLCHARGER, "FormPaymentMenu | CompletOutChargeAction", "20PHP 방출명령 내림:" + CurrentNormalCarInfo.Charge1000Qty.ToString() + "개");
+                                int out1000Qty = CurrentNormalCarInfo.Charge1000Qty; // 방출해야할 수량
                                 Result _result = MoneyBillOutDeviice.OutPut1000Qty(ref out1000Qty);
                                 BillPaymentCompleteDischarge1000(logDate, out1000Qty, _result);
                             }
@@ -2380,21 +1838,21 @@ namespace NPAutoBooth.UI
                     }
                     else
                     {
-                        mCurrentNormalCarInfo.Charge500Qty = mCurrentNormalCarInfo.Charge500Qty + (mCurrentNormalCarInfo.Charge1000Qty * 2) + (mCurrentNormalCarInfo.Charge5000Qty * 5);
-                        mCurrentNormalCarInfo.Charge1000Qty = 0;
-                        mCurrentNormalCarInfo.Charge5000Qty = 0;
+                        CurrentNormalCarInfo.Charge500Qty = CurrentNormalCarInfo.Charge500Qty + (CurrentNormalCarInfo.Charge1000Qty * 2) + (CurrentNormalCarInfo.Charge5000Qty * 5);
+                        CurrentNormalCarInfo.Charge1000Qty = 0;
+                        CurrentNormalCarInfo.Charge5000Qty = 0;
 
                     }
-                    if (mCurrentNormalCarInfo.ChargeCoinMoney <= 0)
+                    if (CurrentNormalCarInfo.ChargeCoinMoney <= 0)
                     {
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "방출할 동전이 없으므로 성공:" + mCurrentNormalCarInfo.ChargeCoinMoney.ToString());
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "방출할 동전이 없으므로 성공:" + CurrentNormalCarInfo.ChargeCoinMoney.ToString());
                         return PaymentResult.Success;
                     }
                     if ((NPSYS.Device.gIsUseCoinDischarger50Device || NPSYS.Device.gIsUseCoinDischarger100Device || NPSYS.Device.gIsUseCoinDischarger500Device) == false)
                     {
-                        mCurrentNormalCarInfo.NotdisChargeMoney500Qty = mCurrentNormalCarInfo.Charge500Qty;
-                        mCurrentNormalCarInfo.NotdisChargeMoney100Qty = mCurrentNormalCarInfo.Charge100Qty;
-                        mCurrentNormalCarInfo.NotdisChargeMoney50Qty = mCurrentNormalCarInfo.Charge50Qty;
+                        CurrentNormalCarInfo.NotdisChargeMoney500Qty = CurrentNormalCarInfo.Charge500Qty;
+                        CurrentNormalCarInfo.NotdisChargeMoney100Qty = CurrentNormalCarInfo.Charge100Qty;
+                        CurrentNormalCarInfo.NotdisChargeMoney50Qty = CurrentNormalCarInfo.Charge50Qty;
                         return PaymentResult.Fail;
                     }
 
@@ -2404,17 +1862,17 @@ namespace NPAutoBooth.UI
 
                     if (NPSYS.Device.gIsUseCoinDischarger500Device == false || NPSYS.Device.UsingSettingCoinCharger500 == false) // 500원 방출을 할수없을때
                     {
-                        if (mCurrentNormalCarInfo.Charge500Qty > 0) // 500원 방출수량이 있다면
+                        if (CurrentNormalCarInfo.Charge500Qty > 0) // 500원 방출수량이 있다면
                         {
-                            mCurrentNormalCarInfo.Charge100Qty = mCurrentNormalCarInfo.Charge100Qty + (mCurrentNormalCarInfo.Charge500Qty * 2); // 부족한 500원 수량을 100원권 수량에 더함
-                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "10PHP 장비 미사용 또는 장비고장으로 10PHP 5PHP으로 교체:" + mCurrentNormalCarInfo.Charge100Qty.ToString());
-                            mCurrentNormalCarInfo.Charge500Qty = 0;
+                            CurrentNormalCarInfo.Charge100Qty = CurrentNormalCarInfo.Charge100Qty + (CurrentNormalCarInfo.Charge500Qty * 2); // 부족한 500원 수량을 100원권 수량에 더함
+                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "10PHP 장비 미사용 또는 장비고장으로 10PHP 5PHP으로 교체:" + CurrentNormalCarInfo.Charge100Qty.ToString());
+                            CurrentNormalCarInfo.Charge500Qty = 0;
                         }
                     }
 
 
                     int cash500SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash500SettingQty));
-                    if (cash500SettingQty < mCurrentNormalCarInfo.Charge500Qty) // 보유수량보다 500원 방출수량이 많을때
+                    if (cash500SettingQty < CurrentNormalCarInfo.Charge500Qty) // 보유수량보다 500원 방출수량이 많을때
                     {
                         CheckCurrentOutCancelMoney();
 
@@ -2423,33 +1881,33 @@ namespace NPAutoBooth.UI
 
 
                     PaymentResult l_resultPayment = PaymentResult.Success;
-                    if (mCurrentNormalCarInfo.Charge500Qty > 0)
+                    if (CurrentNormalCarInfo.Charge500Qty > 0)
                     {
-                        TextCore.ACTION(TextCore.ACTIONS.COIN500CHARGER, "FormPaymentMenu | CompletOutChargeAction", "10PHP 방출명령 내림:" + mCurrentNormalCarInfo.Charge500Qty.ToString() + "개");
+                        TextCore.ACTION(TextCore.ACTIONS.COIN500CHARGER, "FormPaymentMenu | CompletOutChargeAction", "10PHP 방출명령 내림:" + CurrentNormalCarInfo.Charge500Qty.ToString() + "개");
                         CoinOutChargeMoneyDischarge(MoneyType.Coin500, logDate, cash500SettingQty, l_resultPayment);
 
                     }
 
                     if (NPSYS.Device.gIsUseCoinDischarger100Device == false || NPSYS.Device.UsingSettingCoinCharger100 == false)
                     {
-                        if (mCurrentNormalCarInfo.Charge100Qty > 0)
+                        if (CurrentNormalCarInfo.Charge100Qty > 0)
                         {
-                            mCurrentNormalCarInfo.Charge50Qty = mCurrentNormalCarInfo.Charge50Qty + (mCurrentNormalCarInfo.Charge100Qty * 5); // 부족한 100원 수량을 50원권 수량에 더함
-                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "5PHP 장비 미사용 또는 장비고장으로 5PHP 1PHP원으로 교체:" + mCurrentNormalCarInfo.Charge50Qty.ToString());
-                            mCurrentNormalCarInfo.Charge100Qty = 0;
+                            CurrentNormalCarInfo.Charge50Qty = CurrentNormalCarInfo.Charge50Qty + (CurrentNormalCarInfo.Charge100Qty * 5); // 부족한 100원 수량을 50원권 수량에 더함
+                            TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CompletOutChargeAction", "5PHP 장비 미사용 또는 장비고장으로 5PHP 1PHP원으로 교체:" + CurrentNormalCarInfo.Charge50Qty.ToString());
+                            CurrentNormalCarInfo.Charge100Qty = 0;
                         }
                     }
                     int cash100SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash100SettingQty));
-                    if (cash100SettingQty < mCurrentNormalCarInfo.Charge100Qty)
+                    if (cash100SettingQty < CurrentNormalCarInfo.Charge100Qty)
                     {
                         CheckCurrentOutCancelMoney();
 
                     }
 
-                    if (mCurrentNormalCarInfo.Charge100Qty > 0)
+                    if (CurrentNormalCarInfo.Charge100Qty > 0)
                     {
 
-                        TextCore.ACTION(TextCore.ACTIONS.COIN100CHARGER, "FormPaymentMenu | CompletOutChargeAction", "5PHP 방출명령 내림:" + mCurrentNormalCarInfo.Charge100Qty.ToString() + "개");
+                        TextCore.ACTION(TextCore.ACTIONS.COIN100CHARGER, "FormPaymentMenu | CompletOutChargeAction", "5PHP 방출명령 내림:" + CurrentNormalCarInfo.Charge100Qty.ToString() + "개");
                         CoinOutChargeMoneyDischarge(MoneyType.Coin100, logDate, cash100SettingQty, l_resultPayment);
 
                     }
@@ -2457,29 +1915,29 @@ namespace NPAutoBooth.UI
 
                     if (NPSYS.Device.gIsUseCoinDischarger50Device == false || NPSYS.Device.UsingSettingCoinCharger50 == false)
                     {
-                        if (mCurrentNormalCarInfo.Charge50Qty > 0)
+                        if (CurrentNormalCarInfo.Charge50Qty > 0)
                         {
-                            mCurrentNormalCarInfo.NotdisChargeMoney50Qty = mCurrentNormalCarInfo.Charge50Qty;
-                            mCurrentNormalCarInfo.Charge50Qty = 0;
+                            CurrentNormalCarInfo.NotdisChargeMoney50Qty = CurrentNormalCarInfo.Charge50Qty;
+                            CurrentNormalCarInfo.Charge50Qty = 0;
                             return PaymentResult.Fail;
                         }
                     }
 
 
-                    if (cash50SettingQty < mCurrentNormalCarInfo.Charge50Qty)
+                    if (cash50SettingQty < CurrentNormalCarInfo.Charge50Qty)
                     {
-                        TextCore.DeviceError(TextCore.DEVICE.COIN50CHARGER, "FormPaymentMenu | CompletOutChargeAction", "1PHP 잔액부족 현재보유량:" + cash50SettingQty.ToString() + "  동전요청량:" + mCurrentNormalCarInfo.Charge50Qty.ToString());
-                        mCurrentNormalCarInfo.NotdisChargeMoney50Qty = mCurrentNormalCarInfo.Charge50Qty - cash50SettingQty;
-                        mCurrentNormalCarInfo.Charge50Qty = cash50SettingQty;
+                        TextCore.DeviceError(TextCore.DEVICE.COIN50CHARGER, "FormPaymentMenu | CompletOutChargeAction", "1PHP 잔액부족 현재보유량:" + cash50SettingQty.ToString() + "  동전요청량:" + CurrentNormalCarInfo.Charge50Qty.ToString());
+                        CurrentNormalCarInfo.NotdisChargeMoney50Qty = CurrentNormalCarInfo.Charge50Qty - cash50SettingQty;
+                        CurrentNormalCarInfo.Charge50Qty = cash50SettingQty;
                     }
 
 
-                    if (mCurrentNormalCarInfo.Charge50Qty > 0)
+                    if (CurrentNormalCarInfo.Charge50Qty > 0)
                     {
-                        TextCore.ACTION(TextCore.ACTIONS.COIN50CHARGER, "FormPaymentMenu | CompletOutChargeAction", "1PHP 방출명령 내림:" + mCurrentNormalCarInfo.Charge50Qty.ToString() + "개");
+                        TextCore.ACTION(TextCore.ACTIONS.COIN50CHARGER, "FormPaymentMenu | CompletOutChargeAction", "1PHP 방출명령 내림:" + CurrentNormalCarInfo.Charge50Qty.ToString() + "개");
                         l_resultPayment = CoinOutChargeMoneyDischarge(MoneyType.Coin50, logDate, cash50SettingQty, l_resultPayment);
                     }
-                    if (mCurrentNormalCarInfo.GetNotDisChargeMoney > 0)
+                    if (CurrentNormalCarInfo.GetNotDisChargeMoney > 0)
                     {
                         return PaymentResult.Fail;
                     }
@@ -2496,12 +1954,12 @@ namespace NPAutoBooth.UI
             catch (Exception ex)
             {
                 TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymenu | CompletOutChargeAction", ex.ToString());
-                mCurrentNormalCarInfo.LastErrorMessage = "FormPaymenu | CompletOutChargeAction | Exception:" + ex.ToString();
+                CurrentNormalCarInfo.LastErrorMessage = "FormPaymenu | CompletOutChargeAction | Exception:" + ex.ToString();
                 return PaymentResult.Fail;
             }
             finally
             {
-                TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymenu | CompletOutChargeAction", "[방출한금액] 5000원수량:" + mCurrentNormalCarInfo.OutCome5000Qty.ToString() + "  1000원수량:" + mCurrentNormalCarInfo.OutCome1000Qty.ToString() + "  500원수량:" + mCurrentNormalCarInfo.OutCome500Qty.ToString() + "  100원수량:" + mCurrentNormalCarInfo.OutCome100Qty.ToString() + "  50원수량:" + mCurrentNormalCarInfo.OutCome50Qty.ToString());
+                TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymenu | CompletOutChargeAction", "[방출한금액] 5000원수량:" + CurrentNormalCarInfo.OutCome5000Qty.ToString() + "  1000원수량:" + CurrentNormalCarInfo.OutCome1000Qty.ToString() + "  500원수량:" + CurrentNormalCarInfo.OutCome500Qty.ToString() + "  100원수량:" + CurrentNormalCarInfo.OutCome100Qty.ToString() + "  50원수량:" + CurrentNormalCarInfo.OutCome50Qty.ToString());
                 NPSYS.NoCheckCargeMoneyOut();
             }
         }
@@ -2529,15 +1987,15 @@ namespace NPAutoBooth.UI
             switch (pMoneyType)
             {
                 case MoneyType.Coin500:
-                    output_RequesetCointQty = mCurrentNormalCarInfo.Charge500Qty;
+                    output_RequesetCointQty = CurrentNormalCarInfo.Charge500Qty;
                     currentCoinDispenser = NPSYS.Device.CoinDispensor500;
                     break;
                 case MoneyType.Coin100:
-                    output_RequesetCointQty = mCurrentNormalCarInfo.Charge100Qty;
+                    output_RequesetCointQty = CurrentNormalCarInfo.Charge100Qty;
                     currentCoinDispenser = NPSYS.Device.CoinDispensor100;
                     break;
                 case MoneyType.Coin50:
-                    output_RequesetCointQty = mCurrentNormalCarInfo.Charge50Qty;
+                    output_RequesetCointQty = CurrentNormalCarInfo.Charge50Qty;
                     currentCoinDispenser = NPSYS.Device.CoinDispensor50;
                     break;
 
@@ -2570,34 +2028,34 @@ namespace NPAutoBooth.UI
                 switch (pMoneyType)
                 {
                     case MoneyType.Coin500:
-                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 500, "");
-                        mCurrentNormalCarInfo.OutCome500Qty = output_ResponeCointQty; // 500원 방출금액
+                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 500, "");
+                        CurrentNormalCarInfo.OutCome500Qty = output_ResponeCointQty; // 500원 방출금액
                         NPSYS.Config.SetValue(ConfigID.Cash500SettingQty, (pCoinSettingQty - output_ResponeCointQty).ToString()); // 500원 현재보유수량 방출된 금액에 제외하고 저장함
                         TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | CoinOutChargeMoneyDischarge", "500원 보유시제변경" + (pCoinSettingQty - output_ResponeCointQty).ToString());
-                        mCurrentNormalCarInfo.Charge100Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 5); // 미방출건이 있다면 100원에 방출에 추가로 더한다
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutChargeMoneyDischarge", "500원권 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름500원권100원권으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 5).ToString() + " 100원권 방출해야할 수량:" + (mCurrentNormalCarInfo.Charge100Qty).ToString());
-                        mCurrentNormalCarInfo.Charge500Qty = 0;
+                        CurrentNormalCarInfo.Charge100Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 5); // 미방출건이 있다면 100원에 방출에 추가로 더한다
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutChargeMoneyDischarge", "500원권 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름500원권100원권으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 5).ToString() + " 100원권 방출해야할 수량:" + (CurrentNormalCarInfo.Charge100Qty).ToString());
+                        CurrentNormalCarInfo.Charge500Qty = 0;
 
                         break;
                     case MoneyType.Coin100:
-                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 100, "");
-                        mCurrentNormalCarInfo.OutCome100Qty = output_ResponeCointQty; // 100원 방출금액
+                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 100, "");
+                        CurrentNormalCarInfo.OutCome100Qty = output_ResponeCointQty; // 100원 방출금액
                         NPSYS.Config.SetValue(ConfigID.Cash100SettingQty, (pCoinSettingQty - output_ResponeCointQty).ToString()); // 100원 현재보유수량 방출된 금액에 제외하고 저장함
                         TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | CoinOutChargeMoneyDischarge", "100원 보유시제변경" + (pCoinSettingQty - output_ResponeCointQty).ToString());
-                        mCurrentNormalCarInfo.Charge50Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 2); // 미방출건이 있다면 50원에 방출에 추가로 더한다
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutChargeMoneyDischarge", "100원권 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름100원권50원권으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 2).ToString() + " 50원권 방출해야할 수량:" + (mCurrentNormalCarInfo.Charge50Qty).ToString());
-                        mCurrentNormalCarInfo.Charge100Qty = 0;
+                        CurrentNormalCarInfo.Charge50Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 2); // 미방출건이 있다면 50원에 방출에 추가로 더한다
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutChargeMoneyDischarge", "100원권 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름100원권50원권으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 2).ToString() + " 50원권 방출해야할 수량:" + (CurrentNormalCarInfo.Charge50Qty).ToString());
+                        CurrentNormalCarInfo.Charge100Qty = 0;
 
                         break;
                     case MoneyType.Coin50:
-                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 50, "");
-                        mCurrentNormalCarInfo.OutCome50Qty = output_ResponeCointQty; // 50원 방출금액
+                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 50, "");
+                        CurrentNormalCarInfo.OutCome50Qty = output_ResponeCointQty; // 50원 방출금액
                         NPSYS.Config.SetValue(ConfigID.Cash50SettingQty, (pCoinSettingQty - output_ResponeCointQty).ToString()); // 50원 현재보유수량 방출된 금액에 제외하고 저장함
                         TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | CoinOutChargeMoneyDischarge", "50원 보유시제변경" + (pCoinSettingQty - output_ResponeCointQty).ToString());
-                        mCurrentNormalCarInfo.Charge50Qty = 0;
+                        CurrentNormalCarInfo.Charge50Qty = 0;
 
-                        mCurrentNormalCarInfo.NotdisChargeMoney50Qty += (output_RequesetCointQty - output_ResponeCointQty); // //시제설정누락처리
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutChargeMoneyDischarge", "50원권 방출된 수량:" + output_ResponeCointQty.ToString() + " 보관증 금액:" + (mCurrentNormalCarInfo.NotdisChargeMoney50Qty * 50).ToString());
+                        CurrentNormalCarInfo.NotdisChargeMoney50Qty += (output_RequesetCointQty - output_ResponeCointQty); // //시제설정누락처리
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutChargeMoneyDischarge", "50원권 방출된 수량:" + output_ResponeCointQty.ToString() + " 보관증 금액:" + (CurrentNormalCarInfo.NotdisChargeMoney50Qty * 50).ToString());
 
                         break;
                 }
@@ -2607,31 +2065,31 @@ namespace NPAutoBooth.UI
                 switch (pMoneyType)
                 {
                     case MoneyType.Coin500:
-                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 10, "");
-                        mCurrentNormalCarInfo.OutCome500Qty = output_ResponeCointQty; // 10PHP 방출금액
+                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 10, "");
+                        CurrentNormalCarInfo.OutCome500Qty = output_ResponeCointQty; // 10PHP 방출금액
                         NPSYS.Config.SetValue(ConfigID.Cash500SettingQty, (pCoinSettingQty - output_ResponeCointQty).ToString()); // 10PHP 현재보유수량 방출된 금액에 제외하고 저장함
-                        mCurrentNormalCarInfo.Charge100Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 2); // 미방출건이 있다면 5PHP에 방출에 추가로 더한다
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutChargeMoneyDischarge", "10PHP 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름10PHP권5PHP권으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 2).ToString() + " 5PHP권 방출해야할 수량:" + (mCurrentNormalCarInfo.Charge100Qty).ToString());
-                        mCurrentNormalCarInfo.Charge500Qty = 0;
+                        CurrentNormalCarInfo.Charge100Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 2); // 미방출건이 있다면 5PHP에 방출에 추가로 더한다
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutChargeMoneyDischarge", "10PHP 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름10PHP권5PHP권으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 2).ToString() + " 5PHP권 방출해야할 수량:" + (CurrentNormalCarInfo.Charge100Qty).ToString());
+                        CurrentNormalCarInfo.Charge500Qty = 0;
 
                         break;
                     case MoneyType.Coin100:
-                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 5, "");
-                        mCurrentNormalCarInfo.OutCome100Qty = output_ResponeCointQty; // 100원 방출금액
+                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 5, "");
+                        CurrentNormalCarInfo.OutCome100Qty = output_ResponeCointQty; // 100원 방출금액
                         NPSYS.Config.SetValue(ConfigID.Cash100SettingQty, (pCoinSettingQty - output_ResponeCointQty).ToString()); // 5PHP 현재보유수량 방출된 금액에 제외하고 저장함
-                        mCurrentNormalCarInfo.Charge50Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 5); // 미방출건이 있다면 1PHP원에 방출에 추가로 더한다
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutChargeMoneyDischarge", "5PHP 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름5PHP권 1PHP으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 5).ToString() + " 1PHP 방출해야할 수량:" + (mCurrentNormalCarInfo.Charge50Qty).ToString());
-                        mCurrentNormalCarInfo.Charge100Qty = 0;
+                        CurrentNormalCarInfo.Charge50Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 5); // 미방출건이 있다면 1PHP원에 방출에 추가로 더한다
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutChargeMoneyDischarge", "5PHP 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름5PHP권 1PHP으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 5).ToString() + " 1PHP 방출해야할 수량:" + (CurrentNormalCarInfo.Charge50Qty).ToString());
+                        CurrentNormalCarInfo.Charge100Qty = 0;
 
                         break;
                     case MoneyType.Coin50:
-                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 1, "");
-                        mCurrentNormalCarInfo.OutCome50Qty = output_ResponeCointQty; // 50원 방출금액
+                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 1, "");
+                        CurrentNormalCarInfo.OutCome50Qty = output_ResponeCointQty; // 50원 방출금액
                         NPSYS.Config.SetValue(ConfigID.Cash50SettingQty, (pCoinSettingQty - output_ResponeCointQty).ToString()); // 50원 현재보유수량 방출된 금액에 제외하고 저장함
-                        mCurrentNormalCarInfo.Charge50Qty = 0;
+                        CurrentNormalCarInfo.Charge50Qty = 0;
 
-                        mCurrentNormalCarInfo.NotdisChargeMoney50Qty += mCurrentNormalCarInfo.NotdisChargeMoney50Qty + (output_RequesetCointQty - output_ResponeCointQty);
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutChargeMoneyDischarge", "1PHP 방출된 수량:" + output_ResponeCointQty.ToString() + " 보관증 금액:" + (mCurrentNormalCarInfo.NotdisChargeMoney50Qty * 1).ToString());
+                        CurrentNormalCarInfo.NotdisChargeMoney50Qty += CurrentNormalCarInfo.NotdisChargeMoney50Qty + (output_RequesetCointQty - output_ResponeCointQty);
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutChargeMoneyDischarge", "1PHP 방출된 수량:" + output_ResponeCointQty.ToString() + " 보관증 금액:" + (CurrentNormalCarInfo.NotdisChargeMoney50Qty * 1).ToString());
 
                         break;
                 }
@@ -2659,15 +2117,15 @@ namespace NPAutoBooth.UI
             switch (pMoneyType)
             {
                 case MoneyType.Coin500:
-                    output_RequesetCointQty = mCurrentNormalCarInfo.Cancle500Qty;
+                    output_RequesetCointQty = CurrentNormalCarInfo.Cancle500Qty;
                     currentCoinDispenser = NPSYS.Device.CoinDispensor500;
                     break;
                 case MoneyType.Coin100:
-                    output_RequesetCointQty = mCurrentNormalCarInfo.Cancle100Qty;
+                    output_RequesetCointQty = CurrentNormalCarInfo.Cancle100Qty;
                     currentCoinDispenser = NPSYS.Device.CoinDispensor100;
                     break;
                 case MoneyType.Coin50:
-                    output_RequesetCointQty = mCurrentNormalCarInfo.Cancle50Qty;
+                    output_RequesetCointQty = CurrentNormalCarInfo.Cancle50Qty;
                     currentCoinDispenser = NPSYS.Device.CoinDispensor50;
                     break;
 
@@ -2699,35 +2157,35 @@ namespace NPAutoBooth.UI
                 switch (pMoneyType)
                 {
                     case MoneyType.Coin500:
-                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 500, "");
-                        mCurrentNormalCarInfo.OutCome500Qty = output_ResponeCointQty; // 500원 방출금액
+                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 500, "");
+                        CurrentNormalCarInfo.OutCome500Qty = output_ResponeCointQty; // 500원 방출금액
                         NPSYS.Config.SetValue(ConfigID.Cash500SettingQty, (pCoinSettingQty - output_ResponeCointQty).ToString()); // 500원 현재보유수량 방출된 금액에 제외하고 저장함
                         TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | CoinOutCancleMoneyDischarge", "500원 보유시제변경" + (pCoinSettingQty - output_ResponeCointQty).ToString());
 
-                        mCurrentNormalCarInfo.Cancle100Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 5); // 미방출건이 있다면 100원에 방출에 추가로 더한다
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutCancleMoneyDischarge", "500원권 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름500원권100원권으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 5).ToString() + " 100원권 방출해야할 수량:" + (mCurrentNormalCarInfo.Cancle100Qty).ToString());
-                        mCurrentNormalCarInfo.Cancle500Qty = 0;
+                        CurrentNormalCarInfo.Cancle100Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 5); // 미방출건이 있다면 100원에 방출에 추가로 더한다
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutCancleMoneyDischarge", "500원권 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름500원권100원권으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 5).ToString() + " 100원권 방출해야할 수량:" + (CurrentNormalCarInfo.Cancle100Qty).ToString());
+                        CurrentNormalCarInfo.Cancle500Qty = 0;
 
                         break;
                     case MoneyType.Coin100:
-                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 100, "");
-                        mCurrentNormalCarInfo.OutCome100Qty = output_ResponeCointQty; // 100원 방출금액
+                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 100, "");
+                        CurrentNormalCarInfo.OutCome100Qty = output_ResponeCointQty; // 100원 방출금액
                         NPSYS.Config.SetValue(ConfigID.Cash100SettingQty, (pCoinSettingQty - output_ResponeCointQty).ToString()); // 100원 현재보유수량 방출된 금액에 제외하고 저장함
                         TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | CoinOutCancleMoneyDischarge", "100원 보유시제변경" + (pCoinSettingQty - output_ResponeCointQty).ToString());
-                        mCurrentNormalCarInfo.Cancle50Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 2); // 미방출건이 있다면 50원에 방출에 추가로 더한다
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutCancleMoneyDischarge", "100원권 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름100원권50원권으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 2).ToString() + " 50원권 방출해야할 수량:" + (mCurrentNormalCarInfo.Cancle50Qty).ToString());
-                        mCurrentNormalCarInfo.Cancle100Qty = 0;
+                        CurrentNormalCarInfo.Cancle50Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 2); // 미방출건이 있다면 50원에 방출에 추가로 더한다
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutCancleMoneyDischarge", "100원권 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름100원권50원권으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 2).ToString() + " 50원권 방출해야할 수량:" + (CurrentNormalCarInfo.Cancle50Qty).ToString());
+                        CurrentNormalCarInfo.Cancle100Qty = 0;
 
                         break;
                     case MoneyType.Coin50:
-                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 50, "");
-                        mCurrentNormalCarInfo.OutCome50Qty = output_ResponeCointQty; // 50원 방출금액
+                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 50, "");
+                        CurrentNormalCarInfo.OutCome50Qty = output_ResponeCointQty; // 50원 방출금액
                         NPSYS.Config.SetValue(ConfigID.Cash50SettingQty, (pCoinSettingQty - output_ResponeCointQty).ToString()); // 50원 현재보유수량 방출된 금액에 제외하고 저장함
                         TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | CoinOutCancleMoneyDischarge", "50원 보유시제변경" + (pCoinSettingQty - output_ResponeCointQty).ToString());
-                        mCurrentNormalCarInfo.Cancle50Qty = 0;
+                        CurrentNormalCarInfo.Cancle50Qty = 0;
 
-                        mCurrentNormalCarInfo.NotdisChargeMoney50Qty += (output_RequesetCointQty - output_ResponeCointQty); // //시제설정누락처리
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutCancleMoneyDischarge", "50원권 방출된 수량:" + output_ResponeCointQty.ToString() + " 보관증 금액:" + (mCurrentNormalCarInfo.NotdisChargeMoney50Qty * 50).ToString());
+                        CurrentNormalCarInfo.NotdisChargeMoney50Qty += (output_RequesetCointQty - output_ResponeCointQty); // //시제설정누락처리
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutCancleMoneyDischarge", "50원권 방출된 수량:" + output_ResponeCointQty.ToString() + " 보관증 금액:" + (CurrentNormalCarInfo.NotdisChargeMoney50Qty * 50).ToString());
 
                         break;
                 }
@@ -2737,31 +2195,31 @@ namespace NPAutoBooth.UI
                 switch (pMoneyType)
                 {
                     case MoneyType.Coin500:
-                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 10, "");
-                        mCurrentNormalCarInfo.OutCome500Qty = output_ResponeCointQty; // 10PHP 방출금액
+                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 10, "");
+                        CurrentNormalCarInfo.OutCome500Qty = output_ResponeCointQty; // 10PHP 방출금액
                         NPSYS.Config.SetValue(ConfigID.Cash500SettingQty, (pCoinSettingQty - output_ResponeCointQty).ToString()); // 10PHP 현재보유수량 방출된 금액에 제외하고 저장함
-                        mCurrentNormalCarInfo.Cancle100Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 2); // 미방출건이 있다면 5PHP에 방출에 추가로 더한다
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutCancleMoneyDischarge", "10PHP권 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름10PHP권5PHP권으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 2).ToString() + " 5PHP 방출해야할 수량:" + (mCurrentNormalCarInfo.Cancle100Qty).ToString());
-                        mCurrentNormalCarInfo.Cancle500Qty = 0;
+                        CurrentNormalCarInfo.Cancle100Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 2); // 미방출건이 있다면 5PHP에 방출에 추가로 더한다
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutCancleMoneyDischarge", "10PHP권 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름10PHP권5PHP권으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 2).ToString() + " 5PHP 방출해야할 수량:" + (CurrentNormalCarInfo.Cancle100Qty).ToString());
+                        CurrentNormalCarInfo.Cancle500Qty = 0;
 
                         break;
                     case MoneyType.Coin100:
-                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 5, "");
-                        mCurrentNormalCarInfo.OutCome100Qty = output_ResponeCointQty; // 5PHP 방출금액
+                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 5, "");
+                        CurrentNormalCarInfo.OutCome100Qty = output_ResponeCointQty; // 5PHP 방출금액
                         NPSYS.Config.SetValue(ConfigID.Cash100SettingQty, (pCoinSettingQty - output_ResponeCointQty).ToString()); //5PHP 현재보유수량 방출된 금액에 제외하고 저장함
-                        mCurrentNormalCarInfo.Cancle50Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 5); // 미방출건이 있다면 1PHP에 방출에 추가로 더한다
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutCancleMoneyDischarge", "100원권 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름5PHP권1PHP권으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 5).ToString() + " 1PHP 방출해야할 수량:" + (mCurrentNormalCarInfo.Cancle50Qty).ToString());
-                        mCurrentNormalCarInfo.Cancle100Qty = 0;
+                        CurrentNormalCarInfo.Cancle50Qty += +((output_RequesetCointQty - output_ResponeCointQty) * 5); // 미방출건이 있다면 1PHP에 방출에 추가로 더한다
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutCancleMoneyDischarge", "100원권 방출된 수량:" + output_ResponeCointQty.ToString() + " 거스름5PHP권1PHP권으로수량변경:" + ((output_RequesetCointQty - output_ResponeCointQty) * 5).ToString() + " 1PHP 방출해야할 수량:" + (CurrentNormalCarInfo.Cancle50Qty).ToString());
+                        CurrentNormalCarInfo.Cancle100Qty = 0;
 
                         break;
                     case MoneyType.Coin50:
-                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 1, "");
-                        mCurrentNormalCarInfo.OutCome50Qty = output_ResponeCointQty; //1PHP 방출금액
+                        LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, pMoneyType, 0, output_ResponeCointQty * 1, "");
+                        CurrentNormalCarInfo.OutCome50Qty = output_ResponeCointQty; //1PHP 방출금액
                         NPSYS.Config.SetValue(ConfigID.Cash50SettingQty, (pCoinSettingQty - output_ResponeCointQty).ToString()); // 1PHP 현재보유수량 방출된 금액에 제외하고 저장함
-                        mCurrentNormalCarInfo.Cancle50Qty = 0;
+                        CurrentNormalCarInfo.Cancle50Qty = 0;
 
-                        mCurrentNormalCarInfo.NotdisChargeMoney50Qty += mCurrentNormalCarInfo.NotdisChargeMoney50Qty + (output_RequesetCointQty - output_ResponeCointQty);
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutCancleMoneyDischarge", "1PHP권 방출된 수량:" + output_ResponeCointQty.ToString() + " 보관증 금액:" + (mCurrentNormalCarInfo.NotdisChargeMoney50Qty * 1).ToString());
+                        CurrentNormalCarInfo.NotdisChargeMoney50Qty += CurrentNormalCarInfo.NotdisChargeMoney50Qty + (output_RequesetCointQty - output_ResponeCointQty);
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CoinOutCancleMoneyDischarge", "1PHP권 방출된 수량:" + output_ResponeCointQty.ToString() + " 보관증 금액:" + (CurrentNormalCarInfo.NotdisChargeMoney50Qty * 1).ToString());
 
                         break;
                 }
@@ -2782,28 +2240,28 @@ namespace NPAutoBooth.UI
         {
             if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.WON)
             {
-                int outSuccess5000Qty = mCurrentNormalCarInfo.Cancle5000Qty - pNotDischarge5000Qty; //5000원권 배출 성공한수량을 저장
-                mCurrentNormalCarInfo.Cancle5000Qty = 0;
-                mCurrentNormalCarInfo.OutCome5000Qty = mCurrentNormalCarInfo.OutCome5000Qty + outSuccess5000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
+                int outSuccess5000Qty = CurrentNormalCarInfo.Cancle5000Qty - pNotDischarge5000Qty; //5000원권 배출 성공한수량을 저장
+                CurrentNormalCarInfo.Cancle5000Qty = 0;
+                CurrentNormalCarInfo.OutCome5000Qty = CurrentNormalCarInfo.OutCome5000Qty + outSuccess5000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
                 int cash5000SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash5000SettingQty)); // 시제 5000원권 수량
                 NPSYS.Config.SetValue(ConfigID.Cash5000SettingQty, (cash5000SettingQty - outSuccess5000Qty).ToString()); // 시제 변경
                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | BillCancleDischarge5000", "5000원 보유시제변경:" + (cash5000SettingQty - outSuccess5000Qty).ToString());
-                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, MoneyType.Bill5000, 0, outSuccess5000Qty * 5000, "취소에 의한 반환");
+                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, MoneyType.Bill5000, 0, outSuccess5000Qty * 5000, "취소에 의한 반환");
                 if (pNotDischarge5000Qty > 0)
                 {
                     TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | BillDischarge5000", "5000원권 불출안됨으로 1000원권으로수량변경:" + (pNotDischarge5000Qty * 5).ToString());
-                    mCurrentNormalCarInfo.Cancle1000Qty = mCurrentNormalCarInfo.Cancle1000Qty + pNotDischarge5000Qty * 5;
+                    CurrentNormalCarInfo.Cancle1000Qty = CurrentNormalCarInfo.Cancle1000Qty + pNotDischarge5000Qty * 5;
 
                 }
             }
             else if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.PHP)
             {
-                int outSuccess5000Qty = mCurrentNormalCarInfo.Cancle5000Qty - pNotDischarge5000Qty; //50PHP 배출 성공한수량을 저장
-                mCurrentNormalCarInfo.Cancle5000Qty = 0;
-                mCurrentNormalCarInfo.OutCome5000Qty = mCurrentNormalCarInfo.OutCome5000Qty + outSuccess5000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
+                int outSuccess5000Qty = CurrentNormalCarInfo.Cancle5000Qty - pNotDischarge5000Qty; //50PHP 배출 성공한수량을 저장
+                CurrentNormalCarInfo.Cancle5000Qty = 0;
+                CurrentNormalCarInfo.OutCome5000Qty = CurrentNormalCarInfo.OutCome5000Qty + outSuccess5000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
                 int cash5000SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash5000SettingQty)); // 시제 50PHP 수량
                 NPSYS.Config.SetValue(ConfigID.Cash5000SettingQty, (cash5000SettingQty - outSuccess5000Qty).ToString()); // 시제 변경
-                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, MoneyType.Bill5000, 0, outSuccess5000Qty * 50, "취소에 의한 반환");
+                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, MoneyType.Bill5000, 0, outSuccess5000Qty * 50, "취소에 의한 반환");
                 if (pNotDischarge5000Qty > 0)
                 {
                     int php50 = pNotDischarge5000Qty;
@@ -2811,8 +2269,8 @@ namespace NPAutoBooth.UI
                     int php20 = php50Fee / 20;
                     int php10 = (php50Fee - (php20 * 20)) / 10;
                     TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | BillDischarge5000", "50PHP 불출안됨으로 20PHP으로수량변경:" + (php20).ToString() + "10PHP으로수량변경:" + php10.ToString());
-                    mCurrentNormalCarInfo.Cancle1000Qty = mCurrentNormalCarInfo.Cancle1000Qty + php20;
-                    mCurrentNormalCarInfo.Cancle500Qty = mCurrentNormalCarInfo.Cancle500Qty + php10;
+                    CurrentNormalCarInfo.Cancle1000Qty = CurrentNormalCarInfo.Cancle1000Qty + php20;
+                    CurrentNormalCarInfo.Cancle500Qty = CurrentNormalCarInfo.Cancle500Qty + php10;
 
                 }
 
@@ -2829,28 +2287,28 @@ namespace NPAutoBooth.UI
         {
             if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.WON)
             {
-                int outSuccess5000Qty = mCurrentNormalCarInfo.Charge5000Qty - pNotDischarge5000Qty; //5000원권 배출 성공한수량을 저장
-                mCurrentNormalCarInfo.Charge5000Qty = 0;
-                mCurrentNormalCarInfo.OutCome5000Qty = mCurrentNormalCarInfo.OutCome5000Qty + outSuccess5000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
+                int outSuccess5000Qty = CurrentNormalCarInfo.Charge5000Qty - pNotDischarge5000Qty; //5000원권 배출 성공한수량을 저장
+                CurrentNormalCarInfo.Charge5000Qty = 0;
+                CurrentNormalCarInfo.OutCome5000Qty = CurrentNormalCarInfo.OutCome5000Qty + outSuccess5000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
                 int cash5000SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash5000SettingQty)); // 시제 5000원권 수량
                 NPSYS.Config.SetValue(ConfigID.Cash5000SettingQty, (cash5000SettingQty - outSuccess5000Qty).ToString()); // 시제 변경
                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | BillPaymentCompleteDischarge5000", "5000원 보유시제변경:" + (cash5000SettingQty - outSuccess5000Qty).ToString());
-                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, MoneyType.Bill5000, 0, outSuccess5000Qty * 5000, "취소에 의한 반환");
+                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, MoneyType.Bill5000, 0, outSuccess5000Qty * 5000, "취소에 의한 반환");
                 if (pNotDischarge5000Qty > 0)
                 {
                     TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | BillPaymentCompleteDischarge5000", "5000원권 불출안됨으로 1000원권으로수량변경:" + (pNotDischarge5000Qty * 5).ToString());
-                    mCurrentNormalCarInfo.Charge1000Qty = mCurrentNormalCarInfo.Charge1000Qty + pNotDischarge5000Qty * 5;
+                    CurrentNormalCarInfo.Charge1000Qty = CurrentNormalCarInfo.Charge1000Qty + pNotDischarge5000Qty * 5;
 
                 }
             }
             else if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.PHP)
             {
-                int outSuccess5000Qty = mCurrentNormalCarInfo.Charge5000Qty - pNotDischarge5000Qty; //50PHP 배출 성공한수량을 저장
-                mCurrentNormalCarInfo.Charge5000Qty = 0;
-                mCurrentNormalCarInfo.OutCome5000Qty = mCurrentNormalCarInfo.OutCome5000Qty + outSuccess5000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
+                int outSuccess5000Qty = CurrentNormalCarInfo.Charge5000Qty - pNotDischarge5000Qty; //50PHP 배출 성공한수량을 저장
+                CurrentNormalCarInfo.Charge5000Qty = 0;
+                CurrentNormalCarInfo.OutCome5000Qty = CurrentNormalCarInfo.OutCome5000Qty + outSuccess5000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
                 int cash5000SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash5000SettingQty)); // 시제 50PHP 수량
                 NPSYS.Config.SetValue(ConfigID.Cash5000SettingQty, (cash5000SettingQty - outSuccess5000Qty).ToString()); // 시제 변경
-                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, MoneyType.Bill5000, 0, outSuccess5000Qty * 50, "취소에 의한 반환");
+                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, MoneyType.Bill5000, 0, outSuccess5000Qty * 50, "취소에 의한 반환");
                 if (pNotDischarge5000Qty > 0)
                 {
                     int php50 = pNotDischarge5000Qty;
@@ -2858,8 +2316,8 @@ namespace NPAutoBooth.UI
                     int php20 = php50Fee / 20;
                     int php10 = (php50Fee - (php20 * 20)) / 10;
                     TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | BillPaymentCompleteDischarge5000", "50PHP 불출안됨으로 20PHP권으로수량변경:" + php20.ToString() + "10PHP권으로수량변경:" + php10.ToString());
-                    mCurrentNormalCarInfo.Charge1000Qty = mCurrentNormalCarInfo.Charge1000Qty + php20;
-                    mCurrentNormalCarInfo.Charge500Qty = mCurrentNormalCarInfo.Charge500Qty + php10;
+                    CurrentNormalCarInfo.Charge1000Qty = CurrentNormalCarInfo.Charge1000Qty + php20;
+                    CurrentNormalCarInfo.Charge500Qty = CurrentNormalCarInfo.Charge500Qty + php10;
 
                 }
             }
@@ -2876,32 +2334,32 @@ namespace NPAutoBooth.UI
         {
             if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.WON)
             {
-                int outSuccess1000Qty = mCurrentNormalCarInfo.Cancle1000Qty - pNotDischarge1000Qty; //1000원권 배출 성공한수량을 저장
-                mCurrentNormalCarInfo.Cancle1000Qty = 0;
-                mCurrentNormalCarInfo.OutCome1000Qty = mCurrentNormalCarInfo.OutCome1000Qty + outSuccess1000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
+                int outSuccess1000Qty = CurrentNormalCarInfo.Cancle1000Qty - pNotDischarge1000Qty; //1000원권 배출 성공한수량을 저장
+                CurrentNormalCarInfo.Cancle1000Qty = 0;
+                CurrentNormalCarInfo.OutCome1000Qty = CurrentNormalCarInfo.OutCome1000Qty + outSuccess1000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
                 int cash1000SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash1000SettingQty)); // 시제 1000원권 수량
                 NPSYS.Config.SetValue(ConfigID.Cash1000SettingQty, (cash1000SettingQty - outSuccess1000Qty).ToString()); // 시제 변경
                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | BillCancleDischarge1000", "1000원 보유시제변경:" + (cash1000SettingQty - outSuccess1000Qty).ToString());
-                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, MoneyType.Bill1000, 0, outSuccess1000Qty * 1000, "취소에 의한 반환");
+                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, MoneyType.Bill1000, 0, outSuccess1000Qty * 1000, "취소에 의한 반환");
                 if (pNotDischarge1000Qty > 0)
                 {
                     TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | BillDischarge1000", "1000원권 불출안됨으로 500원권으로수량변경:" + (pNotDischarge1000Qty * 2).ToString());
-                    mCurrentNormalCarInfo.Cancle500Qty = mCurrentNormalCarInfo.Cancle500Qty + (pNotDischarge1000Qty * 2);
+                    CurrentNormalCarInfo.Cancle500Qty = CurrentNormalCarInfo.Cancle500Qty + (pNotDischarge1000Qty * 2);
 
                 }
             }
             else if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.PHP)
             {
-                int outSuccess1000Qty = mCurrentNormalCarInfo.Cancle1000Qty - pNotDischarge1000Qty; //20PHP 배출 성공한수량을 저장
-                mCurrentNormalCarInfo.Cancle1000Qty = 0;
-                mCurrentNormalCarInfo.OutCome1000Qty = mCurrentNormalCarInfo.OutCome1000Qty + outSuccess1000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
+                int outSuccess1000Qty = CurrentNormalCarInfo.Cancle1000Qty - pNotDischarge1000Qty; //20PHP 배출 성공한수량을 저장
+                CurrentNormalCarInfo.Cancle1000Qty = 0;
+                CurrentNormalCarInfo.OutCome1000Qty = CurrentNormalCarInfo.OutCome1000Qty + outSuccess1000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
                 int cash1000SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash1000SettingQty)); // 시제 20PHP권 수량
                 NPSYS.Config.SetValue(ConfigID.Cash1000SettingQty, (cash1000SettingQty - outSuccess1000Qty).ToString()); // 시제 변경
-                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, MoneyType.Bill1000, 0, outSuccess1000Qty * 20, "취소에 의한 반환");
+                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, MoneyType.Bill1000, 0, outSuccess1000Qty * 20, "취소에 의한 반환");
                 if (pNotDischarge1000Qty > 0)
                 {
                     TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | BillDischarge1000", "20PHP 불출안됨으로 10PHP권으로수량변경:" + (pNotDischarge1000Qty * 2).ToString());
-                    mCurrentNormalCarInfo.Cancle500Qty = mCurrentNormalCarInfo.Cancle500Qty + (pNotDischarge1000Qty * 2);
+                    CurrentNormalCarInfo.Cancle500Qty = CurrentNormalCarInfo.Cancle500Qty + (pNotDischarge1000Qty * 2);
 
                 }
             }
@@ -2916,32 +2374,32 @@ namespace NPAutoBooth.UI
         {
             if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.WON)
             {
-                int outSuccess1000Qty = mCurrentNormalCarInfo.Charge1000Qty - pNotDischarge1000Qty; //1000원권 배출 성공한수량을 저장
-                mCurrentNormalCarInfo.Charge1000Qty = 0;
-                mCurrentNormalCarInfo.OutCome1000Qty = mCurrentNormalCarInfo.OutCome1000Qty + outSuccess1000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
+                int outSuccess1000Qty = CurrentNormalCarInfo.Charge1000Qty - pNotDischarge1000Qty; //1000원권 배출 성공한수량을 저장
+                CurrentNormalCarInfo.Charge1000Qty = 0;
+                CurrentNormalCarInfo.OutCome1000Qty = CurrentNormalCarInfo.OutCome1000Qty + outSuccess1000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
                 int cash1000SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash1000SettingQty)); // 시제 1000원권 수량
                 NPSYS.Config.SetValue(ConfigID.Cash1000SettingQty, (cash1000SettingQty - outSuccess1000Qty).ToString()); // 시제 변경
                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | BillPaymentCompleteDischarge1000", "1000원 보유시제변경:" + (cash1000SettingQty - outSuccess1000Qty).ToString());
-                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, MoneyType.Bill1000, 0, outSuccess1000Qty * 1000, "취소에 의한 반환");
+                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, MoneyType.Bill1000, 0, outSuccess1000Qty * 1000, "취소에 의한 반환");
                 if (pNotDischarge1000Qty > 0)
                 {
                     TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | BillPaymentCompleteDischarge1000", "1000원권 불출안됨으로 500원권으로수량변경:" + (pNotDischarge1000Qty * 2).ToString());
-                    mCurrentNormalCarInfo.Charge500Qty = mCurrentNormalCarInfo.Charge500Qty + pNotDischarge1000Qty * 2;
+                    CurrentNormalCarInfo.Charge500Qty = CurrentNormalCarInfo.Charge500Qty + pNotDischarge1000Qty * 2;
 
                 }
             }
             else if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.PHP)
             {
-                int outSuccess1000Qty = mCurrentNormalCarInfo.Charge1000Qty - pNotDischarge1000Qty; //20PHP 배출 성공한수량을 저장
-                mCurrentNormalCarInfo.Charge1000Qty = 0;
-                mCurrentNormalCarInfo.OutCome1000Qty = mCurrentNormalCarInfo.OutCome1000Qty + outSuccess1000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
+                int outSuccess1000Qty = CurrentNormalCarInfo.Charge1000Qty - pNotDischarge1000Qty; //20PHP 배출 성공한수량을 저장
+                CurrentNormalCarInfo.Charge1000Qty = 0;
+                CurrentNormalCarInfo.OutCome1000Qty = CurrentNormalCarInfo.OutCome1000Qty + outSuccess1000Qty; // 현재 방출수량을 OUTCOME 변수에 넣음
                 int cash1000SettingQty = Convert.ToInt32(NPSYS.Config.GetValue(ConfigID.Cash1000SettingQty)); // 시제 20PHP권 수량
                 NPSYS.Config.SetValue(ConfigID.Cash1000SettingQty, (cash1000SettingQty - outSuccess1000Qty).ToString()); // 시제 변경
-                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, mCurrentNormalCarInfo, MoneyType.Bill1000, 0, outSuccess1000Qty * 20, "취소에 의한 반환");
+                LPRDbSelect.LogMoney(PaymentType.Cash, logDate, CurrentNormalCarInfo, MoneyType.Bill1000, 0, outSuccess1000Qty * 20, "취소에 의한 반환");
                 if (pNotDischarge1000Qty > 0)
                 {
                     TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | BillPaymentCompleteDischarge1000", "20PHP 불출안됨으로 10PHP권으로수량변경:" + (pNotDischarge1000Qty * 2).ToString());
-                    mCurrentNormalCarInfo.Charge500Qty = mCurrentNormalCarInfo.Charge500Qty + pNotDischarge1000Qty * 2;
+                    CurrentNormalCarInfo.Charge500Qty = CurrentNormalCarInfo.Charge500Qty + pNotDischarge1000Qty * 2;
 
                 }
 
@@ -2981,93 +2439,93 @@ namespace NPAutoBooth.UI
                     TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름검사시작 여유액: 50PHP수량:" + cash5000SettingQty.ToString() + "  20PHP수량:" + cash1000SettingQty.ToString() + "  10PHP:" + cash500SettingQty.ToString() + "  5PHP수량:" + cash100SettingQty.ToString() + "  1PHP:" + cash50SettingQty.ToString());
                 }
 
-                if ((cash5000SettingQty >= mCurrentNormalCarInfo.Charge5000Qty) &&
-                    (cash1000SettingQty >= mCurrentNormalCarInfo.Charge1000Qty) &&
-                    (cash500SettingQty >= mCurrentNormalCarInfo.Charge500Qty) &&
-                    (cash100SettingQty >= mCurrentNormalCarInfo.Charge100Qty) &&
-                    (cash50SettingQty >= mCurrentNormalCarInfo.Charge50Qty))
+                if ((cash5000SettingQty >= CurrentNormalCarInfo.Charge5000Qty) &&
+                    (cash1000SettingQty >= CurrentNormalCarInfo.Charge1000Qty) &&
+                    (cash500SettingQty >= CurrentNormalCarInfo.Charge500Qty) &&
+                    (cash100SettingQty >= CurrentNormalCarInfo.Charge100Qty) &&
+                    (cash50SettingQty >= CurrentNormalCarInfo.Charge50Qty))
                 {
                     return true;
                 }
                 if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.WON)
                 {
-                    if (cash5000SettingQty < mCurrentNormalCarInfo.Charge5000Qty)  // 5000원권이 부죽한 경우 1000원권으로 넘김
+                    if (cash5000SettingQty < CurrentNormalCarInfo.Charge5000Qty)  // 5000원권이 부죽한 경우 1000원권으로 넘김
                     {
-                        int lack5000Qty = mCurrentNormalCarInfo.Charge5000Qty - cash5000SettingQty;  // 5000원권의 부족한 수량
+                        int lack5000Qty = CurrentNormalCarInfo.Charge5000Qty - cash5000SettingQty;  // 5000원권의 부족한 수량
 
-                        mCurrentNormalCarInfo.Charge5000Qty = cash5000SettingQty; // 현재 남아있는 5000원권 수량을 거스름돈으로 대체
-                        mCurrentNormalCarInfo.Charge1000Qty = mCurrentNormalCarInfo.Charge1000Qty + (lack5000Qty * 5); // 부족한 5000원 수량을 1000원권 수량에 더함
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 지폐부족:5000원권 부족으로 1000원권으로 동전교환-현보유1000수량:" + cash5000SettingQty.ToString() + " 1000원수량:" + mCurrentNormalCarInfo.Charge1000Qty.ToString());
+                        CurrentNormalCarInfo.Charge5000Qty = cash5000SettingQty; // 현재 남아있는 5000원권 수량을 거스름돈으로 대체
+                        CurrentNormalCarInfo.Charge1000Qty = CurrentNormalCarInfo.Charge1000Qty + (lack5000Qty * 5); // 부족한 5000원 수량을 1000원권 수량에 더함
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 지폐부족:5000원권 부족으로 1000원권으로 동전교환-현보유1000수량:" + cash5000SettingQty.ToString() + " 1000원수량:" + CurrentNormalCarInfo.Charge1000Qty.ToString());
 
                     }
 
-                    if (cash1000SettingQty < mCurrentNormalCarInfo.Charge1000Qty) // 1000원권이 부족한 경우 500원 으로 넘김
+                    if (cash1000SettingQty < CurrentNormalCarInfo.Charge1000Qty) // 1000원권이 부족한 경우 500원 으로 넘김
                     {
-                        int lack1000Qty = mCurrentNormalCarInfo.Charge1000Qty - cash1000SettingQty; // 1000원권의 부족한 수량
+                        int lack1000Qty = CurrentNormalCarInfo.Charge1000Qty - cash1000SettingQty; // 1000원권의 부족한 수량
 
-                        mCurrentNormalCarInfo.Charge1000Qty = cash1000SettingQty; // 현재 남아있는 1000원권 수량을 거스름돈으로 대체
-                        mCurrentNormalCarInfo.Charge500Qty = mCurrentNormalCarInfo.Charge500Qty + (lack1000Qty * 2); // 부족한 1000원 수량을 500원 수량에 더함
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 지폐부족:1000원권 부족으로 500원권으로 동전교환-현보유1000수량:" + cash1000SettingQty.ToString() + " 500원수량:" + mCurrentNormalCarInfo.Charge500Qty.ToString());
+                        CurrentNormalCarInfo.Charge1000Qty = cash1000SettingQty; // 현재 남아있는 1000원권 수량을 거스름돈으로 대체
+                        CurrentNormalCarInfo.Charge500Qty = CurrentNormalCarInfo.Charge500Qty + (lack1000Qty * 2); // 부족한 1000원 수량을 500원 수량에 더함
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 지폐부족:1000원권 부족으로 500원권으로 동전교환-현보유1000수량:" + cash1000SettingQty.ToString() + " 500원수량:" + CurrentNormalCarInfo.Charge500Qty.ToString());
 
                     }
 
-                    if (cash500SettingQty < mCurrentNormalCarInfo.Charge500Qty) // 500원 권에 대해서만 처리, 100원, 50원은 코인보드에서 자동으로 처리하기 때문에 안된다고 봄
+                    if (cash500SettingQty < CurrentNormalCarInfo.Charge500Qty) // 500원 권에 대해서만 처리, 100원, 50원은 코인보드에서 자동으로 처리하기 때문에 안된다고 봄
                     {
-                        int lack500Qty = mCurrentNormalCarInfo.Charge500Qty - cash500SettingQty; // 500원권의 부족한 수량
-                        mCurrentNormalCarInfo.Charge500Qty = cash500SettingQty; // 현재 남아있는 500원권 수량을 거스름돈으로 대체                        
-                        mCurrentNormalCarInfo.Charge100Qty = mCurrentNormalCarInfo.Charge100Qty + (lack500Qty * 5); // 부족한 수량을 거스름돈으로 대체
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 지폐부족:500원권 부족으로 100원권으로 동전교환-현보유500수량:" + cash500SettingQty.ToString() + " 100원수량:" + mCurrentNormalCarInfo.Charge100Qty.ToString());
+                        int lack500Qty = CurrentNormalCarInfo.Charge500Qty - cash500SettingQty; // 500원권의 부족한 수량
+                        CurrentNormalCarInfo.Charge500Qty = cash500SettingQty; // 현재 남아있는 500원권 수량을 거스름돈으로 대체                        
+                        CurrentNormalCarInfo.Charge100Qty = CurrentNormalCarInfo.Charge100Qty + (lack500Qty * 5); // 부족한 수량을 거스름돈으로 대체
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 지폐부족:500원권 부족으로 100원권으로 동전교환-현보유500수량:" + cash500SettingQty.ToString() + " 100원수량:" + CurrentNormalCarInfo.Charge100Qty.ToString());
                     }
 
-                    if (cash100SettingQty < mCurrentNormalCarInfo.Charge100Qty) // 100원 권에 대해서만 처리
+                    if (cash100SettingQty < CurrentNormalCarInfo.Charge100Qty) // 100원 권에 대해서만 처리
                     {
-                        int lack100Qty = mCurrentNormalCarInfo.Charge100Qty - cash100SettingQty; // 1000원권의 부족한 수량
-                        mCurrentNormalCarInfo.Charge100Qty = cash100SettingQty; // 현재 남아있는 500원권 수량을 거스름돈으로 대체                        
-                        mCurrentNormalCarInfo.Charge50Qty = mCurrentNormalCarInfo.Charge50Qty + (lack100Qty * 2); // 부족한 수량을 거스름돈으로 대체
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 지폐부족:100원권 부족으로 50원권으로 동전교환-현보유100수량:" + cash100SettingQty.ToString() + " 50원수량:" + mCurrentNormalCarInfo.Charge50Qty.ToString());
+                        int lack100Qty = CurrentNormalCarInfo.Charge100Qty - cash100SettingQty; // 1000원권의 부족한 수량
+                        CurrentNormalCarInfo.Charge100Qty = cash100SettingQty; // 현재 남아있는 500원권 수량을 거스름돈으로 대체                        
+                        CurrentNormalCarInfo.Charge50Qty = CurrentNormalCarInfo.Charge50Qty + (lack100Qty * 2); // 부족한 수량을 거스름돈으로 대체
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 지폐부족:100원권 부족으로 50원권으로 동전교환-현보유100수량:" + cash100SettingQty.ToString() + " 50원수량:" + CurrentNormalCarInfo.Charge50Qty.ToString());
 
                     }
                 }
                 else if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.PHP)
                 {
-                    if (cash5000SettingQty < mCurrentNormalCarInfo.Charge5000Qty)  // 50PHP권이 부죽한 경우 20PHP원권으로 넘김
+                    if (cash5000SettingQty < CurrentNormalCarInfo.Charge5000Qty)  // 50PHP권이 부죽한 경우 20PHP원권으로 넘김
                     {
-                        int lack5000Qty = mCurrentNormalCarInfo.Charge5000Qty - cash5000SettingQty;  // 50PHP권의 부족한 수량
+                        int lack5000Qty = CurrentNormalCarInfo.Charge5000Qty - cash5000SettingQty;  // 50PHP권의 부족한 수량
                         int php50 = lack5000Qty;
                         int php50Fee = php50 * 50;
                         int php20 = php50Fee / 20;
                         int php10 = (php50Fee - (php20 * 20)) / 10;
-                        mCurrentNormalCarInfo.Charge5000Qty = cash5000SettingQty; // 현재 남아있는 50PHP 수량을 거스름돈으로 대체
-                        mCurrentNormalCarInfo.Charge1000Qty = mCurrentNormalCarInfo.Charge1000Qty + (php20); // 부족한 50PHP 수량을 20PHP 수량에 더함
-                        mCurrentNormalCarInfo.Charge500Qty = mCurrentNormalCarInfo.Charge500Qty + (php10); // 부족한 50PHP원 수량을 10PHP권 수량에 더함
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 지폐부족:50PHP 부족으로 20PHP권으로 동전교환-현보유50PHP수량:" + cash5000SettingQty.ToString() + " 20PHP수량:" + mCurrentNormalCarInfo.Charge1000Qty.ToString());
+                        CurrentNormalCarInfo.Charge5000Qty = cash5000SettingQty; // 현재 남아있는 50PHP 수량을 거스름돈으로 대체
+                        CurrentNormalCarInfo.Charge1000Qty = CurrentNormalCarInfo.Charge1000Qty + (php20); // 부족한 50PHP 수량을 20PHP 수량에 더함
+                        CurrentNormalCarInfo.Charge500Qty = CurrentNormalCarInfo.Charge500Qty + (php10); // 부족한 50PHP원 수량을 10PHP권 수량에 더함
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 지폐부족:50PHP 부족으로 20PHP권으로 동전교환-현보유50PHP수량:" + cash5000SettingQty.ToString() + " 20PHP수량:" + CurrentNormalCarInfo.Charge1000Qty.ToString());
 
                     }
 
-                    if (cash1000SettingQty < mCurrentNormalCarInfo.Charge1000Qty) // 20PHP원권이 부족한 경우 10PHP원 으로 넘김
+                    if (cash1000SettingQty < CurrentNormalCarInfo.Charge1000Qty) // 20PHP원권이 부족한 경우 10PHP원 으로 넘김
                     {
-                        int lack1000Qty = mCurrentNormalCarInfo.Charge1000Qty - cash1000SettingQty; // 20PHP원권의 부족한 수량
+                        int lack1000Qty = CurrentNormalCarInfo.Charge1000Qty - cash1000SettingQty; // 20PHP원권의 부족한 수량
 
-                        mCurrentNormalCarInfo.Charge1000Qty = cash1000SettingQty; // 현재 남아있는 20PHP권 수량을 거스름돈으로 대체
-                        mCurrentNormalCarInfo.Charge500Qty = mCurrentNormalCarInfo.Charge500Qty + (lack1000Qty * 2); // 부족한 20PHP 수량을 10PHP원 수량에 더함
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 지폐부족:20PHP원권 부족으로 10PHP권으로 동전교환-현보유20PHP수량:" + cash1000SettingQty.ToString() + " 10PHP수량:" + mCurrentNormalCarInfo.Charge500Qty.ToString());
+                        CurrentNormalCarInfo.Charge1000Qty = cash1000SettingQty; // 현재 남아있는 20PHP권 수량을 거스름돈으로 대체
+                        CurrentNormalCarInfo.Charge500Qty = CurrentNormalCarInfo.Charge500Qty + (lack1000Qty * 2); // 부족한 20PHP 수량을 10PHP원 수량에 더함
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 지폐부족:20PHP원권 부족으로 10PHP권으로 동전교환-현보유20PHP수량:" + cash1000SettingQty.ToString() + " 10PHP수량:" + CurrentNormalCarInfo.Charge500Qty.ToString());
 
                     }
 
-                    if (cash500SettingQty < mCurrentNormalCarInfo.Charge500Qty) // 500원 권에 대해서만 처리, 100원, 50원은 코인보드에서 자동으로 처리하기 때문에 안된다고 봄
+                    if (cash500SettingQty < CurrentNormalCarInfo.Charge500Qty) // 500원 권에 대해서만 처리, 100원, 50원은 코인보드에서 자동으로 처리하기 때문에 안된다고 봄
                     {
-                        int lack500Qty = mCurrentNormalCarInfo.Charge500Qty - cash500SettingQty; // 10PHP 부족한 수량
-                        mCurrentNormalCarInfo.Charge500Qty = cash500SettingQty; // 현재 남아있는 10PHP 수량을 거스름돈으로 대체                        
-                        mCurrentNormalCarInfo.Charge100Qty = mCurrentNormalCarInfo.Charge100Qty + (lack500Qty * 2); // 부족한 수량을 거스름돈으로 대체
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 동전부족:10PHP 부족으로 5PHP권으로 동전교환-현보유10PHP수량:" + cash500SettingQty.ToString() + " 5PHP수량:" + mCurrentNormalCarInfo.Charge100Qty.ToString());
+                        int lack500Qty = CurrentNormalCarInfo.Charge500Qty - cash500SettingQty; // 10PHP 부족한 수량
+                        CurrentNormalCarInfo.Charge500Qty = cash500SettingQty; // 현재 남아있는 10PHP 수량을 거스름돈으로 대체                        
+                        CurrentNormalCarInfo.Charge100Qty = CurrentNormalCarInfo.Charge100Qty + (lack500Qty * 2); // 부족한 수량을 거스름돈으로 대체
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 동전부족:10PHP 부족으로 5PHP권으로 동전교환-현보유10PHP수량:" + cash500SettingQty.ToString() + " 5PHP수량:" + CurrentNormalCarInfo.Charge100Qty.ToString());
                     }
 
-                    if (cash100SettingQty < mCurrentNormalCarInfo.Charge100Qty) // 100원 권에 대해서만 처리
+                    if (cash100SettingQty < CurrentNormalCarInfo.Charge100Qty) // 100원 권에 대해서만 처리
                     {
-                        int lack100Qty = mCurrentNormalCarInfo.Charge100Qty - cash100SettingQty; // 5PHP원권의 부족한 수량
-                        mCurrentNormalCarInfo.Charge100Qty = cash100SettingQty; // 현재 남아있는 5PHP권 수량을 거스름돈으로 대체                        
-                        mCurrentNormalCarInfo.Charge50Qty = mCurrentNormalCarInfo.Charge50Qty + (lack100Qty * 5); // 부족한 수량을 거스름돈으로 대체
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 동전부족:5PHP권 부족으로 1PHP원권으로 동전교환-현보유5PHP수량:" + cash100SettingQty.ToString() + " 1PHP수량:" + mCurrentNormalCarInfo.Charge50Qty.ToString());
+                        int lack100Qty = CurrentNormalCarInfo.Charge100Qty - cash100SettingQty; // 5PHP원권의 부족한 수량
+                        CurrentNormalCarInfo.Charge100Qty = cash100SettingQty; // 현재 남아있는 5PHP권 수량을 거스름돈으로 대체                        
+                        CurrentNormalCarInfo.Charge50Qty = CurrentNormalCarInfo.Charge50Qty + (lack100Qty * 5); // 부족한 수량을 거스름돈으로 대체
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCompleteMoney", "거스름돈 반환시 동전부족:5PHP권 부족으로 1PHP원권으로 동전교환-현보유5PHP수량:" + cash100SettingQty.ToString() + " 1PHP수량:" + CurrentNormalCarInfo.Charge50Qty.ToString());
 
                     }
                 }
@@ -3117,93 +2575,93 @@ namespace NPAutoBooth.UI
                     TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름검사시작 여유액: 50PHP수량:" + cash5000SettingQty.ToString() + "  20PHP수량:" + cash1000SettingQty.ToString() + "  10PHP수량:" + cash500SettingQty.ToString() + "  5PHP수량:" + cash100SettingQty.ToString() + "  1PHP수량:" + cash50SettingQty.ToString());
                 }
 
-                if ((cash5000SettingQty >= mCurrentNormalCarInfo.Cancle5000Qty) &&
-                    (cash1000SettingQty >= mCurrentNormalCarInfo.Cancle1000Qty) &&
-                    (cash500SettingQty >= mCurrentNormalCarInfo.Cancle500Qty) &&
-                    (cash100SettingQty >= mCurrentNormalCarInfo.Cancle100Qty) &&
-                    (cash50SettingQty >= mCurrentNormalCarInfo.Cancle50Qty))
+                if ((cash5000SettingQty >= CurrentNormalCarInfo.Cancle5000Qty) &&
+                    (cash1000SettingQty >= CurrentNormalCarInfo.Cancle1000Qty) &&
+                    (cash500SettingQty >= CurrentNormalCarInfo.Cancle500Qty) &&
+                    (cash100SettingQty >= CurrentNormalCarInfo.Cancle100Qty) &&
+                    (cash50SettingQty >= CurrentNormalCarInfo.Cancle50Qty))
                 {
                     return true;
                 }
                 if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.WON)
                 {
-                    if (cash5000SettingQty < mCurrentNormalCarInfo.Cancle5000Qty)  // 5000원권이 부죽한 경우 1000원권으로 넘김
+                    if (cash5000SettingQty < CurrentNormalCarInfo.Cancle5000Qty)  // 5000원권이 부죽한 경우 1000원권으로 넘김
                     {
-                        int lack5000Qty = mCurrentNormalCarInfo.Cancle5000Qty - cash5000SettingQty;  // 5000원권의 부족한 수량
+                        int lack5000Qty = CurrentNormalCarInfo.Cancle5000Qty - cash5000SettingQty;  // 5000원권의 부족한 수량
 
-                        mCurrentNormalCarInfo.Cancle5000Qty = cash5000SettingQty; // 현재 남아있는 5000원권 수량을 거스름돈으로 대체
-                        mCurrentNormalCarInfo.Cancle1000Qty = mCurrentNormalCarInfo.Cancle1000Qty + (lack5000Qty * 5); // 부족한 5000원 수량을 1000원권 수량에 더함
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 지폐부족:5000원권 부족으로 1000원권으로 동전교환-현보유1000수량:" + cash5000SettingQty.ToString() + " 1000원수량:" + mCurrentNormalCarInfo.Cancle1000Qty.ToString());
+                        CurrentNormalCarInfo.Cancle5000Qty = cash5000SettingQty; // 현재 남아있는 5000원권 수량을 거스름돈으로 대체
+                        CurrentNormalCarInfo.Cancle1000Qty = CurrentNormalCarInfo.Cancle1000Qty + (lack5000Qty * 5); // 부족한 5000원 수량을 1000원권 수량에 더함
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 지폐부족:5000원권 부족으로 1000원권으로 동전교환-현보유1000수량:" + cash5000SettingQty.ToString() + " 1000원수량:" + CurrentNormalCarInfo.Cancle1000Qty.ToString());
 
                     }
 
-                    if (cash1000SettingQty < mCurrentNormalCarInfo.Cancle1000Qty) // 1000원권이 부족한 경우 500원 으로 넘김
+                    if (cash1000SettingQty < CurrentNormalCarInfo.Cancle1000Qty) // 1000원권이 부족한 경우 500원 으로 넘김
                     {
-                        int lack1000Qty = mCurrentNormalCarInfo.Cancle1000Qty - cash1000SettingQty; // 1000원권의 부족한 수량
+                        int lack1000Qty = CurrentNormalCarInfo.Cancle1000Qty - cash1000SettingQty; // 1000원권의 부족한 수량
 
-                        mCurrentNormalCarInfo.Cancle1000Qty = cash1000SettingQty; // 현재 남아있는 1000원권 수량을 거스름돈으로 대체
-                        mCurrentNormalCarInfo.Cancle500Qty = mCurrentNormalCarInfo.Cancle500Qty + (lack1000Qty * 2); // 부족한 1000원 수량을 500원 수량에 더함
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 지폐부족:1000원권 부족으로 500원권으로 동전교환-현보유1000수량:" + cash1000SettingQty.ToString() + " 500원수량:" + mCurrentNormalCarInfo.Cancle500Qty.ToString());
+                        CurrentNormalCarInfo.Cancle1000Qty = cash1000SettingQty; // 현재 남아있는 1000원권 수량을 거스름돈으로 대체
+                        CurrentNormalCarInfo.Cancle500Qty = CurrentNormalCarInfo.Cancle500Qty + (lack1000Qty * 2); // 부족한 1000원 수량을 500원 수량에 더함
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 지폐부족:1000원권 부족으로 500원권으로 동전교환-현보유1000수량:" + cash1000SettingQty.ToString() + " 500원수량:" + CurrentNormalCarInfo.Cancle500Qty.ToString());
 
                     }
 
-                    if (cash500SettingQty < mCurrentNormalCarInfo.Cancle500Qty) // 500원 권에 대해서만 처리, 100원, 50원은 코인보드에서 자동으로 처리하기 때문에 안된다고 봄
+                    if (cash500SettingQty < CurrentNormalCarInfo.Cancle500Qty) // 500원 권에 대해서만 처리, 100원, 50원은 코인보드에서 자동으로 처리하기 때문에 안된다고 봄
                     {
-                        int lack500Qty = mCurrentNormalCarInfo.Cancle500Qty - cash500SettingQty; // 500원권의 부족한 수량
-                        mCurrentNormalCarInfo.Cancle500Qty = cash500SettingQty; // 현재 남아있는 500원권 수량을 거스름돈으로 대체                        
-                        mCurrentNormalCarInfo.Cancle100Qty = mCurrentNormalCarInfo.Cancle100Qty + (lack500Qty * 5); // 부족한 수량을 거스름돈으로 대체
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 지폐부족:500원권 부족으로 100원권으로 동전교환-현보유500수량:" + cash500SettingQty.ToString() + " 100원수량:" + mCurrentNormalCarInfo.Cancle100Qty.ToString());
+                        int lack500Qty = CurrentNormalCarInfo.Cancle500Qty - cash500SettingQty; // 500원권의 부족한 수량
+                        CurrentNormalCarInfo.Cancle500Qty = cash500SettingQty; // 현재 남아있는 500원권 수량을 거스름돈으로 대체                        
+                        CurrentNormalCarInfo.Cancle100Qty = CurrentNormalCarInfo.Cancle100Qty + (lack500Qty * 5); // 부족한 수량을 거스름돈으로 대체
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 지폐부족:500원권 부족으로 100원권으로 동전교환-현보유500수량:" + cash500SettingQty.ToString() + " 100원수량:" + CurrentNormalCarInfo.Cancle100Qty.ToString());
                     }
 
-                    if (cash100SettingQty < mCurrentNormalCarInfo.Cancle100Qty) // 100원 권에 대해서만 처리
+                    if (cash100SettingQty < CurrentNormalCarInfo.Cancle100Qty) // 100원 권에 대해서만 처리
                     {
-                        int lack100Qty = mCurrentNormalCarInfo.Cancle100Qty - cash100SettingQty; // 1000원권의 부족한 수량
-                        mCurrentNormalCarInfo.Cancle100Qty = cash100SettingQty; // 현재 남아있는 500원권 수량을 거스름돈으로 대체                        
-                        mCurrentNormalCarInfo.Cancle50Qty = mCurrentNormalCarInfo.Cancle50Qty + (lack100Qty * 2); // 부족한 수량을 거스름돈으로 대체
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 지폐부족:100원권 부족으로 50원권으로 동전교환-현보유100수량:" + cash100SettingQty.ToString() + " 50원수량:" + mCurrentNormalCarInfo.Cancle50Qty.ToString());
+                        int lack100Qty = CurrentNormalCarInfo.Cancle100Qty - cash100SettingQty; // 1000원권의 부족한 수량
+                        CurrentNormalCarInfo.Cancle100Qty = cash100SettingQty; // 현재 남아있는 500원권 수량을 거스름돈으로 대체                        
+                        CurrentNormalCarInfo.Cancle50Qty = CurrentNormalCarInfo.Cancle50Qty + (lack100Qty * 2); // 부족한 수량을 거스름돈으로 대체
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 지폐부족:100원권 부족으로 50원권으로 동전교환-현보유100수량:" + cash100SettingQty.ToString() + " 50원수량:" + CurrentNormalCarInfo.Cancle50Qty.ToString());
 
                     }
                 }
                 else if (NPSYS.CurrentMoneyType == ConfigID.MoneyType.PHP)
                 {
-                    if (cash5000SettingQty < mCurrentNormalCarInfo.Cancle5000Qty)  // 50PHP권이 부죽한 경우 20PHP으로 넘김
+                    if (cash5000SettingQty < CurrentNormalCarInfo.Cancle5000Qty)  // 50PHP권이 부죽한 경우 20PHP으로 넘김
                     {
-                        int lack5000Qty = mCurrentNormalCarInfo.Cancle5000Qty - cash5000SettingQty;  // 50PHP권의 부족한 수량
+                        int lack5000Qty = CurrentNormalCarInfo.Cancle5000Qty - cash5000SettingQty;  // 50PHP권의 부족한 수량
                         int php50 = lack5000Qty;
                         int php50Fee = php50 * 50;
                         int php20 = php50Fee / 20;
                         int php10 = (php50Fee - (php20 * 20)) / 10;
-                        mCurrentNormalCarInfo.Cancle5000Qty = cash5000SettingQty; // 현재 남아있는 50PHP권 수량을 거스름돈으로 대체
-                        mCurrentNormalCarInfo.Cancle1000Qty = mCurrentNormalCarInfo.Cancle1000Qty + (php20); // 부족한 5000원 수량을 1000원권 수량에 더함
-                        mCurrentNormalCarInfo.Cancle500Qty = mCurrentNormalCarInfo.Cancle500Qty + php10;
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 지폐부족:50PHP 부족으로 20PHP로 교환 현보유50PHP수량:" + cash5000SettingQty.ToString() + " 20PHP수량:" + mCurrentNormalCarInfo.Cancle1000Qty.ToString());
+                        CurrentNormalCarInfo.Cancle5000Qty = cash5000SettingQty; // 현재 남아있는 50PHP권 수량을 거스름돈으로 대체
+                        CurrentNormalCarInfo.Cancle1000Qty = CurrentNormalCarInfo.Cancle1000Qty + (php20); // 부족한 5000원 수량을 1000원권 수량에 더함
+                        CurrentNormalCarInfo.Cancle500Qty = CurrentNormalCarInfo.Cancle500Qty + php10;
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 지폐부족:50PHP 부족으로 20PHP로 교환 현보유50PHP수량:" + cash5000SettingQty.ToString() + " 20PHP수량:" + CurrentNormalCarInfo.Cancle1000Qty.ToString());
 
                     }
 
-                    if (cash1000SettingQty < mCurrentNormalCarInfo.Cancle1000Qty) // 20PHP권이 부족한 경우 10PHP원 으로 넘김
+                    if (cash1000SettingQty < CurrentNormalCarInfo.Cancle1000Qty) // 20PHP권이 부족한 경우 10PHP원 으로 넘김
                     {
-                        int lack1000Qty = mCurrentNormalCarInfo.Cancle1000Qty - cash1000SettingQty; // 20PHP의 부족한 수량
+                        int lack1000Qty = CurrentNormalCarInfo.Cancle1000Qty - cash1000SettingQty; // 20PHP의 부족한 수량
 
-                        mCurrentNormalCarInfo.Cancle1000Qty = cash1000SettingQty; // 현재 남아있는 20PHP 수량을 거스름돈으로 대체
-                        mCurrentNormalCarInfo.Cancle500Qty = mCurrentNormalCarInfo.Cancle500Qty + (lack1000Qty * 2); // 부족한 20PHP 수량을 10PHP원 수량에 더함
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 지폐부족:20PHP원권 부족으로 10PHP원권으로 동전교환-현보유20PHP수량:" + cash1000SettingQty.ToString() + " 10PHP원수량:" + mCurrentNormalCarInfo.Cancle500Qty.ToString());
+                        CurrentNormalCarInfo.Cancle1000Qty = cash1000SettingQty; // 현재 남아있는 20PHP 수량을 거스름돈으로 대체
+                        CurrentNormalCarInfo.Cancle500Qty = CurrentNormalCarInfo.Cancle500Qty + (lack1000Qty * 2); // 부족한 20PHP 수량을 10PHP원 수량에 더함
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 지폐부족:20PHP원권 부족으로 10PHP원권으로 동전교환-현보유20PHP수량:" + cash1000SettingQty.ToString() + " 10PHP원수량:" + CurrentNormalCarInfo.Cancle500Qty.ToString());
 
                     }
 
-                    if (cash500SettingQty < mCurrentNormalCarInfo.Cancle500Qty) // 10PHP원 권에 대해서만 처리, 
+                    if (cash500SettingQty < CurrentNormalCarInfo.Cancle500Qty) // 10PHP원 권에 대해서만 처리, 
                     {
-                        int lack500Qty = mCurrentNormalCarInfo.Cancle500Qty - cash500SettingQty; // 10PHP원권의 부족한 수량
-                        mCurrentNormalCarInfo.Cancle500Qty = cash500SettingQty; // 현재 남아있는 10PHP권 수량을 거스름돈으로 대체                        
-                        mCurrentNormalCarInfo.Cancle100Qty = mCurrentNormalCarInfo.Cancle100Qty + (lack500Qty * 2); // 부족한 수량을 거스름돈으로 대체
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 동전부족:10PHP 부족으로 5PHP 동전교환-현보유10PHP:" + cash500SettingQty.ToString() + " 5PHP:" + mCurrentNormalCarInfo.Cancle100Qty.ToString());
+                        int lack500Qty = CurrentNormalCarInfo.Cancle500Qty - cash500SettingQty; // 10PHP원권의 부족한 수량
+                        CurrentNormalCarInfo.Cancle500Qty = cash500SettingQty; // 현재 남아있는 10PHP권 수량을 거스름돈으로 대체                        
+                        CurrentNormalCarInfo.Cancle100Qty = CurrentNormalCarInfo.Cancle100Qty + (lack500Qty * 2); // 부족한 수량을 거스름돈으로 대체
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 동전부족:10PHP 부족으로 5PHP 동전교환-현보유10PHP:" + cash500SettingQty.ToString() + " 5PHP:" + CurrentNormalCarInfo.Cancle100Qty.ToString());
                     }
 
-                    if (cash100SettingQty < mCurrentNormalCarInfo.Cancle100Qty) // 5PHP원 권에 대해서만 처리
+                    if (cash100SettingQty < CurrentNormalCarInfo.Cancle100Qty) // 5PHP원 권에 대해서만 처리
                     {
-                        int lack100Qty = mCurrentNormalCarInfo.Cancle100Qty - cash100SettingQty; // 5PHP원권의 부족한 수량
-                        mCurrentNormalCarInfo.Cancle100Qty = cash100SettingQty; // 현재 남아있는 5PHP 수량을 거스름돈으로 대체                        
-                        mCurrentNormalCarInfo.Cancle50Qty = mCurrentNormalCarInfo.Cancle50Qty + (lack100Qty * 5); // 부족한 수량을 거스름돈으로 대체
-                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 지폐부족:5PHP원권 부족으로 1PHP원권으로 동전교환-현보유5PHP:" + cash100SettingQty.ToString() + " 5PHP수량:" + mCurrentNormalCarInfo.Cancle50Qty.ToString());
+                        int lack100Qty = CurrentNormalCarInfo.Cancle100Qty - cash100SettingQty; // 5PHP원권의 부족한 수량
+                        CurrentNormalCarInfo.Cancle100Qty = cash100SettingQty; // 현재 남아있는 5PHP 수량을 거스름돈으로 대체                        
+                        CurrentNormalCarInfo.Cancle50Qty = CurrentNormalCarInfo.Cancle50Qty + (lack100Qty * 5); // 부족한 수량을 거스름돈으로 대체
+                        TextCore.INFO(TextCore.INFOS.CHARGE, "FormPaymentMenu | CheckCurrentOutCancelMoney", "거스름돈 반환시 지폐부족:5PHP원권 부족으로 1PHP원권으로 동전교환-현보유5PHP:" + cash100SettingQty.ToString() + " 5PHP수량:" + CurrentNormalCarInfo.Cancle50Qty.ToString());
 
                     }
                 }
@@ -3301,9 +2759,9 @@ namespace NPAutoBooth.UI
             try
             {
                 // 2016.10.27 KIS_DIP 추가
-                if (mCurrentNormalCarInfo.Current_Money > 0 
+                if (CurrentNormalCarInfo.Current_Money > 0 
                     || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardPaySuccess 
-                    || mCurrentNormalCarInfo.VanAmt > 0)
+                    || CurrentNormalCarInfo.VanAmt > 0)
                 {
                     return;
                 }
@@ -3379,8 +2837,8 @@ namespace NPAutoBooth.UI
                 if (l_ReadingTrackdata.ReultIntMessage != (int)TicketCardDevice.TicketAndCardResult.No_Return_Sensor_Ticket 
                     && l_ReadingTrackdata.ReultIntMessage != (int)TicketCardDevice.TicketAndCardResult.Empy
                     && (
-                        mCurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Outcar_Season 
-                        || mCurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Precar_Season
+                        CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Outcar_Season 
+                        || CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Precar_Season
                         )
                     )
                 {
@@ -3406,35 +2864,35 @@ namespace NPAutoBooth.UI
                             return;
                         }
 
-                        Payment paymentAfterDisocunt = mHttpProcess.Discount(mCurrentNormalCarInfo, DcDetail.DIscountTicketType.MI, l_ReadingTrackdata.Message);
+                        Payment paymentAfterDisocunt = mHttpProcess.Discount(CurrentNormalCarInfo, DcDetail.DIscountTicketType.MI, l_ReadingTrackdata.Message);
 
                         //=========== 할인권 처리 ==============
                         if (paymentAfterDisocunt.status.Success) // 정상적인 티켓이라면
                         {
-                            int prepayment = mCurrentNormalCarInfo.PaymentMoney;
+                            int prepayment = CurrentNormalCarInfo.PaymentMoney;
 
-                            mCurrentNormalCarInfo.ParkingMin = paymentAfterDisocunt.parkingMin;
-                            mCurrentNormalCarInfo.TotFee = Convert.ToInt32(paymentAfterDisocunt.totFee);
-                            mCurrentNormalCarInfo.TotDc = Convert.ToInt32(paymentAfterDisocunt.totDc);
-                            mCurrentNormalCarInfo.Change = Convert.ToInt32(paymentAfterDisocunt.change); //시제설정누락처리
-                            mCurrentNormalCarInfo.RecvAmt = Convert.ToInt32(paymentAfterDisocunt.recvAmt); //시제설정누락처리
-                            mCurrentNormalCarInfo.DcCnt = paymentAfterDisocunt.dcCnt;
-                            mCurrentNormalCarInfo.RealFee = Convert.ToInt32(paymentAfterDisocunt.realFee);
+                            CurrentNormalCarInfo.ParkingMin = paymentAfterDisocunt.parkingMin;
+                            CurrentNormalCarInfo.TotFee = Convert.ToInt32(paymentAfterDisocunt.totFee);
+                            CurrentNormalCarInfo.TotDc = Convert.ToInt32(paymentAfterDisocunt.totDc);
+                            CurrentNormalCarInfo.Change = Convert.ToInt32(paymentAfterDisocunt.change); //시제설정누락처리
+                            CurrentNormalCarInfo.RecvAmt = Convert.ToInt32(paymentAfterDisocunt.recvAmt); //시제설정누락처리
+                            CurrentNormalCarInfo.DcCnt = paymentAfterDisocunt.dcCnt;
+                            CurrentNormalCarInfo.RealFee = Convert.ToInt32(paymentAfterDisocunt.realFee);
                             //할인권 입수수량 표출
                             paymentControl.DiscountInputCount = (Convert.ToInt32(paymentControl.DiscountInputCount) + 1).ToString();
                             //할인권 입수수량 표출 주석완료
 
                             //요금할인권처리
-                            paymentControl.ParkingFee = TextCore.ToCommaString(mCurrentNormalCarInfo.TotFee.ToString());
-                            paymentControl.RecvMoney = TextCore.ToCommaString((mCurrentNormalCarInfo.RecvAmt - mCurrentNormalCarInfo.Change).ToString()); //시제설정누락처리
+                            paymentControl.ParkingFee = TextCore.ToCommaString(CurrentNormalCarInfo.TotFee.ToString());
+                            paymentControl.RecvMoney = TextCore.ToCommaString((CurrentNormalCarInfo.RecvAmt - CurrentNormalCarInfo.Change).ToString()); //시제설정누락처리
 
                             TextCore.INFO(TextCore.INFOS.DISCOUNTTICEKT_SUCCESS, "FormPaymentMenu|timer_CardReader2_Tick", "결제성공");
                             lTicketActionResult = NPSYS.Device.CardDevice2.TIcketBackEject();
                             TextCore.ACTION(TextCore.ACTIONS.CARDREADER2, "FormPaymentMenu|timer_CardReader2_Tick", "티켓 뒤로배출:" + lTicketActionResult.ToString());
-                            paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
-                            paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc);
+                            paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+                            paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
 
-                            if (prepayment == mCurrentNormalCarInfo.PaymentMoney)
+                            if (prepayment == CurrentNormalCarInfo.PaymentMoney)
                             {
                                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu|timer_CardReader1_Tick", "할인에 성공했지만 할인금액이 없음");
                                 return;
@@ -3443,10 +2901,10 @@ namespace NPAutoBooth.UI
                             //할인 요금 적용 전 카드결제 동작 중지
                             BeforeChangePayValueAsCardReader();
 
-                            if (mCurrentNormalCarInfo.PaymentMoney == 0)
+                            if (CurrentNormalCarInfo.PaymentMoney == 0)
                             {
                                 //카드실패전송
-                                mCurrentNormalCarInfo.PaymentMethod = PaymentType.DiscountCard;
+                                CurrentNormalCarInfo.PaymentMethod = PaymentType.DiscountCard;
                                 //카드실패전송완료
                                 PaymentComplete();
 
@@ -3547,7 +3005,7 @@ namespace NPAutoBooth.UI
             }
             finally
             {
-                if (NPSYS.Device.gIsUseMagneticReaderDevice && mCurrentNormalCarInfo.PaymentMoney > 0)
+                if (NPSYS.Device.gIsUseMagneticReaderDevice && CurrentNormalCarInfo.PaymentMoney > 0)
                 {
                     timer_CardReader2.Start();
                 }
@@ -3603,13 +3061,13 @@ namespace NPAutoBooth.UI
             {
                 NPSYS.buttonSoundDingDong();
                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | btn_home_Click", "고객이 홈버튼 누름");
-                if (mCurrentNormalCarInfo.ListDcDetail.Count > 0)
+                if (CurrentNormalCarInfo.ListDcDetail.Count > 0)
                 {
-                    foreach (DcDetail detailDcDetail in mCurrentNormalCarInfo.ListDcDetail)
+                    foreach (DcDetail detailDcDetail in CurrentNormalCarInfo.ListDcDetail)
                     {
                         if (detailDcDetail.UseYn == true && detailDcDetail.currentDiscountTicketType == DcDetail.DIscountTicketType.BR)
                         {
-                            mHttpProcess.DiscountCancle(mCurrentNormalCarInfo, detailDcDetail);
+                            mHttpProcess.DiscountCancle(CurrentNormalCarInfo, detailDcDetail);
                             detailDcDetail.UseYn = false;
                         }
                     }
@@ -3631,18 +3089,18 @@ namespace NPAutoBooth.UI
                 inputtime = 50000000;
                 TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu | inputTimer_Tick", "시간이지나서 처음으로 돌아감");
                 CashCancleFormCloseAction(false);
-                if (mCurrentNormalCarInfo.ListDcDetail.Count > 0)
+                if (CurrentNormalCarInfo.ListDcDetail.Count > 0)
                 {
-                    foreach (DcDetail detailDcDetail in mCurrentNormalCarInfo.ListDcDetail)
+                    foreach (DcDetail detailDcDetail in CurrentNormalCarInfo.ListDcDetail)
                     {
                         if (detailDcDetail.UseYn == true && detailDcDetail.currentDiscountTicketType == DcDetail.DIscountTicketType.BR)
                         {
-                            mHttpProcess.DiscountCancle(mCurrentNormalCarInfo, detailDcDetail);
+                            mHttpProcess.DiscountCancle(CurrentNormalCarInfo, detailDcDetail);
                             detailDcDetail.UseYn = false;
                         }
                     }
                 }
-                mCurrentNormalCarInfo.ListDcDetail = new List<DcDetail>();
+                CurrentNormalCarInfo.ListDcDetail = new List<DcDetail>();
                 EventExitPayForm(mCurrentFormType);
                 return;
 
@@ -3653,10 +3111,10 @@ namespace NPAutoBooth.UI
         private void button1_Click_1(object sender, EventArgs e)
         {
             InsertMoney("100QTY");
-            if (mCurrentNormalCarInfo.PaymentMoney == 0)
+            if (CurrentNormalCarInfo.PaymentMoney == 0)
             {
                 //카드실패전송
-                mCurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
+                CurrentNormalCarInfo.PaymentMethod = PaymentType.Cash;
                 //카드실패전송완료
                 PaymentComplete();
             }
@@ -3669,11 +3127,11 @@ namespace NPAutoBooth.UI
 
         private void button2_Click(object sender, EventArgs e)
         {
-            m_PayCardandCash.CreditCardPayResult(txtCardInfo.Text, mCurrentNormalCarInfo);
-            if (mCurrentNormalCarInfo.PaymentMoney == 0)
+            m_PayCardandCash.CreditCardPayResult(txtCardInfo.Text, CurrentNormalCarInfo);
+            if (CurrentNormalCarInfo.PaymentMoney == 0)
             {
                 //카드실패전송
-                mCurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
+                CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
                 //카드실패전송완료
                 PaymentComplete();
             }
@@ -3683,22 +3141,22 @@ namespace NPAutoBooth.UI
         {
             NPSYS.buttonSoundDingDong();
             TextCore.ACTION(TextCore.ACTIONS.USER, "FormPaymentMenu | btn_PrePage_Click", "이전 버튼 클릭");
-            if (mCurrentNormalCarInfo.Current_Money > 0)
+            if (CurrentNormalCarInfo.Current_Money > 0)
             {
                 //CashCancleAction();
             }
-            if (mCurrentNormalCarInfo.ListDcDetail.Count > 0)
+            if (CurrentNormalCarInfo.ListDcDetail.Count > 0)
             {
-                foreach (DcDetail detailDcDetail in mCurrentNormalCarInfo.ListDcDetail)
+                foreach (DcDetail detailDcDetail in CurrentNormalCarInfo.ListDcDetail)
                 {
                     if (detailDcDetail.UseYn == true && detailDcDetail.currentDiscountTicketType == DcDetail.DIscountTicketType.BR)
                     {
-                        mHttpProcess.DiscountCancle(mCurrentNormalCarInfo, detailDcDetail);
+                        mHttpProcess.DiscountCancle(CurrentNormalCarInfo, detailDcDetail);
                         detailDcDetail.UseYn = false;
                     }
                 }
             }
-            mCurrentNormalCarInfo.ListDcDetail = new List<DcDetail>();
+            CurrentNormalCarInfo.ListDcDetail = new List<DcDetail>();
             EventExitPayForm(mCurrentFormType, NPSYS.FormType.Select);
         }
 
@@ -3706,7 +3164,7 @@ namespace NPAutoBooth.UI
         {
             NPSYS.buttonSoundDingDong();
 
-            if (mCurrentNormalCarInfo.Current_Money > 0)
+            if (CurrentNormalCarInfo.Current_Money > 0)
             {
                 //CashCancleAction();
             }
@@ -3848,9 +3306,9 @@ namespace NPAutoBooth.UI
         //정기권관련기능(만료요금부과/연장관련)주석완료
         private void btnTest1004Money_Click(object sender, EventArgs e)
         {
-            mCurrentNormalCarInfo.TotFee = 1004;
-            paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
-            paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc);
+            CurrentNormalCarInfo.TotFee = 1004;
+            paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+            paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
         }
         //나이스개월연장기능
 
@@ -3927,6 +3385,7 @@ namespace NPAutoBooth.UI
         #endregion
 
         private int GoConfigSequence = 0;
+
         private void panel_ConfigClick1_Click(object sender, EventArgs e)
         {
 
@@ -3959,7 +3418,7 @@ namespace NPAutoBooth.UI
 
             TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | btnSamSungPay_Click", "삼성페이 결제버튼 누름");
 
-            if (mCurrentNormalCarInfo.PaymentMoney > 0 && mCurrentNormalCarInfo.Current_Money == 0
+            if (CurrentNormalCarInfo.PaymentMoney > 0 && CurrentNormalCarInfo.Current_Money == 0
                 && (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KICC_DIP_IFM || NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KOCES_TCM || NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KOCES_PAYMGATE))
             {
 
@@ -3974,20 +3433,20 @@ namespace NPAutoBooth.UI
                             NPSYS.Device.KICC_TIT.CardEject();
                             mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
                         }
-                        Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, mCurrentNormalCarInfo);
+                        Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, CurrentNormalCarInfo);
                         mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
                         if (_CardpaySuccess.Success) // 정상적인 티켓이라면
                         {
                             NPSYS.CashCreditCount += 1;
-                            NPSYS.CashCreditMoney += mCurrentNormalCarInfo.VanAmt;
-                            paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
-                            paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc);
+                            NPSYS.CashCreditMoney += CurrentNormalCarInfo.VanAmt;
+                            paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+                            paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
                             TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | btnSamSungPay_Click", "정상적인 카드결제됨");
 
-                            if (mCurrentNormalCarInfo.PaymentMoney == 0)
+                            if (CurrentNormalCarInfo.PaymentMoney == 0)
                             {
                                 //카드실패전송
-                                mCurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
+                                CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
                                 //카드실패전송완료
                                 PaymentComplete();
 
@@ -4009,7 +3468,7 @@ namespace NPAutoBooth.UI
                     }
                     finally
                     {
-                        if (mCurrentNormalCarInfo.PaymentMoney > 0)
+                        if (CurrentNormalCarInfo.PaymentMoney > 0)
                         {
                             SettingEnableDevice();
                             paymentControl.ButtonEnable(ButtonEnableType.SamsunPayEnd);
@@ -4028,19 +3487,19 @@ namespace NPAutoBooth.UI
                             mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
                         }
 
-                        Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, mCurrentNormalCarInfo);
+                        Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, CurrentNormalCarInfo);
                         if (_CardpaySuccess.Success)
                         {
                             NPSYS.CashCreditCount += 1;
-                            NPSYS.CashCreditMoney += mCurrentNormalCarInfo.VanAmt;
-                            paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
-                            paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc);
+                            NPSYS.CashCreditMoney += CurrentNormalCarInfo.VanAmt;
+                            paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+                            paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
                             TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | btnSamSungPay_Click", "정상적인 카드결제됨");
 
-                            if (mCurrentNormalCarInfo.PaymentMoney == 0)
+                            if (CurrentNormalCarInfo.PaymentMoney == 0)
                             {
                                 //카드실패전송
-                                mCurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
+                                CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
                                 //카드실패전송완료
                                 PaymentComplete();
 
@@ -4062,7 +3521,7 @@ namespace NPAutoBooth.UI
                     }
                     finally
                     {
-                        if (mCurrentNormalCarInfo.PaymentMoney > 0)
+                        if (CurrentNormalCarInfo.PaymentMoney > 0)
                         {
                             SettingEnableDevice();
                             paymentControl.ButtonEnable(ButtonEnableType.SamsunPayEnd);
@@ -4085,31 +3544,31 @@ namespace NPAutoBooth.UI
                 inputtime = NPSYS.SettingInputTimeValue;
                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | SetRemoteDiscount", "원격할인 받은정보"
                                                                                                      + " 기존결제금액:" + pPrePayMoney.ToString()
-                                                                                                     + " 현재남은금액:" + mCurrentNormalCarInfo.PaymentMoney.ToString()
-                                                                                                     + " 기존정보 주차시간:" + mCurrentNormalCarInfo.ParkingMin.ToString()
-                                                                                                     + " 기존정보 전체주차요금:" + mCurrentNormalCarInfo.TotFee.ToString()
-                                                                                                     + " 기존정보 전체할인요금:" + mCurrentNormalCarInfo.TotDc.ToString()
-                                                                                                     + " 기존정보 사정전산요금:" + mCurrentNormalCarInfo.RecvAmt.ToString()
-                                                                                                     + " 기존정보 사정전산거스름돈:" + mCurrentNormalCarInfo.Change.ToString()
+                                                                                                     + " 현재남은금액:" + CurrentNormalCarInfo.PaymentMoney.ToString()
+                                                                                                     + " 기존정보 주차시간:" + CurrentNormalCarInfo.ParkingMin.ToString()
+                                                                                                     + " 기존정보 전체주차요금:" + CurrentNormalCarInfo.TotFee.ToString()
+                                                                                                     + " 기존정보 전체할인요금:" + CurrentNormalCarInfo.TotDc.ToString()
+                                                                                                     + " 기존정보 사정전산요금:" + CurrentNormalCarInfo.RecvAmt.ToString()
+                                                                                                     + " 기존정보 사정전산거스름돈:" + CurrentNormalCarInfo.Change.ToString()
                                                                                                      + " 받은정보 주차시간:" + pRemotePayment.parkingMin.ToString()
                                                                                                      + " 받은정보 전체주차요금:" + pRemotePayment.totFee.ToString()
                                                                                                      + " 받은정보 전체할인요금:" + pRemotePayment.totDc.ToString()
                                                                                                      + " 받은정보 사정전산요금:" + pRemotePayment.recvAmt.ToString());
 
-                mCurrentNormalCarInfo.ParkingMin = pRemotePayment.parkingMin;
-                mCurrentNormalCarInfo.TotFee = Convert.ToInt32(pRemotePayment.totFee);
-                mCurrentNormalCarInfo.TotDc = Convert.ToInt32(pRemotePayment.totDc);
-                mCurrentNormalCarInfo.RecvAmt = Convert.ToInt32(pRemotePayment.recvAmt);
-                mCurrentNormalCarInfo.Change = Convert.ToInt32(pRemotePayment.change);
-                mCurrentNormalCarInfo.DcCnt = pRemotePayment.dcCnt;
-                mCurrentNormalCarInfo.RealFee = Convert.ToInt32(pRemotePayment.realFee);
+                CurrentNormalCarInfo.ParkingMin = pRemotePayment.parkingMin;
+                CurrentNormalCarInfo.TotFee = Convert.ToInt32(pRemotePayment.totFee);
+                CurrentNormalCarInfo.TotDc = Convert.ToInt32(pRemotePayment.totDc);
+                CurrentNormalCarInfo.RecvAmt = Convert.ToInt32(pRemotePayment.recvAmt);
+                CurrentNormalCarInfo.Change = Convert.ToInt32(pRemotePayment.change);
+                CurrentNormalCarInfo.DcCnt = pRemotePayment.dcCnt;
+                CurrentNormalCarInfo.RealFee = Convert.ToInt32(pRemotePayment.realFee);
 
-                paymentControl.ParkingFee = TextCore.ToCommaString(mCurrentNormalCarInfo.TotFee.ToString());
-                paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
-                paymentControl.RecvMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.RecvAmt - mCurrentNormalCarInfo.Change); //시제설정누락처리
-                paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc);
+                paymentControl.ParkingFee = TextCore.ToCommaString(CurrentNormalCarInfo.TotFee.ToString());
+                paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+                paymentControl.RecvMoney = TextCore.ToCommaString(CurrentNormalCarInfo.RecvAmt - CurrentNormalCarInfo.Change); //시제설정누락처리
+                paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
 
-                if (pPrePayMoney == mCurrentNormalCarInfo.PaymentMoney)
+                if (pPrePayMoney == CurrentNormalCarInfo.PaymentMoney)
                 {
                     TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SetRemoteDiscount", "원격할인에 대한 추가 할인이없음");
                     return;
@@ -4121,10 +3580,10 @@ namespace NPAutoBooth.UI
                 }
 
                 // 통합처리 할인이 되고난후 무언가 보내야하나
-                if (mCurrentNormalCarInfo.PaymentMoney == 0)
+                if (CurrentNormalCarInfo.PaymentMoney == 0)
                 {
                     //카드실패전송
-                    mCurrentNormalCarInfo.PaymentMethod = PaymentType.DiscountRemote;
+                    CurrentNormalCarInfo.PaymentMethod = PaymentType.DiscountRemote;
                     //카드실패전송완료
                     PaymentComplete();
 
@@ -4158,26 +3617,26 @@ namespace NPAutoBooth.UI
         #region 강제테스트
         private void btnTestJson_Click(object sender, EventArgs e)
         {
-            mCurrentNormalCarInfo.VanCheck = 1;
-            mCurrentNormalCarInfo.VanCardNumber = "1234";
-            mCurrentNormalCarInfo.VanRegNo = "1234567890";
-            mCurrentNormalCarInfo.VanDate = DateTime.Now.ToString("yyyyMMdd");
-            mCurrentNormalCarInfo.VanRescode = "0000";
-            mCurrentNormalCarInfo.VanResMsg = "성공";
-            mCurrentNormalCarInfo.VanCardName = "하나SK카드";
-            mCurrentNormalCarInfo.VanBeforeCardPay = mCurrentNormalCarInfo.PaymentMoney;
+            CurrentNormalCarInfo.VanCheck = 1;
+            CurrentNormalCarInfo.VanCardNumber = "1234";
+            CurrentNormalCarInfo.VanRegNo = "1234567890";
+            CurrentNormalCarInfo.VanDate = DateTime.Now.ToString("yyyyMMdd");
+            CurrentNormalCarInfo.VanRescode = "0000";
+            CurrentNormalCarInfo.VanResMsg = "성공";
+            CurrentNormalCarInfo.VanCardName = "하나SK카드";
+            CurrentNormalCarInfo.VanBeforeCardPay = CurrentNormalCarInfo.PaymentMoney;
             string senddate = DateTime.Now.ToString("yyyy-MM-dd");
             string sendtime = DateTime.Now.ToString("HH:mm:ss");
-            mCurrentNormalCarInfo.VanCardApproveYmd = senddate;
-            mCurrentNormalCarInfo.VanCardApproveHms = sendtime;
-            mCurrentNormalCarInfo.VanCardApprovalYmd = senddate;
-            mCurrentNormalCarInfo.VanCardApprovalHms = sendtime;
-            mCurrentNormalCarInfo.VanIssueCode = "01";
-            mCurrentNormalCarInfo.VanIssueName = "하나은행";
-            mCurrentNormalCarInfo.VanCardAcquirerCode = "11";
-            mCurrentNormalCarInfo.VanCardAcquirerName = "성공";
-            mCurrentNormalCarInfo.VanAmt = mCurrentNormalCarInfo.PaymentMoney;
-            LPRDbSelect.Creditcard_Log_INsert(mCurrentNormalCarInfo);
+            CurrentNormalCarInfo.VanCardApproveYmd = senddate;
+            CurrentNormalCarInfo.VanCardApproveHms = sendtime;
+            CurrentNormalCarInfo.VanCardApprovalYmd = senddate;
+            CurrentNormalCarInfo.VanCardApprovalHms = sendtime;
+            CurrentNormalCarInfo.VanIssueCode = "01";
+            CurrentNormalCarInfo.VanIssueName = "하나은행";
+            CurrentNormalCarInfo.VanCardAcquirerCode = "11";
+            CurrentNormalCarInfo.VanCardAcquirerName = "성공";
+            CurrentNormalCarInfo.VanAmt = CurrentNormalCarInfo.PaymentMoney;
+            LPRDbSelect.Creditcard_Log_INsert(CurrentNormalCarInfo);
             PaymentComplete(); // 희주test
             return;
             //if (paymentData != null) 
@@ -4259,15 +3718,15 @@ namespace NPAutoBooth.UI
         private void SetNextRegExipire(int pMonth)
         {
             paymentControl.ButtonEnable(ButtonEnableType.AddMonthStart);
-            int pPrePayMoney = mCurrentNormalCarInfo.PaymentMoney;
-            mCurrentNormalCarInfo.SetRegCurrMonthSetting(pMonth);
-            paymentControl.ElapsedTime = NPSYS.ConvetYears_Dash(mCurrentNormalCarInfo.NextExpiredYmd);
-            paymentControl.ParkingFee = TextCore.ToCommaString(mCurrentNormalCarInfo.TotFee);
-            paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
-            paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc);
-            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | SetNextRegExipire", "정기권연장일선택 개월수:" + pMonth.ToString() + " 연장가능일:" + NPSYS.ConvetYears_Dash(mCurrentNormalCarInfo.NextExpiredYmd));
+            int pPrePayMoney = CurrentNormalCarInfo.PaymentMoney;
+            CurrentNormalCarInfo.SetRegCurrMonthSetting(pMonth);
+            paymentControl.ElapsedTime = NPSYS.ConvetYears_Dash(CurrentNormalCarInfo.NextExpiredYmd);
+            paymentControl.ParkingFee = TextCore.ToCommaString(CurrentNormalCarInfo.TotFee);
+            paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+            paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
+            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | SetNextRegExipire", "정기권연장일선택 개월수:" + pMonth.ToString() + " 연장가능일:" + NPSYS.ConvetYears_Dash(CurrentNormalCarInfo.NextExpiredYmd));
 
-            if (pPrePayMoney > mCurrentNormalCarInfo.PaymentMoney) // 현재 할인되서 금액이 할인됬다면
+            if (pPrePayMoney > CurrentNormalCarInfo.PaymentMoney) // 현재 할인되서 금액이 할인됬다면
             {
                 BeforeChangePayValueAsCardReader();
                 ChangePayValueAsCardReader();
@@ -4289,7 +3748,7 @@ namespace NPAutoBooth.UI
             dcDetail.currentDiscountTicketType = DcDetail.DIscountTicketType.BR;
             dcDetail.DcTkno = txtTestBarcodeDiscount.Text;
             dcDetail.UseYn = true;
-            mCurrentNormalCarInfo.ListDcDetail.Add(dcDetail);
+            CurrentNormalCarInfo.ListDcDetail.Add(dcDetail);
         }
     }
 }

@@ -6,9 +6,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace NPAutoBooth.UI
 {
+    /// <summary>
+    /// 동영상 처리
+    /// </summary>
     partial class FormCreditPaymentMenu
     {
         #region 각종 장비들및 결재 방식에 따른 동영상및 문구
@@ -47,6 +51,8 @@ namespace NPAutoBooth.UI
         private string m_BarAndTMoneyMovie = "바코드_교통카드.wav";
         //영수증할인문구 적용완료
 
+        #region 동영상 관련 이벤트처리
+
         private void MovieTimer_Tick(object sender, EventArgs e)
         {
             try
@@ -69,8 +75,6 @@ namespace NPAutoBooth.UI
                 TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|MovieTimer_Tick", "예외사항:" + ex.ToString());
             }
         }
-
-        #region 동영상 관련 이벤트처리
 
         void Player_MediaError(object sender, AxWMPLib._WMPOCXEvents_MediaErrorEvent e)
         {
@@ -119,17 +123,19 @@ namespace NPAutoBooth.UI
         }
         #endregion
 
-        //영수증바코드문구 적용
+        /// <summary>
+        /// 영수증바코드문구 적용
+        /// </summary>
         public void Action_DeviceEnableMovie()
         {
-            if (mCurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Outcar_Season
-                || mCurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Precar_Season)
+            if (CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Outcar_Season
+                || CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Precar_Season)
             {
                 playVideo(m_Junggi);
                 return;
             }
-            else if (mCurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar
-                   || mCurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar)
+            else if (CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar
+                   || CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar)
             {
                 playVideo(m_CancleCard);
                 return;
@@ -321,7 +327,7 @@ namespace NPAutoBooth.UI
             }
         }
         //영수증바코드문구 적용완료
-        //바코드모터드리블 사용완료
+
         #endregion
 
         private void stopVideo()
@@ -373,6 +379,26 @@ namespace NPAutoBooth.UI
             catch (Exception ex)
             {
                 TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu|StartPlayVideo", "예외사항:" + ex.ToString());
+            }
+        }
+
+        private void PlayCardVideo(string pPreMovieName, string p_MovieName)
+        {
+            try
+            {
+                axWindowsMediaPlayer1.Ctlcontrols.stop();
+                axWindowsMediaPlayer1.URL = Application.StartupPath + @"\MOVIE\" + p_MovieName;
+                axWindowsMediaPlayer1.uiMode = "none";
+                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu1080 | PlayCardVideo", "동영상플레이:" + axWindowsMediaPlayer1.URL);
+                //if (mIsPlayerOkStatus)
+                //{
+                axWindowsMediaPlayer1.Ctlcontrols.play();
+                //}
+                MovieTimer.Enabled = false;
+            }
+            catch (Exception ex)
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu | PlayCardVideo", ex.ToString());
             }
         }
     }

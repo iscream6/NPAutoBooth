@@ -8,9 +8,11 @@ using System.Threading.Tasks;
 
 namespace NPAutoBooth.UI
 {
+    /// <summary>
+    /// 신분증인식기
+    /// </summary>
     partial class FormCreditPaymentMenu
     {
-        // 신분증인식기 적용
         private void SinbunProcess(SinBunReader.CardInfo info)
         {
             try

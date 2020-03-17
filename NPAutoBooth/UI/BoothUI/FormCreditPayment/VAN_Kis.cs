@@ -8,14 +8,30 @@ using System.Windows.Forms;
 
 namespace NPAutoBooth.UI
 {
+    /// <summary>
+    /// KIS 처리
+    /// </summary>
     partial class FormCreditPaymentMenu
     {
+        private void timerCardPay_Tick(object sender, EventArgs e)
+        {
+            if (CurrentNormalCarInfo.VanAmt > 0)
+            {
+                timerKisCardPay.Enabled = false;
+                timerKisCardPay.Stop();
+                //카드실패전송
+                CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
+                //카드실패전송완료
+                PaymentComplete();
+            }
+        }
+
         public bool SetKisDipIFM()
         {
             if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KIS_TIT_DIP_IFM)
             {
                 timerKisCardPay.Enabled = true;
-                if (mCurrentNormalCarInfo.PaymentMoney > 0)
+                if (CurrentNormalCarInfo.PaymentMoney > 0)
                 {
                     NPSYS.Device.KisPosAgent.OnApprovalEnd += new EventHandler(KisPosAgent_OnApprovalEnd);
                     //btnCardAction.Visible = true;
@@ -75,7 +91,7 @@ namespace NPAutoBooth.UI
                     {
                         paymentControl.ErrorMessage = "카드[MST] 데이터를 읽는 중 입니다...";
                         mKIS_TITDIPDevice.InWCC = "S";
-                        mKIS_TITDIPDevice.CardICRead(pKisPosAgent, mCurrentNormalCarInfo.PaymentMoney.ToString());
+                        mKIS_TITDIPDevice.CardICRead(pKisPosAgent, CurrentNormalCarInfo.PaymentMoney.ToString());
                         mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardReadyEnd;
                         TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | DoWork", "[삼성페이 읽기 진행]");
                     }
@@ -117,7 +133,7 @@ namespace NPAutoBooth.UI
                     //    mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardLockEject;
                     //}
                     paymentControl.ErrorMessage = "카드[IC] 데이터를 읽는 중 입니다...";
-                    mKIS_TITDIPDevice.CardICRead(pKisPosAgent, mCurrentNormalCarInfo.PaymentMoney.ToString());
+                    mKIS_TITDIPDevice.CardICRead(pKisPosAgent, CurrentNormalCarInfo.PaymentMoney.ToString());
                     mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardReadyEnd;
                     TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | DoWork", "[IC데이터 읽기 진행]");
                     break;
@@ -165,14 +181,14 @@ namespace NPAutoBooth.UI
                         }
                         paymentControl.ErrorMessage = "승인 진행 중입니다.";
                         //payData.outReaderData = axKisPosAgent1.outAgentData.Substring(0, 6);
-                        if (mCurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar
-                           || mCurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar)
+                        if (CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar
+                           || CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar)
                         {
-                            mKIS_TITDIPDevice.CardApprovalCancle(pKisPosAgent, mCurrentNormalCarInfo.PaymentMoney.ToString(), mCurrentNormalCarInfo.VanDate_Cancle.Replace("-", "").Substring(2, 6), mCurrentNormalCarInfo.VanRegNo_Cancle);
+                            mKIS_TITDIPDevice.CardApprovalCancle(pKisPosAgent, CurrentNormalCarInfo.PaymentMoney.ToString(), CurrentNormalCarInfo.VanDate_Cancle.Replace("-", "").Substring(2, 6), CurrentNormalCarInfo.VanRegNo_Cancle);
                         }
                         else
                         {
-                            mKIS_TITDIPDevice.CardApproval(pKisPosAgent, mCurrentNormalCarInfo.PaymentMoney.ToString());
+                            mKIS_TITDIPDevice.CardApproval(pKisPosAgent, CurrentNormalCarInfo.PaymentMoney.ToString());
                         }
                         mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardApproval;
                         TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | DoWork", "[카드 결제요청 진행]");
@@ -187,14 +203,14 @@ namespace NPAutoBooth.UI
 
                 case CardDeviceStatus.CardReaderStatus.CardFullBack:
                     paymentControl.ErrorMessage = "카드[MS] 결제 요청중 입니다.";
-                    if (mCurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar
-                       || mCurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar)
+                    if (CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar
+                       || CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar)
                     {
-                        mKIS_TITDIPDevice.CardApprovalCancle(pKisPosAgent, mCurrentNormalCarInfo.PaymentMoney.ToString(), mCurrentNormalCarInfo.VanDate_Cancle.Replace("-", "").Substring(2, 6), mCurrentNormalCarInfo.VanRegNo_Cancle);
+                        mKIS_TITDIPDevice.CardApprovalCancle(pKisPosAgent, CurrentNormalCarInfo.PaymentMoney.ToString(), CurrentNormalCarInfo.VanDate_Cancle.Replace("-", "").Substring(2, 6), CurrentNormalCarInfo.VanRegNo_Cancle);
                     }
                     else
                     {
-                        mKIS_TITDIPDevice.CardApproval(pKisPosAgent, mCurrentNormalCarInfo.PaymentMoney.ToString());
+                        mKIS_TITDIPDevice.CardApproval(pKisPosAgent, CurrentNormalCarInfo.PaymentMoney.ToString());
                     }
 
                     mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardApproval;
@@ -276,37 +292,37 @@ namespace NPAutoBooth.UI
                     //{
                     //    mCurrentNormalCarInfo.CardNumber = lCardNumData[0];
                     //}
-                    mCurrentNormalCarInfo.VanCardNumber = pKisPosAgent.outCardNo.Trim();
-                    mCurrentNormalCarInfo.VanRegNo = mKIS_TITDIPDevice.KisSpec.outAuthNo.Trim();
-                    mCurrentNormalCarInfo.VanDate = mKIS_TITDIPDevice.KisSpec.outReplyDate;
-                    mCurrentNormalCarInfo.VanRescode = mKIS_TITDIPDevice.KisSpec.outReplyCode;
-                    mCurrentNormalCarInfo.VanResMsg = mKIS_TITDIPDevice.KisSpec.outReplyMsg1;
+                    CurrentNormalCarInfo.VanCardNumber = pKisPosAgent.outCardNo.Trim();
+                    CurrentNormalCarInfo.VanRegNo = mKIS_TITDIPDevice.KisSpec.outAuthNo.Trim();
+                    CurrentNormalCarInfo.VanDate = mKIS_TITDIPDevice.KisSpec.outReplyDate;
+                    CurrentNormalCarInfo.VanRescode = mKIS_TITDIPDevice.KisSpec.outReplyCode;
+                    CurrentNormalCarInfo.VanResMsg = mKIS_TITDIPDevice.KisSpec.outReplyMsg1;
                     if (mKIS_TITDIPDevice.KisSpec.VatAmt.Trim() == string.Empty)
                     {
                         mKIS_TITDIPDevice.KisSpec.VatAmt = "0";
                     }
                     //mNormalCarInfo.SupplyPay = (Convert.ToInt32(mKisSpec.outTranAmt) - Convert.ToInt32(mKisSpec.outVatAmt));
-                    mCurrentNormalCarInfo.VanTaxPay = Convert.ToInt32(mKIS_TITDIPDevice.KisSpec.VatAmt);
-                    mCurrentNormalCarInfo.VanSupplyPay = 0;
-                    mCurrentNormalCarInfo.VanCardName = mKIS_TITDIPDevice.KisSpec.outIssuerName;
-                    mCurrentNormalCarInfo.VanBeforeCardPay = mCurrentNormalCarInfo.PaymentMoney;
-                    mCurrentNormalCarInfo.VanCardApproveYmd = NPSYS.ConvetYears_Dash(mKIS_TITDIPDevice.KisSpec.outReplyDate);
-                    mCurrentNormalCarInfo.VanCardApproveHms = DateTime.Now.ToString("HH:mm:ss");
-                    mCurrentNormalCarInfo.VanCardApprovalYmd = NPSYS.ConvetYears_Dash(mKIS_TITDIPDevice.KisSpec.outReplyDate);
-                    mCurrentNormalCarInfo.VanCardApprovalHms = DateTime.Now.ToString("HH:mm:ss");
+                    CurrentNormalCarInfo.VanTaxPay = Convert.ToInt32(mKIS_TITDIPDevice.KisSpec.VatAmt);
+                    CurrentNormalCarInfo.VanSupplyPay = 0;
+                    CurrentNormalCarInfo.VanCardName = mKIS_TITDIPDevice.KisSpec.outIssuerName;
+                    CurrentNormalCarInfo.VanBeforeCardPay = CurrentNormalCarInfo.PaymentMoney;
+                    CurrentNormalCarInfo.VanCardApproveYmd = NPSYS.ConvetYears_Dash(mKIS_TITDIPDevice.KisSpec.outReplyDate);
+                    CurrentNormalCarInfo.VanCardApproveHms = DateTime.Now.ToString("HH:mm:ss");
+                    CurrentNormalCarInfo.VanCardApprovalYmd = NPSYS.ConvetYears_Dash(mKIS_TITDIPDevice.KisSpec.outReplyDate);
+                    CurrentNormalCarInfo.VanCardApprovalHms = DateTime.Now.ToString("HH:mm:ss");
 
-                    mCurrentNormalCarInfo.VanIssueCode = mKIS_TITDIPDevice.KisSpec.outIssuerCode;
-                    mCurrentNormalCarInfo.VanIssueName = mKIS_TITDIPDevice.KisSpec.outIssuerName;
-                    mCurrentNormalCarInfo.VanCardAcquirerCode = mKIS_TITDIPDevice.KisSpec.outAccepterCode;
-                    mCurrentNormalCarInfo.VanCardAcquirerName = mKIS_TITDIPDevice.KisSpec.outAccepterName;
+                    CurrentNormalCarInfo.VanIssueCode = mKIS_TITDIPDevice.KisSpec.outIssuerCode;
+                    CurrentNormalCarInfo.VanIssueName = mKIS_TITDIPDevice.KisSpec.outIssuerName;
+                    CurrentNormalCarInfo.VanCardAcquirerCode = mKIS_TITDIPDevice.KisSpec.outAccepterCode;
+                    CurrentNormalCarInfo.VanCardAcquirerName = mKIS_TITDIPDevice.KisSpec.outAccepterName;
 
-                    mCurrentNormalCarInfo.VanRescode = "0000";
-                    LPRDbSelect.Creditcard_Log_INsert(mCurrentNormalCarInfo);
-                    mCurrentNormalCarInfo.VanAmt = mCurrentNormalCarInfo.PaymentMoney;
+                    CurrentNormalCarInfo.VanRescode = "0000";
+                    LPRDbSelect.Creditcard_Log_INsert(CurrentNormalCarInfo);
+                    CurrentNormalCarInfo.VanAmt = CurrentNormalCarInfo.PaymentMoney;
                     TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | KisPosAgent_OnAgtComplete", "카드 결제성공");
 
-                    paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney) + "원";
-                    paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc) + "원";
+                    paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney) + "원";
+                    paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc) + "원";
                     mKIS_TITDIPDevice.CardLockEjectFinish(NPSYS.Device.KisPosAgent);
                 }
                 else if (mKIS_TITDIPDevice.KisSpec.outReplyCode == "8100")// 사용자취소

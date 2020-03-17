@@ -1065,10 +1065,10 @@ namespace NPAutoBooth.UI
                             if (NPSYS.CurrentFormType == NPSYS.FormType.Payment)
                             {
                                 NormalCarInfo.CarPayStatus currentPayStatus = NormalCarInfo.CarPayStatus.NotSearch_Outcar;
-                                currentPayStatus = mFormCreditPaymentMenu.mCurrentNormalCarInfo.CurrentCarPayStatus;
+                                currentPayStatus = mFormCreditPaymentMenu.CurrentNormalCarInfo.CurrentCarPayStatus;
 
                                 string currentPayTkno = string.Empty;
-                                currentPayTkno = mFormCreditPaymentMenu.mCurrentNormalCarInfo.TkNO;
+                                currentPayTkno = mFormCreditPaymentMenu.CurrentNormalCarInfo.TkNO;
 
 
                                 if (currentPayTkno != remoteDiscountPayment.car.tkNo)
@@ -1097,7 +1097,7 @@ namespace NPAutoBooth.UI
                                     }
                                     else
                                     {
-                                        if (mFormCreditPaymentMenu.mCurrentNormalCarInfo.GetInComeMoney > 0)
+                                        if (mFormCreditPaymentMenu.CurrentNormalCarInfo.GetInComeMoney > 0)
                                         {
                                             byte[] sendFailData = Encoding.UTF8.GetBytes(mHttpProcess.GetReturnData(pCmdType, "원격할인 불가", "현금투입중이라 원격 할인 불가", false));
                                             pEvent.Response.Body.Write(sendFailData, 0, sendFailData.Length);
@@ -1106,7 +1106,7 @@ namespace NPAutoBooth.UI
                                         {
                                             byte[] sendData = Encoding.UTF8.GetBytes(mHttpProcess.GetReturnData(pCmdType, "원격할인처리", "원격할인처리 정상", true));
                                             pEvent.Response.Body.Write(sendData, 0, sendData.Length);
-                                            int pPrePaymoney = mFormCreditPaymentMenu.mCurrentNormalCarInfo.PaymentMoney;
+                                            int pPrePaymoney = mFormCreditPaymentMenu.CurrentNormalCarInfo.PaymentMoney;
                                             mFormCreditPaymentMenu.SetRemoteDiscount(pPrePaymoney, remoteDiscountPayment);
                                         }
 

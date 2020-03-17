@@ -13,22 +13,28 @@ using System.Windows.Forms;
 
 namespace NPAutoBooth.UI
 {
+    /// <summary>
+    /// 바코드 처리
+    /// </summary>
     partial class FormCreditPaymentMenu
     {
-        #region 바코드 처리
 
-        //바코드할인 리스트로변경
+        /// <summary>
+        /// 바코드할인 리스트로변경
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void timerBarcode_Tick(object sender, EventArgs e)
         {
             if (NPSYS.CurrentFormType != mCurrentFormType)
             {
                 return;
             }
-            if (mCurrentNormalCarInfo.Current_Money > 0)
+            if (CurrentNormalCarInfo.Current_Money > 0)
             {
                 return;
             }
-            if (mCurrentNormalCarInfo.PaymentMoney == 0)
+            if (CurrentNormalCarInfo.PaymentMoney == 0)
             {
                 return;
             }
@@ -49,7 +55,7 @@ namespace NPAutoBooth.UI
                     mListBarcodeData.RemoveAt(0);
                     BarcodeAction(barcodeData);
 
-                    if (mCurrentNormalCarInfo.PaymentMoney != 0)
+                    if (CurrentNormalCarInfo.PaymentMoney != 0)
                     {
                         timerBarcode.Start();
                     }
@@ -90,7 +96,7 @@ namespace NPAutoBooth.UI
                         mListBarcodeMotorData.RemoveAt(0);
                     }
 
-                    if (mCurrentNormalCarInfo.PaymentMoney != 0)
+                    if (CurrentNormalCarInfo.PaymentMoney != 0)
                     {
                         timerBarcode.Start();
                     }
@@ -129,13 +135,13 @@ namespace NPAutoBooth.UI
 
             TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | BarcodeAction", "[바코드정보 처리] " + pBarcodeData);
             paymentControl.ErrorMessage = string.Empty;
-            if (mCurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Outcar_Season
-                || mCurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Precar_Season)
+            if (CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Outcar_Season
+                || CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.Reg_Precar_Season)
             {
                 EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NoRegExtensDiscount);
                 return;
             }
-            DcDetail precurrentDcdeatil = mCurrentNormalCarInfo.ListDcDetail.Find(x => x.DcTkno == pBarcodeData);
+            DcDetail precurrentDcdeatil = CurrentNormalCarInfo.ListDcDetail.Find(x => x.DcTkno == pBarcodeData);
             if (precurrentDcdeatil != null && precurrentDcdeatil.DcTkno == pBarcodeData)
             {
                 paymentControl.ErrorMessage = NPSYS.LanguageConvert.GetLanguageData(NPSYS.CurrentLanguageType, NPSYS.LanguageConvert.Header.dynamictype, dynamictype.HEADER.DY_FARE_DUPLICATEBARCODE.ToString());
@@ -144,9 +150,9 @@ namespace NPAutoBooth.UI
             if (true) // true
             {
 
-                int pPrePayMoney = mCurrentNormalCarInfo.PaymentMoney;
+                int pPrePayMoney = CurrentNormalCarInfo.PaymentMoney;
                 //DIscountTicketOcs.TIcketReadingResult resultDiscount = mDIscountTicketOcs.DiscountTIcket(DIscountTicketOcs.DIscountTicketType.Barcode, pBarcodeData, mNormalCarInfo, lblErrorMessage, string.Empty, string.Empty, string.Empty, string.Empty);
-                Payment paymentAfterDisocunt = mHttpProcess.Discount(mCurrentNormalCarInfo, DcDetail.DIscountTicketType.BR, pBarcodeData);
+                Payment paymentAfterDisocunt = mHttpProcess.Discount(CurrentNormalCarInfo, DcDetail.DIscountTicketType.BR, pBarcodeData);
 
                 if (paymentAfterDisocunt.status.Success) // 정상적인 티켓이라면
                 {
@@ -155,17 +161,17 @@ namespace NPAutoBooth.UI
                     dcDetail.currentDiscountTicketType = DcDetail.DIscountTicketType.BR;
                     dcDetail.DcTkno = pBarcodeData;
                     dcDetail.UseYn = true;
-                    mCurrentNormalCarInfo.ListDcDetail.Add(dcDetail);
-                    mCurrentNormalCarInfo.ParkingMin = paymentAfterDisocunt.parkingMin;
-                    mCurrentNormalCarInfo.TotFee = Convert.ToInt32(paymentAfterDisocunt.totFee);
-                    mCurrentNormalCarInfo.TotDc = Convert.ToInt32(paymentAfterDisocunt.totDc);
-                    mCurrentNormalCarInfo.Change = Convert.ToInt32(paymentAfterDisocunt.change);
-                    mCurrentNormalCarInfo.RecvAmt = Convert.ToInt32(paymentAfterDisocunt.recvAmt); //시제설정누락처리
+                    CurrentNormalCarInfo.ListDcDetail.Add(dcDetail);
+                    CurrentNormalCarInfo.ParkingMin = paymentAfterDisocunt.parkingMin;
+                    CurrentNormalCarInfo.TotFee = Convert.ToInt32(paymentAfterDisocunt.totFee);
+                    CurrentNormalCarInfo.TotDc = Convert.ToInt32(paymentAfterDisocunt.totDc);
+                    CurrentNormalCarInfo.Change = Convert.ToInt32(paymentAfterDisocunt.change);
+                    CurrentNormalCarInfo.RecvAmt = Convert.ToInt32(paymentAfterDisocunt.recvAmt); //시제설정누락처리
 
-                    mCurrentNormalCarInfo.DcCnt = paymentAfterDisocunt.dcCnt;
-                    mCurrentNormalCarInfo.RealFee = Convert.ToInt32(paymentAfterDisocunt.realFee);
+                    CurrentNormalCarInfo.DcCnt = paymentAfterDisocunt.dcCnt;
+                    CurrentNormalCarInfo.RealFee = Convert.ToInt32(paymentAfterDisocunt.realFee);
 
-                    if (pPrePayMoney == mCurrentNormalCarInfo.PaymentMoney)
+                    if (pPrePayMoney == CurrentNormalCarInfo.PaymentMoney)
                     {
                         paymentControl.ErrorMessage = paymentAfterDisocunt.status.description;
                         TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditDiscountForm | BarcodeAction", "할인에 성공했지만 할인금액이 없음");
@@ -198,17 +204,17 @@ namespace NPAutoBooth.UI
                             TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | BarcodeAction", " 바코드 뒤로 배출 성공");
                         }
                     }
-                    paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
+                    paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
 
 
 
-                    if (pPrePayMoney > mCurrentNormalCarInfo.PaymentMoney) // 현재 할인되서 금액이 할인됬다면
+                    if (pPrePayMoney > CurrentNormalCarInfo.PaymentMoney) // 현재 할인되서 금액이 할인됬다면
                     {
                         BeforeChangePayValueAsCardReader();
-                        if (mCurrentNormalCarInfo.PaymentMoney == 0)
+                        if (CurrentNormalCarInfo.PaymentMoney == 0)
                         {
                             //카드실패전송
-                            mCurrentNormalCarInfo.PaymentMethod = PaymentType.DiscountBarcode;
+                            CurrentNormalCarInfo.PaymentMethod = PaymentType.DiscountBarcode;
                             //카드실패전송완료
                             PaymentComplete();
                             return;
@@ -285,6 +291,5 @@ namespace NPAutoBooth.UI
 
         //바코드할인 리스트로변경 주석처리
         //바코드모터드리블 사용완료
-        #endregion
     }
 }

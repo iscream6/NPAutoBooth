@@ -148,6 +148,9 @@
     <Compile Include="UI\BoothUI\FormCreditPayment\DIV_SinbunReader.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="UI\BoothUI\FormCreditPayment\FNC_Currency.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="UI\BoothUI\FormCreditPayment\FNC_MoviePlay.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -158,6 +161,9 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="UI\BoothUI\FormCreditPayment\VAN_Koces.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\BoothUI\FormCreditPayment\VAN_KSNet.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="UI\BoothUI\FormCreditPayment\VAN_Smartro.cs">

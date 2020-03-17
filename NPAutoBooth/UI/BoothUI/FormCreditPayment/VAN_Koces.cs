@@ -13,18 +13,21 @@ using System.Windows.Forms;
 
 namespace NPAutoBooth.UI
 {
+    /// <summary>
+    /// KOCES 처리
+    /// </summary>
     partial class FormCreditPaymentMenu
     {
         private void CardActionKocesPayMGate()
         {
             try
             {
-                if (mCurrentNormalCarInfo.Current_Money > 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 현금이 있을때 카드가 들어가있다면
+                if (CurrentNormalCarInfo.Current_Money > 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 현금이 있을때 카드가 들어가있다면
                 {
                     //mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
                     return;
                 }
-                if (mCurrentNormalCarInfo.PaymentMoney == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 결제금액이0원이고 카드가 들어가있다면
+                if (CurrentNormalCarInfo.PaymentMoney == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 결제금액이0원이고 카드가 들어가있다면
                 {
                     //mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
                     return;
@@ -38,21 +41,21 @@ namespace NPAutoBooth.UI
                 {
                     mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
                 }
-                if (mCurrentNormalCarInfo.PaymentMoney > 0 && mCurrentNormalCarInfo.Current_Money == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED)
+                if (CurrentNormalCarInfo.PaymentMoney > 0 && CurrentNormalCarInfo.Current_Money == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED)
                 {
-                    Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, mCurrentNormalCarInfo);
+                    Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, CurrentNormalCarInfo);
                     if (_CardpaySuccess.Success)
                     {
                         NPSYS.CashCreditCount += 1;
-                        NPSYS.CashCreditMoney += mCurrentNormalCarInfo.VanAmt;
-                        paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
-                        paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc);
+                        NPSYS.CashCreditMoney += CurrentNormalCarInfo.VanAmt;
+                        paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+                        paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
                         TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | OnTimerKocesPayMGateState", "정상적인 카드결제됨");
 
-                        if (mCurrentNormalCarInfo.PaymentMoney == 0)
+                        if (CurrentNormalCarInfo.PaymentMoney == 0)
                         {
                             //카드실패전송
-                            mCurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
+                            CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
                             //카드실패전송완료
                             PaymentComplete();
 
@@ -83,19 +86,19 @@ namespace NPAutoBooth.UI
 
             try
             {
-                if (mCurrentNormalCarInfo.Current_Money > 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 현금이 있을때 카드가 들어가있다면
+                if (CurrentNormalCarInfo.Current_Money > 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 현금이 있을때 카드가 들어가있다면
                 {
                     KocesTcmMotor.CardEject();
                     mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
                     return;
                 }
-                if (mCurrentNormalCarInfo.PaymentMoney == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 결제요금이 0원이고카드가 들어가있다면
+                if (CurrentNormalCarInfo.PaymentMoney == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 결제요금이 0원이고카드가 들어가있다면
                 {
                     KocesTcmMotor.CardEject();
                     mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
                     return;
                 }
-                if (mCurrentNormalCarInfo.PaymentMoney > 0 && mCurrentNormalCarInfo.Current_Money == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.None)
+                if (CurrentNormalCarInfo.PaymentMoney > 0 && CurrentNormalCarInfo.Current_Money == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.None)
                 {
                     bool isSuceessAccept = KocesTcmMotor.CardAccept();
                     if (isSuceessAccept)
@@ -117,7 +120,7 @@ namespace NPAutoBooth.UI
                         TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | timerKocesTcmState_Tick", "[코세스 장비장애코드]" + resultCardState.ToString());
                         break;
                 }
-                if (mCurrentNormalCarInfo.PaymentMoney > 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED)
+                if (CurrentNormalCarInfo.PaymentMoney > 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED)
                 {
 
                     //KOCSE결제시 이미지 추가
@@ -138,7 +141,7 @@ namespace NPAutoBooth.UI
                     }
                     Application.DoEvents();
                     Thread.Sleep(700);
-                    Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, mCurrentNormalCarInfo);
+                    Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, CurrentNormalCarInfo);
                     KocesTcmMotor.CardEject();
                     pic_Wait_MSG_WAIT.SendToBack();
                     pic_Wait_MSG_WAIT.Visible = false;
@@ -158,15 +161,15 @@ namespace NPAutoBooth.UI
                     if (_CardpaySuccess.Success) // 정상적인 티켓이라면
                     {
                         NPSYS.CashCreditCount += 1;
-                        NPSYS.CashCreditMoney += mCurrentNormalCarInfo.VanAmt;
-                        paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
-                        paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc);
+                        NPSYS.CashCreditMoney += CurrentNormalCarInfo.VanAmt;
+                        paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+                        paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
                         TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu|timer_CardReader1_Tick", "정상적인 카드결제됨");
 
-                        if (mCurrentNormalCarInfo.PaymentMoney == 0)
+                        if (CurrentNormalCarInfo.PaymentMoney == 0)
                         {
                             //카드실패전송
-                            mCurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
+                            CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
                             //카드실패전송완료
                             PaymentComplete();
 

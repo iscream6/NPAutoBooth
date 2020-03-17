@@ -11,8 +11,79 @@ using System.Windows.Forms;
 
 namespace NPAutoBooth.UI
 {
+    /// <summary>
+    /// SMARTRO 처리
+    /// </summary>
     partial class FormCreditPaymentMenu
     {
+        #region SMATRO_TIT_DIP_EVCAT
+
+        /// <summary>
+        /// 스마트로 DIP 타입결제기 카드결제요청이 안되있을시 카드결제요청
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void timerSmatro_TITDIP_Evcat_Tick(object sender, EventArgs e)
+        {
+            if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay)
+            {
+                if (mSmartro_TITDIP_EVCat.StartSoundTick > 0)
+                {
+                    mSmartro_TITDIP_EVCat.StartSoundTick -= 1;
+                    if (mSmartro_TITDIP_EVCat.StartSoundTick == 0)
+                    {
+                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+            }
+            timerSmatro_TITDIP_Evcat.Stop();
+            SmatroEVCAT_CardApprovalAction();
+            timerSmatro_TITDIP_Evcat.Start();
+
+        }
+
+        private void SmatroEVCAT_CardApprovalAction()
+        {
+            if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardStop || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardReady || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardInitailizeSuccess
+                || CurrentNormalCarInfo.VanAmt != 0 || CurrentNormalCarInfo.GetInComeMoney > 0
+             || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardPaySuccess || CurrentNormalCarInfo.PaymentMoney == 0)
+            {
+                return;
+            }
+
+            if (CurrentNormalCarInfo.GetInComeMoney == 0)
+            {
+                paymentControl.ErrorMessage = string.Empty;
+                string errorMessage = string.Empty;
+                if (NPSYS.Device.UsingSettingCardReadType == ConfigID.CardReaderType.SMATRO_TIT_DIP)
+                {
+                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroEVCAT_CardApprovalAction", "[승인쓰레드웨이트]");
+                    mCreditCardThreadLock.WaitOne(1000);
+                    mCreditCardThreadLock.Reset();
+                    if (CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar
+                       || CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar)
+                    {
+                        TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroEVCAT_CardApprovalAction", "[신용카드 신용카드 취소결제 시작]" + CurrentNormalCarInfo.PaymentMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
+                        mSmartro_TITDIP_EVCat.CanclePayment(NPSYS.Device.Smartro_TITDIP_Evcat, CurrentNormalCarInfo.PaymentMoney.ToString(), CurrentNormalCarInfo.VanDate_Cancle.Replace("-", "").Substring(2, 6), CurrentNormalCarInfo.VanRegNo_Cancle);
+                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardReady;
+                        TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroEVCAT_CardApprovalAction", "[신용카드 신용카드 취소결제 시작]" + CurrentNormalCarInfo.PaymentMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
+                    }
+                    else
+                    {
+                        TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroEVCAT_CardApprovalAction", "[신용카드요금결제요청 시작]" + CurrentNormalCarInfo.PaymentMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
+                        mSmartro_TITDIP_EVCat.CardApproval(NPSYS.Device.Smartro_TITDIP_Evcat, CurrentNormalCarInfo.PaymentMoney.ToString());
+                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardReady;
+                        TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroEVCAT_CardApprovalAction", "[신용카드요금결제요청 종료]" + CurrentNormalCarInfo.PaymentMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
+                    }
+                    mCreditCardThreadLock.Set();
+                }
+            }
+        }
+
         public void UnsetSmatro_DIPTIT_Evcat()
         {
             mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardReady;
@@ -40,152 +111,6 @@ namespace NPAutoBooth.UI
             {
                 mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
                 TextCore.ACTION(TextCore.ACTIONS.USER, "FormCreditPaymentMenu-CAT || UnsetSmatro_DIPTIT_Evcat ", "스마트로 DIP 기존요금취소 및 카드배출처리안함[이유:요금요청이 이전에 없음]");
-            }
-        }
-
-        /// <summary>
-        /// 카드결제 성공또는 실패
-        /// </summary>
-        /// <param name="pSmartroData"></param>
-        private void CardApprovalRespone(SmartroVCat.SmatroData pSmartroData)
-        {
-            try
-            {
-                if (pSmartroData.Success)
-                {
-                    //    CardApprovalRespone 성공유무:True 응답코드:00 응답메세지:정상 화면메세지:정상승인거래
-                    //에러메세지: 카드번호:541707********** 승인요청금액:50000 세금:4550 봉사료:0
-                    //승인일자:20160120 승인시간:220313 발급사코드: 발급사명: 화면메세지:정상승인거래
-                    //필터1: 필터2:1404712223446511 할부개월:00 매입사코드:0505 매입사명:외환카드사 마스터키:A7EB0482C68B8214
-                    //가맹점번호:00951685684
-                    //단말기번호:2114698013220310
-                    //거래고유번호:160120220312 워킹키:1 승인번호:90008063     워킹인덱스:
-
-                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CardApprovalRespone", "[카드결제 성공]");
-                    mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardPaySuccess;
-                    paymentControl.ErrorMessage = "결제가성공하였습니다";
-                    string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-
-                    LPRDbSelect.LogMoney(PaymentType.CreditCard, logDate, mCurrentNormalCarInfo, MoneyType.CreditCard, mCurrentNormalCarInfo.PaymentMoney, 0, "");
-                    string[] lCardNumData = pSmartroData.ReceiveCardNumber.Split('=');
-                    if (lCardNumData[0].Length > 13)
-                    {
-                        mCurrentNormalCarInfo.VanCardNumber = lCardNumData[0].Substring(0, 4) + "-" + lCardNumData[0].Substring(4, 4) + "-" + lCardNumData[0].Substring(8, 4) + "-" + lCardNumData[0].Substring(12);
-                    }
-                    else
-                    {
-                        mCurrentNormalCarInfo.VanCardNumber = lCardNumData[0];
-                    }
-                    mCurrentNormalCarInfo.VanRegNo = pSmartroData.RecieveApprovalNumber.Trim();
-                    mCurrentNormalCarInfo.VanDate = pSmartroData.ReceiveAppYmd;
-                    mCurrentNormalCarInfo.VanRescode = pSmartroData.ReceiveReturnCode;
-                    mCurrentNormalCarInfo.VanResMsg = pSmartroData.ReceiveReturnMessage;
-                    mCurrentNormalCarInfo.VanSupplyPay = (Convert.ToInt32(pSmartroData.ReceiveCardAmt) - Convert.ToInt32(pSmartroData.ReceiveTaxAmt));
-                    mCurrentNormalCarInfo.VanTaxPay = Convert.ToInt32(pSmartroData.ReceiveTaxAmt);
-                    mCurrentNormalCarInfo.VanCardName = pSmartroData.ReceiveBalgubName;
-                    mCurrentNormalCarInfo.VanBeforeCardPay = mCurrentNormalCarInfo.PaymentMoney;
-                    mCurrentNormalCarInfo.VanCardApproveYmd = NPSYS.ConvetYears_Dash(pSmartroData.ReceiveAppYmd);
-                    mCurrentNormalCarInfo.VanCardApproveHms = NPSYS.ConvetDay_Dash(pSmartroData.ReceiveAppHms);
-                    mCurrentNormalCarInfo.VanCardApprovalYmd = NPSYS.ConvetYears_Dash(pSmartroData.ReceiveAppYmd);
-                    mCurrentNormalCarInfo.VanCardApprovalHms = NPSYS.ConvetDay_Dash(pSmartroData.ReceiveAppHms);
-
-                    mCurrentNormalCarInfo.VanIssueCode = pSmartroData.ReceiveBalgubCode;
-                    mCurrentNormalCarInfo.VanIssueName = pSmartroData.ReceiveBalgubName;
-                    mCurrentNormalCarInfo.VanCardAcquirerCode = pSmartroData.ReceiveMaipCode;
-                    mCurrentNormalCarInfo.VanCardAcquirerName = pSmartroData.ReceiveMaipName;
-
-                    mCurrentNormalCarInfo.VanRescode = "0000";
-                    LPRDbSelect.Creditcard_Log_INsert(mCurrentNormalCarInfo);
-                    //LPRDbSelect.SaveCardPay(mNormalCarInfo);
-                    //결제완료된 정보를 보내야한다 아니면 가지고 있거나
-                    mCurrentNormalCarInfo.VanAmt = mCurrentNormalCarInfo.PaymentMoney;
-                    TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu|CreditCardPayResult", "카드 결제성공");
-
-                    paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
-                    paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc);
-                }
-                else
-                {
-                    mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardStop;
-                    string cardApprovalErrorMessage = string.Empty; // 카드승인에러메세지
-                    cardApprovalErrorMessage = pSmartroData.ReceiveReturnMessage.Trim() == string.Empty ? pSmartroData.ReceiveDisplayMsg : pSmartroData.ReceiveReturnMessage;
-                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CardApprovalRespone", "[카드결제 실패]" + cardApprovalErrorMessage);
-                    if (pSmartroData.ReceiveReturnCode == "EC")
-                    {
-                        paymentControl.ErrorMessage = "결제가 실패하였습니다.카드를 뽑으신후 다시 결제를 시도해 주세요";
-                        mSmartroVCat.CurrentVoiceType = SmartroVCat.voiceType.CardFrontEjuct;
-                        SmatroDeveinCancle();
-                        PlaySoundCard();
-                    }
-                    else if (pSmartroData.ReceiveReturnCode == "HD" || pSmartroData.ReceiveReturnCode == "TA")
-                    {
-                        paymentControl.ErrorMessage = "한도초과입니다.다른카드를 사용해주세요";
-                        mSmartroVCat.CurrentVoiceType = SmartroVCat.voiceType.FullPay;
-                        SmatroDeveinCancle();
-                        PlaySoundCard();
-                    }
-                    else
-                    {
-                        paymentControl.ErrorMessage = "카드결제실패: " + cardApprovalErrorMessage;
-                        mSmartroVCat.CurrentVoiceType = SmartroVCat.voiceType.CardFrontEjuct;
-                        SmatroDeveinCancle();
-                        PlaySoundCard();
-                    }
-                    mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardSoundPlay;
-                    mSmartroVCat.StartSoundTick = 7;
-                }
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu | CardApprovalRespone", ex.ToString());
-            }
-        }
-
-        private void CardInitializeRespone(SmartroVCat.SmatroData pSmartroData)
-        {
-            if (pSmartroData.Success)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CardInitializeRespone", "[카드요금취소성공]");
-                if (mCardStatus.currentCardReaderStatus != CardDeviceStatus.CardReaderStatus.CardPaySuccess)
-                {
-                    mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardPayCancle;
-                }
-            }
-            else
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CardInitializeRespone", "[카드요금취소실패]");
-            }
-        }
-
-        private void SmartroCardApprovalAction()
-        {
-            if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardStop || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardReady || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay
-                || mCurrentNormalCarInfo.VanAmt != 0 || mCurrentNormalCarInfo.Current_Money > 0
-             || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardPaySuccess || mCurrentNormalCarInfo.PaymentMoney == 0)
-            {
-                return;
-            }
-
-            if (mCurrentNormalCarInfo.Current_Money == 0)
-            {
-                string errorMessage = string.Empty;
-                if (NPSYS.Device.UsingSettingCardReadType == ConfigID.CardReaderType.SmartroVCat && NPSYS.Device.gIsUseCreditCardDevice
-                    || NPSYS.Device.UsingSettingMagneticReadType == ConfigID.CardReaderType.SmartroVCat && NPSYS.Device.gIsUseMagneticReaderDevice)
-                {
-                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroDeveinCancle", "[승인쓰레드웨이트]");
-                    mCreditCardThreadLock.WaitOne(2000);
-                    mCreditCardThreadLock.Reset();
-                    System.Threading.Thread.Sleep(100);
-                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmartroCardApprovalAction", "[신용카드요금결제요청 시작]" + mCurrentNormalCarInfo.ReceiveMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
-                    bool isSend = mSmartroVCat.CardApproval(NPSYS.Device.SmtSndRcv, Convert.ToInt32(mCurrentNormalCarInfo.ReceiveMoney), 600, ref errorMessage);
-                    for (int i = 0; i < 20; i++)
-                    {
-                        System.Threading.Thread.Sleep(100);
-                        Application.DoEvents();
-                    }
-                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmartroCardApprovalAction", "[신용카드요금결제요청 종료]" + mCurrentNormalCarInfo.ReceiveMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
-                    mCreditCardThreadLock.Set();
-                }
             }
         }
 
@@ -279,38 +204,38 @@ namespace NPAutoBooth.UI
                             mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardPaySuccess;
                             paymentControl.ErrorMessage = "결제가성공하였습니다";
                             string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                            LPRDbSelect.LogMoney(PaymentType.CreditCard, logDate, mCurrentNormalCarInfo, MoneyType.CreditCard, mCurrentNormalCarInfo.PaymentMoney, 0, "");
+                            LPRDbSelect.LogMoney(PaymentType.CreditCard, logDate, CurrentNormalCarInfo, MoneyType.CreditCard, CurrentNormalCarInfo.PaymentMoney, 0, "");
 
-                            mCurrentNormalCarInfo.VanCheck = 1;
-                            mCurrentNormalCarInfo.VanCardNumber = mSmartro_TITDIP_EVCat.RecvInfo.rCardNum.Trim();
-                            mCurrentNormalCarInfo.VanRegNo = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptNo.Trim();
-                            mCurrentNormalCarInfo.VanCardApproveYmd = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate;
-                            mCurrentNormalCarInfo.VanCardApproveHms = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptTime;
-                            mCurrentNormalCarInfo.VanRescode = mSmartro_TITDIP_EVCat.RecvInfo.rVanResultCode == "00" ? "0000" : mSmartro_TITDIP_EVCat.RecvInfo.rVanResultCode;
-                            mCurrentNormalCarInfo.VanResMsg = mSmartro_TITDIP_EVCat.RecvInfo.rReceiveMsg;
+                            CurrentNormalCarInfo.VanCheck = 1;
+                            CurrentNormalCarInfo.VanCardNumber = mSmartro_TITDIP_EVCat.RecvInfo.rCardNum.Trim();
+                            CurrentNormalCarInfo.VanRegNo = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptNo.Trim();
+                            CurrentNormalCarInfo.VanCardApproveYmd = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate;
+                            CurrentNormalCarInfo.VanCardApproveHms = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptTime;
+                            CurrentNormalCarInfo.VanRescode = mSmartro_TITDIP_EVCat.RecvInfo.rVanResultCode == "00" ? "0000" : mSmartro_TITDIP_EVCat.RecvInfo.rVanResultCode;
+                            CurrentNormalCarInfo.VanResMsg = mSmartro_TITDIP_EVCat.RecvInfo.rReceiveMsg;
 
-                            mCurrentNormalCarInfo.VanSupplyPay = 0;
-                            mCurrentNormalCarInfo.VanTaxPay = Convert.ToInt32(mSmartro_TITDIP_EVCat.RecvInfo.rVat);
-                            mCurrentNormalCarInfo.VanCardName = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerName;
-                            mCurrentNormalCarInfo.VanBeforeCardPay = mCurrentNormalCarInfo.PaymentMoney;
-                            mCurrentNormalCarInfo.VanCardApproveYmd = NPSYS.ConvetYears_Dash(mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate);
-                            mCurrentNormalCarInfo.VanCardApproveHms = DateTime.Now.ToString("HH:mm:ss");
-                            mCurrentNormalCarInfo.VanCardApprovalYmd = NPSYS.ConvetYears_Dash(mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate);
-                            mCurrentNormalCarInfo.VanCardApprovalHms = DateTime.Now.ToString("HH:mm:ss");
+                            CurrentNormalCarInfo.VanSupplyPay = 0;
+                            CurrentNormalCarInfo.VanTaxPay = Convert.ToInt32(mSmartro_TITDIP_EVCat.RecvInfo.rVat);
+                            CurrentNormalCarInfo.VanCardName = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerName;
+                            CurrentNormalCarInfo.VanBeforeCardPay = CurrentNormalCarInfo.PaymentMoney;
+                            CurrentNormalCarInfo.VanCardApproveYmd = NPSYS.ConvetYears_Dash(mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate);
+                            CurrentNormalCarInfo.VanCardApproveHms = DateTime.Now.ToString("HH:mm:ss");
+                            CurrentNormalCarInfo.VanCardApprovalYmd = NPSYS.ConvetYears_Dash(mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate);
+                            CurrentNormalCarInfo.VanCardApprovalHms = DateTime.Now.ToString("HH:mm:ss");
 
                             //만료차량 정기권요금제에서 일반요금제 변경기능 (매입사정보에 발급사정보들어가던거 수정)
-                            mCurrentNormalCarInfo.VanIssueCode = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerCode;
-                            mCurrentNormalCarInfo.VanIssueName = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerName;
-                            mCurrentNormalCarInfo.VanCardAcquirerCode = mSmartro_TITDIP_EVCat.RecvInfo.rPurchaseCode;
-                            mCurrentNormalCarInfo.VanCardAcquirerName = mSmartro_TITDIP_EVCat.RecvInfo.rPurchaseName;
+                            CurrentNormalCarInfo.VanIssueCode = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerCode;
+                            CurrentNormalCarInfo.VanIssueName = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerName;
+                            CurrentNormalCarInfo.VanCardAcquirerCode = mSmartro_TITDIP_EVCat.RecvInfo.rPurchaseCode;
+                            CurrentNormalCarInfo.VanCardAcquirerName = mSmartro_TITDIP_EVCat.RecvInfo.rPurchaseName;
                             //만료차량 정기권요금제에서 일반요금제 변경기능주석완료
 
-                            LPRDbSelect.Creditcard_Log_INsert(mCurrentNormalCarInfo);
-                            mCurrentNormalCarInfo.VanAmt = mCurrentNormalCarInfo.PaymentMoney;
+                            LPRDbSelect.Creditcard_Log_INsert(CurrentNormalCarInfo);
+                            CurrentNormalCarInfo.VanAmt = CurrentNormalCarInfo.PaymentMoney;
                             TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormCreditPaymentMenu || SmartroEvcat_QueryResults ", "카드 결제성공");
 
-                            paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney) + "원";
-                            paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc) + "원";
+                            paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney) + "원";
+                            paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc) + "원";
                         }
                         else
                         {
@@ -319,36 +244,36 @@ namespace NPAutoBooth.UI
                             bool _isSuccessCreditSmartroParsing = mSmartro_TITDIP_EVCat.ParsingData(splitData[3]);
                             if (_isSuccessCreditSmartroParsing)
                             {
-                                mCurrentNormalCarInfo.VanCheck = 2;
-                                mCurrentNormalCarInfo.VanCardNumber = mSmartro_TITDIP_EVCat.RecvInfo.rCardNum.Trim();
-                                mCurrentNormalCarInfo.VanCardFullNumber = mSmartro_TITDIP_EVCat.RecvInfo.rCardNum.Trim();
-                                mCurrentNormalCarInfo.VanRegNo = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptNo.Trim();
-                                mCurrentNormalCarInfo.VanCardApproveYmd = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate;
-                                mCurrentNormalCarInfo.VanCardApproveHms = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptTime;
-                                mCurrentNormalCarInfo.VanRescode = mSmartro_TITDIP_EVCat.RecvInfo.rVanResultCode == "00" ? "0000" : mSmartro_TITDIP_EVCat.RecvInfo.rVanResultCode;
-                                mCurrentNormalCarInfo.VanResMsg = mSmartro_TITDIP_EVCat.RecvInfo.rReceiveMsg;
+                                CurrentNormalCarInfo.VanCheck = 2;
+                                CurrentNormalCarInfo.VanCardNumber = mSmartro_TITDIP_EVCat.RecvInfo.rCardNum.Trim();
+                                CurrentNormalCarInfo.VanCardFullNumber = mSmartro_TITDIP_EVCat.RecvInfo.rCardNum.Trim();
+                                CurrentNormalCarInfo.VanRegNo = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptNo.Trim();
+                                CurrentNormalCarInfo.VanCardApproveYmd = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate;
+                                CurrentNormalCarInfo.VanCardApproveHms = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptTime;
+                                CurrentNormalCarInfo.VanRescode = mSmartro_TITDIP_EVCat.RecvInfo.rVanResultCode == "00" ? "0000" : mSmartro_TITDIP_EVCat.RecvInfo.rVanResultCode;
+                                CurrentNormalCarInfo.VanResMsg = mSmartro_TITDIP_EVCat.RecvInfo.rReceiveMsg;
 
-                                mCurrentNormalCarInfo.VanSupplyPay = 0;
-                                mCurrentNormalCarInfo.VanTaxPay = 0;
-                                mCurrentNormalCarInfo.VanCardName = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerName;
-                                mCurrentNormalCarInfo.VanBeforeCardPay = 0;
-                                mCurrentNormalCarInfo.VanCardApproveYmd = NPSYS.ConvetYears_Dash(mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate);
-                                mCurrentNormalCarInfo.VanCardApproveHms = DateTime.Now.ToString("HH:mm:ss");
-                                mCurrentNormalCarInfo.VanCardApprovalYmd = NPSYS.ConvetYears_Dash(mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate);
-                                mCurrentNormalCarInfo.VanCardApprovalHms = DateTime.Now.ToString("HH:mm:ss");
+                                CurrentNormalCarInfo.VanSupplyPay = 0;
+                                CurrentNormalCarInfo.VanTaxPay = 0;
+                                CurrentNormalCarInfo.VanCardName = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerName;
+                                CurrentNormalCarInfo.VanBeforeCardPay = 0;
+                                CurrentNormalCarInfo.VanCardApproveYmd = NPSYS.ConvetYears_Dash(mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate);
+                                CurrentNormalCarInfo.VanCardApproveHms = DateTime.Now.ToString("HH:mm:ss");
+                                CurrentNormalCarInfo.VanCardApprovalYmd = NPSYS.ConvetYears_Dash(mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate);
+                                CurrentNormalCarInfo.VanCardApprovalHms = DateTime.Now.ToString("HH:mm:ss");
 
                                 //만료차량 정기권요금제에서 일반요금제 변경기능 (매입사정보에 발급사정보들어가던거 수정)
-                                mCurrentNormalCarInfo.VanIssueCode = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerCode;
-                                mCurrentNormalCarInfo.VanIssueName = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerName;
-                                mCurrentNormalCarInfo.VanCardAcquirerCode = mSmartro_TITDIP_EVCat.RecvInfo.rPurchaseCode;
-                                mCurrentNormalCarInfo.VanCardAcquirerName = mSmartro_TITDIP_EVCat.RecvInfo.rPurchaseName;
+                                CurrentNormalCarInfo.VanIssueCode = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerCode;
+                                CurrentNormalCarInfo.VanIssueName = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerName;
+                                CurrentNormalCarInfo.VanCardAcquirerCode = mSmartro_TITDIP_EVCat.RecvInfo.rPurchaseCode;
+                                CurrentNormalCarInfo.VanCardAcquirerName = mSmartro_TITDIP_EVCat.RecvInfo.rPurchaseName;
                                 if (NPSYS.gUseCardFailSend)
                                 {
                                     DateTime paydate = DateTime.Now;
                                     //카드실패전송
-                                    mCurrentNormalCarInfo.PaymentMethod = PaymentType.Fail_Card;
+                                    CurrentNormalCarInfo.PaymentMethod = PaymentType.Fail_Card;
                                     //카드실패전송 완료
-                                    Payment currentCar = mHttpProcess.PaySave(mCurrentNormalCarInfo, paydate);
+                                    Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
                                 }
                             }
                             //카드실패전송 완료
@@ -382,35 +307,35 @@ namespace NPAutoBooth.UI
                         bool _isSuccessCreditSmartroParsing = mSmartro_TITDIP_EVCat.ParsingData(splitData[3]);
                         if (_isSuccessCreditSmartroParsing)
                         {
-                            mCurrentNormalCarInfo.VanCheck = 2;
-                            mCurrentNormalCarInfo.VanCardNumber = mSmartro_TITDIP_EVCat.RecvInfo.rCardNum.Trim();
-                            mCurrentNormalCarInfo.VanCardFullNumber = mSmartro_TITDIP_EVCat.RecvInfo.rCardNum.Trim();
-                            mCurrentNormalCarInfo.VanRegNo = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptNo.Trim();
-                            mCurrentNormalCarInfo.VanCardApproveYmd = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate;
-                            mCurrentNormalCarInfo.VanCardApproveHms = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptTime;
-                            mCurrentNormalCarInfo.VanRescode = mSmartro_TITDIP_EVCat.RecvInfo.rVanResultCode == "00" ? "0000" : mSmartro_TITDIP_EVCat.RecvInfo.rVanResultCode;
-                            mCurrentNormalCarInfo.VanResMsg = mSmartro_TITDIP_EVCat.RecvInfo.rReceiveMsg;
+                            CurrentNormalCarInfo.VanCheck = 2;
+                            CurrentNormalCarInfo.VanCardNumber = mSmartro_TITDIP_EVCat.RecvInfo.rCardNum.Trim();
+                            CurrentNormalCarInfo.VanCardFullNumber = mSmartro_TITDIP_EVCat.RecvInfo.rCardNum.Trim();
+                            CurrentNormalCarInfo.VanRegNo = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptNo.Trim();
+                            CurrentNormalCarInfo.VanCardApproveYmd = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate;
+                            CurrentNormalCarInfo.VanCardApproveHms = mSmartro_TITDIP_EVCat.RecvInfo.rAcceptTime;
+                            CurrentNormalCarInfo.VanRescode = mSmartro_TITDIP_EVCat.RecvInfo.rVanResultCode == "00" ? "0000" : mSmartro_TITDIP_EVCat.RecvInfo.rVanResultCode;
+                            CurrentNormalCarInfo.VanResMsg = mSmartro_TITDIP_EVCat.RecvInfo.rReceiveMsg;
 
-                            mCurrentNormalCarInfo.VanSupplyPay = 0;
-                            mCurrentNormalCarInfo.VanTaxPay = 0;
-                            mCurrentNormalCarInfo.VanCardName = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerName;
-                            mCurrentNormalCarInfo.VanBeforeCardPay = 0;
-                            mCurrentNormalCarInfo.VanCardApproveYmd = NPSYS.ConvetYears_Dash(mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate);
-                            mCurrentNormalCarInfo.VanCardApproveHms = DateTime.Now.ToString("HH:mm:ss");
-                            mCurrentNormalCarInfo.VanCardApprovalYmd = NPSYS.ConvetYears_Dash(mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate);
-                            mCurrentNormalCarInfo.VanCardApprovalHms = DateTime.Now.ToString("HH:mm:ss");
+                            CurrentNormalCarInfo.VanSupplyPay = 0;
+                            CurrentNormalCarInfo.VanTaxPay = 0;
+                            CurrentNormalCarInfo.VanCardName = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerName;
+                            CurrentNormalCarInfo.VanBeforeCardPay = 0;
+                            CurrentNormalCarInfo.VanCardApproveYmd = NPSYS.ConvetYears_Dash(mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate);
+                            CurrentNormalCarInfo.VanCardApproveHms = DateTime.Now.ToString("HH:mm:ss");
+                            CurrentNormalCarInfo.VanCardApprovalYmd = NPSYS.ConvetYears_Dash(mSmartro_TITDIP_EVCat.RecvInfo.rAcceptDate);
+                            CurrentNormalCarInfo.VanCardApprovalHms = DateTime.Now.ToString("HH:mm:ss");
 
-                            mCurrentNormalCarInfo.VanIssueCode = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerCode;
-                            mCurrentNormalCarInfo.VanIssueName = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerName;
-                            mCurrentNormalCarInfo.VanCardAcquirerCode = mSmartro_TITDIP_EVCat.RecvInfo.rPurchaseCode;
-                            mCurrentNormalCarInfo.VanCardAcquirerName = mSmartro_TITDIP_EVCat.RecvInfo.rPurchaseName;
+                            CurrentNormalCarInfo.VanIssueCode = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerCode;
+                            CurrentNormalCarInfo.VanIssueName = mSmartro_TITDIP_EVCat.RecvInfo.rIssuerName;
+                            CurrentNormalCarInfo.VanCardAcquirerCode = mSmartro_TITDIP_EVCat.RecvInfo.rPurchaseCode;
+                            CurrentNormalCarInfo.VanCardAcquirerName = mSmartro_TITDIP_EVCat.RecvInfo.rPurchaseName;
                             if (NPSYS.gUseCardFailSend)
                             {
                                 DateTime paydate = DateTime.Now;
 
-                                mCurrentNormalCarInfo.PaymentMethod = PaymentType.Fail_Card;
+                                CurrentNormalCarInfo.PaymentMethod = PaymentType.Fail_Card;
 
-                                Payment currentCar = mHttpProcess.PaySave(mCurrentNormalCarInfo, paydate);
+                                Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
                             }
                         }
                         //카드실패전송 완료
@@ -454,89 +379,28 @@ namespace NPAutoBooth.UI
             }
         }
 
-        private bool SmatroDeveinCancle()
-        {
-            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroDeveinCancle", "[취소쓰레드웨이트]");
-            mCreditCardThreadLock.WaitOne(3000);
-            mCreditCardThreadLock.Reset();
-            if (mCardStatus.currentCardReaderStatus != CardDeviceStatus.CardReaderStatus.CardPaySuccess)
-            {
-                mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardStop;
-            }
-            mSmartroVCat.StartSoundTick = 0;
-            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroDeveinCancle", "[스마트로 VCat거래초기화 요청시작]");
-            SmartroVCat.SmatroData smatrodata = mSmartroVCat.DeviceReInitialLizeSync(NPSYS.Device.SmtSndRcv);
-            for (int i = 0; i < 16; i++)
-            {
-                System.Threading.Thread.Sleep(100);
-                Application.DoEvents();
-            }
-            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroDeveinCancle", "[스마트로 VCat거래초기화 요청시작 종료]");
-            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroDeveinCancle", "[스마트로 VCat거래초기화 요청결과]" + smatrodata.Success.ToString() + " 응답코드:" + smatrodata.ReceiveReturnCode);
-            mCreditCardThreadLock.Set();
-            return smatrodata.Success;
-        }
+        #endregion SMATRO_TIT_DIP_EVCAT
+        
+        #region SMARTRO_VCAT
 
-        // 스마트로 EVCAT 결제요청
-        private void SmatroEVCAT_CardApprovalAction()
+        private void timerSmartroVCat_Tick(object sender, EventArgs e)
         {
-            if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardStop || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardReady || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardInitailizeSuccess
-                || mCurrentNormalCarInfo.VanAmt != 0 || mCurrentNormalCarInfo.GetInComeMoney > 0
-             || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardPaySuccess || mCurrentNormalCarInfo.PaymentMoney == 0)
-            {
-                return;
-            }
 
-            if (mCurrentNormalCarInfo.GetInComeMoney == 0)
+            if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay)
             {
-                paymentControl.ErrorMessage = string.Empty;
-                string errorMessage = string.Empty;
-                if (NPSYS.Device.UsingSettingCardReadType == ConfigID.CardReaderType.SMATRO_TIT_DIP)
+                if (mSmartroVCat.StartSoundTick > 0)
                 {
-                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroEVCAT_CardApprovalAction", "[승인쓰레드웨이트]");
-                    mCreditCardThreadLock.WaitOne(1000);
-                    mCreditCardThreadLock.Reset();
-                    if (mCurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar
-                       || mCurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar)
+                    mSmartroVCat.StartSoundTick -= 1;
+                    if (mSmartroVCat.StartSoundTick == 0)
                     {
-                        TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroEVCAT_CardApprovalAction", "[신용카드 신용카드 취소결제 시작]" + mCurrentNormalCarInfo.PaymentMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
-                        mSmartro_TITDIP_EVCat.CanclePayment(NPSYS.Device.Smartro_TITDIP_Evcat, mCurrentNormalCarInfo.PaymentMoney.ToString(), mCurrentNormalCarInfo.VanDate_Cancle.Replace("-", "").Substring(2, 6), mCurrentNormalCarInfo.VanRegNo_Cancle);
-                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardReady;
-                        TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroEVCAT_CardApprovalAction", "[신용카드 신용카드 취소결제 시작]" + mCurrentNormalCarInfo.PaymentMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
+                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
                     }
-                    else
-                    {
-                        TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroEVCAT_CardApprovalAction", "[신용카드요금결제요청 시작]" + mCurrentNormalCarInfo.PaymentMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
-                        mSmartro_TITDIP_EVCat.CardApproval(NPSYS.Device.Smartro_TITDIP_Evcat, mCurrentNormalCarInfo.PaymentMoney.ToString());
-                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardReady;
-                        TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroEVCAT_CardApprovalAction", "[신용카드요금결제요청 종료]" + mCurrentNormalCarInfo.PaymentMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
-                    }
-                    mCreditCardThreadLock.Set();
                 }
             }
-        }
+            timerSmartroVCat.Stop();
+            SmartroCardApprovalAction();
+            timerSmartroVCat.Start();
 
-        // 스마트로 EVCAT 결제요금 변경
-        private void SmatroEVCAT_ChangePayMoneyAction()
-        {
-            if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardStop || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardReady || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardInitailizeSuccess
-                || mCurrentNormalCarInfo.VanAmt != 0 || mCurrentNormalCarInfo.GetInComeMoney > 0
-             || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardPaySuccess || mCurrentNormalCarInfo.PaymentMoney == 0)
-            {
-                return;
-            }
-
-            if (mCurrentNormalCarInfo.GetInComeMoney == 0)
-            {
-                paymentControl.ErrorMessage = string.Empty;
-                string errorMessage = string.Empty;
-                if (NPSYS.Device.UsingSettingCardReadType == ConfigID.CardReaderType.SMATRO_TIT_DIP)
-                {
-                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroEVCAT_CardApprovalAction", "[신용카드 요금변경 결제요청 시작]" + mCurrentNormalCarInfo.PaymentMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
-                    mSmartro_TITDIP_EVCat.ChangePayMoney(NPSYS.Device.Smartro_TITDIP_Evcat, mCurrentNormalCarInfo.PaymentMoney.ToString());
-                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroEVCAT_CardApprovalAction", "[신용카드 요금변경 결제요청 종료]" + mCurrentNormalCarInfo.PaymentMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
-                }
-            }
         }
 
         /// <summary>
@@ -628,6 +492,120 @@ namespace NPAutoBooth.UI
         }
 
         /// <summary>
+        /// 카드결제 성공또는 실패
+        /// </summary>
+        /// <param name="pSmartroData"></param>
+        private void CardApprovalRespone(SmartroVCat.SmatroData pSmartroData)
+        {
+            try
+            {
+                if (pSmartroData.Success)
+                {
+                    //    CardApprovalRespone 성공유무:True 응답코드:00 응답메세지:정상 화면메세지:정상승인거래
+                    //에러메세지: 카드번호:541707********** 승인요청금액:50000 세금:4550 봉사료:0
+                    //승인일자:20160120 승인시간:220313 발급사코드: 발급사명: 화면메세지:정상승인거래
+                    //필터1: 필터2:1404712223446511 할부개월:00 매입사코드:0505 매입사명:외환카드사 마스터키:A7EB0482C68B8214
+                    //가맹점번호:00951685684
+                    //단말기번호:2114698013220310
+                    //거래고유번호:160120220312 워킹키:1 승인번호:90008063     워킹인덱스:
+
+                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CardApprovalRespone", "[카드결제 성공]");
+                    mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardPaySuccess;
+                    paymentControl.ErrorMessage = "결제가성공하였습니다";
+                    string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+                    LPRDbSelect.LogMoney(PaymentType.CreditCard, logDate, CurrentNormalCarInfo, MoneyType.CreditCard, CurrentNormalCarInfo.PaymentMoney, 0, "");
+                    string[] lCardNumData = pSmartroData.ReceiveCardNumber.Split('=');
+                    if (lCardNumData[0].Length > 13)
+                    {
+                        CurrentNormalCarInfo.VanCardNumber = lCardNumData[0].Substring(0, 4) + "-" + lCardNumData[0].Substring(4, 4) + "-" + lCardNumData[0].Substring(8, 4) + "-" + lCardNumData[0].Substring(12);
+                    }
+                    else
+                    {
+                        CurrentNormalCarInfo.VanCardNumber = lCardNumData[0];
+                    }
+                    CurrentNormalCarInfo.VanRegNo = pSmartroData.RecieveApprovalNumber.Trim();
+                    CurrentNormalCarInfo.VanDate = pSmartroData.ReceiveAppYmd;
+                    CurrentNormalCarInfo.VanRescode = pSmartroData.ReceiveReturnCode;
+                    CurrentNormalCarInfo.VanResMsg = pSmartroData.ReceiveReturnMessage;
+                    CurrentNormalCarInfo.VanSupplyPay = (Convert.ToInt32(pSmartroData.ReceiveCardAmt) - Convert.ToInt32(pSmartroData.ReceiveTaxAmt));
+                    CurrentNormalCarInfo.VanTaxPay = Convert.ToInt32(pSmartroData.ReceiveTaxAmt);
+                    CurrentNormalCarInfo.VanCardName = pSmartroData.ReceiveBalgubName;
+                    CurrentNormalCarInfo.VanBeforeCardPay = CurrentNormalCarInfo.PaymentMoney;
+                    CurrentNormalCarInfo.VanCardApproveYmd = NPSYS.ConvetYears_Dash(pSmartroData.ReceiveAppYmd);
+                    CurrentNormalCarInfo.VanCardApproveHms = NPSYS.ConvetDay_Dash(pSmartroData.ReceiveAppHms);
+                    CurrentNormalCarInfo.VanCardApprovalYmd = NPSYS.ConvetYears_Dash(pSmartroData.ReceiveAppYmd);
+                    CurrentNormalCarInfo.VanCardApprovalHms = NPSYS.ConvetDay_Dash(pSmartroData.ReceiveAppHms);
+
+                    CurrentNormalCarInfo.VanIssueCode = pSmartroData.ReceiveBalgubCode;
+                    CurrentNormalCarInfo.VanIssueName = pSmartroData.ReceiveBalgubName;
+                    CurrentNormalCarInfo.VanCardAcquirerCode = pSmartroData.ReceiveMaipCode;
+                    CurrentNormalCarInfo.VanCardAcquirerName = pSmartroData.ReceiveMaipName;
+
+                    CurrentNormalCarInfo.VanRescode = "0000";
+                    LPRDbSelect.Creditcard_Log_INsert(CurrentNormalCarInfo);
+                    //LPRDbSelect.SaveCardPay(mNormalCarInfo);
+                    //결제완료된 정보를 보내야한다 아니면 가지고 있거나
+                    CurrentNormalCarInfo.VanAmt = CurrentNormalCarInfo.PaymentMoney;
+                    TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu|CreditCardPayResult", "카드 결제성공");
+
+                    paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+                    paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
+                }
+                else
+                {
+                    mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardStop;
+                    string cardApprovalErrorMessage = string.Empty; // 카드승인에러메세지
+                    cardApprovalErrorMessage = pSmartroData.ReceiveReturnMessage.Trim() == string.Empty ? pSmartroData.ReceiveDisplayMsg : pSmartroData.ReceiveReturnMessage;
+                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CardApprovalRespone", "[카드결제 실패]" + cardApprovalErrorMessage);
+                    if (pSmartroData.ReceiveReturnCode == "EC")
+                    {
+                        paymentControl.ErrorMessage = "결제가 실패하였습니다.카드를 뽑으신후 다시 결제를 시도해 주세요";
+                        mSmartroVCat.CurrentVoiceType = SmartroVCat.voiceType.CardFrontEjuct;
+                        SmatroDeveinCancle();
+                        PlaySoundCard();
+                    }
+                    else if (pSmartroData.ReceiveReturnCode == "HD" || pSmartroData.ReceiveReturnCode == "TA")
+                    {
+                        paymentControl.ErrorMessage = "한도초과입니다.다른카드를 사용해주세요";
+                        mSmartroVCat.CurrentVoiceType = SmartroVCat.voiceType.FullPay;
+                        SmatroDeveinCancle();
+                        PlaySoundCard();
+                    }
+                    else
+                    {
+                        paymentControl.ErrorMessage = "카드결제실패: " + cardApprovalErrorMessage;
+                        mSmartroVCat.CurrentVoiceType = SmartroVCat.voiceType.CardFrontEjuct;
+                        SmatroDeveinCancle();
+                        PlaySoundCard();
+                    }
+                    mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardSoundPlay;
+                    mSmartroVCat.StartSoundTick = 7;
+                }
+            }
+            catch (Exception ex)
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu | CardApprovalRespone", ex.ToString());
+            }
+        }
+
+        private void CardInitializeRespone(SmartroVCat.SmatroData pSmartroData)
+        {
+            if (pSmartroData.Success)
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CardInitializeRespone", "[카드요금취소성공]");
+                if (mCardStatus.currentCardReaderStatus != CardDeviceStatus.CardReaderStatus.CardPaySuccess)
+                {
+                    mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardPayCancle;
+                }
+            }
+            else
+            {
+                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | CardInitializeRespone", "[카드요금취소실패]");
+            }
+        }
+
+        /// <summary>
         /// 카드취소등의동작시
         /// </summary>
         /// <param name="sender"></param>
@@ -669,73 +647,58 @@ namespace NPAutoBooth.UI
             //}
         }
 
-        private void timerSmartroVCat_Tick(object sender, EventArgs e)
+        private bool SmatroDeveinCancle()
         {
-
-            if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay)
+            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroDeveinCancle", "[취소쓰레드웨이트]");
+            mCreditCardThreadLock.WaitOne(3000);
+            mCreditCardThreadLock.Reset();
+            if (mCardStatus.currentCardReaderStatus != CardDeviceStatus.CardReaderStatus.CardPaySuccess)
             {
-                if (mSmartroVCat.StartSoundTick > 0)
+                mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardStop;
+            }
+            mSmartroVCat.StartSoundTick = 0;
+            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroDeveinCancle", "[스마트로 VCat거래초기화 요청시작]");
+            SmartroVCat.SmatroData smatrodata = mSmartroVCat.DeviceReInitialLizeSync(NPSYS.Device.SmtSndRcv);
+            for (int i = 0; i < 16; i++)
+            {
+                System.Threading.Thread.Sleep(100);
+                Application.DoEvents();
+            }
+            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroDeveinCancle", "[스마트로 VCat거래초기화 요청시작 종료]");
+            TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroDeveinCancle", "[스마트로 VCat거래초기화 요청결과]" + smatrodata.Success.ToString() + " 응답코드:" + smatrodata.ReceiveReturnCode);
+            mCreditCardThreadLock.Set();
+            return smatrodata.Success;
+        }
+
+        private void SmartroCardApprovalAction()
+        {
+            if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardStop || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardReady || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay
+                || CurrentNormalCarInfo.VanAmt != 0 || CurrentNormalCarInfo.Current_Money > 0
+             || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardPaySuccess || CurrentNormalCarInfo.PaymentMoney == 0)
+            {
+                return;
+            }
+
+            if (CurrentNormalCarInfo.Current_Money == 0)
+            {
+                string errorMessage = string.Empty;
+                if (NPSYS.Device.UsingSettingCardReadType == ConfigID.CardReaderType.SmartroVCat && NPSYS.Device.gIsUseCreditCardDevice
+                    || NPSYS.Device.UsingSettingMagneticReadType == ConfigID.CardReaderType.SmartroVCat && NPSYS.Device.gIsUseMagneticReaderDevice)
                 {
-                    mSmartroVCat.StartSoundTick -= 1;
-                    if (mSmartroVCat.StartSoundTick == 0)
+                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroDeveinCancle", "[승인쓰레드웨이트]");
+                    mCreditCardThreadLock.WaitOne(2000);
+                    mCreditCardThreadLock.Reset();
+                    System.Threading.Thread.Sleep(100);
+                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmartroCardApprovalAction", "[신용카드요금결제요청 시작]" + CurrentNormalCarInfo.ReceiveMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
+                    bool isSend = mSmartroVCat.CardApproval(NPSYS.Device.SmtSndRcv, Convert.ToInt32(CurrentNormalCarInfo.ReceiveMoney), 600, ref errorMessage);
+                    for (int i = 0; i < 20; i++)
                     {
-                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
+                        System.Threading.Thread.Sleep(100);
+                        Application.DoEvents();
                     }
+                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmartroCardApprovalAction", "[신용카드요금결제요청 종료]" + CurrentNormalCarInfo.ReceiveMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
+                    mCreditCardThreadLock.Set();
                 }
-            }
-            timerSmartroVCat.Stop();
-            SmartroCardApprovalAction();
-            timerSmartroVCat.Start();
-
-        }
-
-
-
-        private void timerCardPay_Tick(object sender, EventArgs e)
-        {
-            if (mCurrentNormalCarInfo.VanAmt > 0)
-            {
-                timerKisCardPay.Enabled = false;
-                timerKisCardPay.Stop();
-                //카드실패전송
-                mCurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
-                //카드실패전송완료
-                PaymentComplete();
-            }
-        }
-
-        delegate void Ctrl_Involk(Control ctrl, string text);
-
-        public void setText(Control ctrl, string txtValue)
-        {
-            if (ctrl.InvokeRequired)
-            {
-                Ctrl_Involk CI = new Ctrl_Involk(setText);
-                ctrl.Invoke(CI, ctrl, txtValue);
-            }
-            else
-            {
-                ctrl.Text = txtValue;
-            }
-
-        }
-        private void PlayCardVideo(string pPreMovieName, string p_MovieName)
-        {
-            try
-            {
-                axWindowsMediaPlayer1.Ctlcontrols.stop();
-                axWindowsMediaPlayer1.URL = Application.StartupPath + @"\MOVIE\" + p_MovieName;
-                axWindowsMediaPlayer1.uiMode = "none";
-                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu1080 | PlayCardVideo", "동영상플레이:" + axWindowsMediaPlayer1.URL);
-                //if (mIsPlayerOkStatus)
-                //{
-                axWindowsMediaPlayer1.Ctlcontrols.play();
-                //}
-                MovieTimer.Enabled = false;
-            }
-            catch (Exception ex)
-            {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu | PlayCardVideo", ex.ToString());
             }
         }
 
@@ -761,95 +724,203 @@ namespace NPAutoBooth.UI
             }
         }
 
-        #region 스마트로 TIT DIP EV-CAT
+        #endregion SMARTRO_VCAT
+
+        #region SMARTRO_TL3500BS
+
         /// <summary>
-        /// 스마트로 DIP 타입결제기 카드결제요청이 안되있을시 카드결제요청
+        /// TMoney 스마트로 Receive Data 처리 이벤트 핸들러
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void timerSmatro_TITDIP_Evcat_Tick(object sender, EventArgs e)
+        /// <param name="pDTO"></param>
+        private void TmoneySmartro3500_EventTMoneyData(SmartroDTO pDTO)
         {
-            if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay)
-            {
-                if (mSmartro_TITDIP_EVCat.StartSoundTick > 0)
-                {
-                    mSmartro_TITDIP_EVCat.StartSoundTick -= 1;
-                    if (mSmartro_TITDIP_EVCat.StartSoundTick == 0)
-                    {
-                        mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
-                    }
-                    else
-                    {
-                        return;
-                    }
-                }
-            }
-            timerSmatro_TITDIP_Evcat.Stop();
-            SmatroEVCAT_CardApprovalAction();
-            timerSmatro_TITDIP_Evcat.Start();
+            // =========[수신 받은 JOB 코드 목록]=========
+            // a : 장치체크 응답전문
+            // b : 거래승인 응답전문
+            // c : 거래취소 응답전문
+            // d : 카드조회 응답전문
+            // e : 결제대기 응답전문
+            // f : 카드 UID 읽기 응답전문
+            // @ : 이벤트 응답전문
+            // g : 부가정보 추가 거래승인 응답전문
+            // i : 설정 정보 셋팅 응답전문
+            // j : 설정 정보 응답전문
+            // K : 설정 정보 메모리 WRITING 응답전문
+            // I : 마지막 승인 응답전문
+            // v : 버전 체크 응답전문
+            // s : 화면&음성 설정 응답전문
+            // =========[이벤트 코드 목록]=========
+            // M : MS카드 인식
+            // R : RF카드 인식
+            // I : IC카드 인식
+            // O : IC카드 제거
+            // F : IC카드 FallBack
+            // =========[결제/결제취소 Process]=========
+            //결제 : 결제대기 요청 -> 결제대기 응답 -> 카드 삽입 이벤트 응답 -> 거래 승인 요청 -> 거래 승인 응답 -> [카드를 제거해주세요] -> 이벤트 응답
+            //결제취소 : 결제대기 요청 -> 결제대기 응답 -> 카드 삽입 이벤트 응답 -> 거래 취소 요청 -> 거래 취소 응답 -> [카드를 제거해주세요] -> 이벤트 응답
 
-        }
-
-        //스마트로 TIT_DIP EV-CAT 적용완료
-
-        #region KSNET
-        //KSNet 적용
-        private void KsnetCardAction()
-        {
-
-            //btnCardApproval.Visible = false; //뉴타입주석
-
-            PlayCardVideo(axWindowsMediaPlayer1.URL, NPSYS.gKSNetCardInStep);
             try
             {
-                TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | KsnetCardAction", "[카드결제 KSNET장비에 요청]");
-                Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, mCurrentNormalCarInfo);
-                if (_CardpaySuccess.Success) // 정상적인 티켓이라면
+                Header header = pDTO?.HeaderData as Header;
+                if (header != null)
                 {
-                    NPSYS.CashCreditCount += 1;
-                    NPSYS.CashCreditMoney += mCurrentNormalCarInfo.VanAmt;
-                    paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
-                    TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | btnCardAction_Click", "정상적인 카드결제");
-                    if (mCurrentNormalCarInfo.PaymentMoney == 0)
+                    switch (header.JobCode)
                     {
-                        //카드실패전송
-                        mCurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
-                        //카드실패전송완료
-                        PaymentComplete();
+                        case "a": //장치체크 응답전문
+                            ReceiveDeviceCheck deviceCheck = pDTO.BodyData as ReceiveDeviceCheck;
+                            if (deviceCheck != null)
+                            {
+                                //장치체크 응답전문 처리
+                                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | TmoneySmartro3500_EventTMoneyData",
+                                    Smartro_TL3500S.ResponseDeviceCheckHandler(deviceCheck));
+                            }
+                            else
+                            {
+                                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | TmoneySmartro3500_EventTMoneyData",
+                                    "장치체크 전문 오류");
+                            }
+                            break;
+                        case "b": //거래승인 응답전문
+                            ReceiveApproval receiveApproval = pDTO.BodyData as ReceiveApproval;
 
-                        return;
+                            if (CurrentNormalCarInfo.PaymentMoney > 0 && CurrentNormalCarInfo.Current_Money == 0)
+                            {
+                                NPSYS.CurrentBusyType = NPSYS.BusyType.Paying;
+                                Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, CurrentNormalCarInfo, pDTO);
+                                NPSYS.CurrentBusyType = NPSYS.BusyType.None;
+
+                                if (_CardpaySuccess.Success) // 정상적인 티켓이라면
+                                {
+                                    NPSYS.CashCreditCount += 1;
+                                    NPSYS.CashCreditMoney += CurrentNormalCarInfo.VanAmt;
+                                    paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+                                    paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
+                                    TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | timerKICC_DIP_IFM_Tick", "정상적인 카드결제됨");
+
+                                    if (CurrentNormalCarInfo.PaymentMoney == 0)
+                                    {
+                                        //0원 결제
+                                        CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
+                                        //0원 결제완료
+                                        PaymentComplete();
+
+                                        return;
+                                    }
+                                }
+                                else // 잘못된 티켓
+                                {
+                                    //if (mCurrentNormalCarInfo.VanRescode != KICC_TIT.KICC_USER_CANCLECODE)
+                                    //{
+                                    //    //카드실패전송
+                                    //    if (NPSYS.gUseCardFailSend)
+                                    //    {
+                                    //        DateTime paydate = DateTime.Now;
+                                    //        //카드실패전송
+                                    //        mCurrentNormalCarInfo.PaymentMethod = PaymentType.Fail_Card;
+                                    //        //카드실패전송 완료
+                                    //        Payment currentCar = mHttpProcess.PaySave(mCurrentNormalCarInfo, paydate);
+                                    //    }
+                                    //    //카드실패전송 완료
+                                    //}
+                                    //카드실패전송
+                                    if (NPSYS.gUseCardFailSend)
+                                    {
+                                        DateTime paydate = DateTime.Now;
+                                        //카드실패전송
+                                        CurrentNormalCarInfo.PaymentMethod = PaymentType.Fail_Card;
+                                        //카드실패전송 완료
+                                        Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
+                                    }
+                                    //카드실패전송 완료
+                                    TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu | timerKICC_DIP_IFM_Tick", "정상적인 카드결제안됨");
+                                    paymentControl.ErrorMessage = _CardpaySuccess.Message;
+                                    mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
+                                    EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NotCardPay);
+                                    return;
+                                }
+                            }
+
+                            break;
+                        case "c": //거래취소 응답전문
+                            ReceiveApproval receiveCancelApproval = pDTO.BodyData as ReceiveApproval;
+
+                            break;
+                        case "d": //카드조회 응답전문
+                            break;
+                        case "e": //결제대기 응답전문
+                            break;
+                        case "f": //카드 UID 읽기 응답전문
+                            break;
+                        case "@": //이벤트 응답전문
+                            break;
+                        case "g": //부가정보 추가 거래승인 응답전문
+                            break;
+                        case "i": //설정 정보 셋팅 응답전문
+                            break;
+                        case "j": //설정 정보 응답전문
+                            break;
+                        case "K": //설정 정보 메모리 WRITING 응답전문
+                            break;
+                        case "I": //마지막 승인 응답전문
+                            break;
+                        case "v": //버전 체크 응답전문
+                            break;
+                        case "s": //화면 & 음성 설정 응답전문
+                            break;
                     }
                 }
-                else if (_CardpaySuccess.Message.Split(':')[0] == "0002")// 
+                else
                 {
-                    return;
-                }
-                else // 잘못된 티켓
-                {
-                    TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu|timer_CardReader1_Tick", "정상적인 카드결제안됨" + _CardpaySuccess.Message);
-                    paymentControl.ErrorMessage = _CardpaySuccess.Message;
-                    mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
-                    EventExitPayForm_NextInfo(mCurrentFormType, NPSYS.FormType.Info, InfoStatus.NotCardPay);
-                    return;
+                    throw new Exception();
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                TextCore.INFO(TextCore.INFOS.PROGRAM_ERROR, "FormPaymentMenu | btnCardAction_Click", ex.ToString());
+                TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormCreditPaymentMenu | TmoneySmartro3500_EventTMoneyData", "[전문수신오류]");
             }
-            finally
+        }
+
+        #endregion
+
+        #region 사용안함
+
+        delegate void Ctrl_Involk(Control ctrl, string text);
+
+        public void setText(Control ctrl, string txtValue)
+        {
+            if (ctrl.InvokeRequired)
             {
-                if (mCurrentNormalCarInfo.PaymentMoney != 0)
+                Ctrl_Involk CI = new Ctrl_Involk(setText);
+                ctrl.Invoke(CI, ctrl, txtValue);
+            }
+            else
+            {
+                ctrl.Text = txtValue;
+            }
+
+        }
+
+        private void SmatroEVCAT_ChangePayMoneyAction()
+        {
+            if (mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardStop || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardReady || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardSoundPlay || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardInitailizeSuccess
+                || CurrentNormalCarInfo.VanAmt != 0 || CurrentNormalCarInfo.GetInComeMoney > 0
+             || mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardPaySuccess || CurrentNormalCarInfo.PaymentMoney == 0)
+            {
+                return;
+            }
+
+            if (CurrentNormalCarInfo.GetInComeMoney == 0)
+            {
+                paymentControl.ErrorMessage = string.Empty;
+                string errorMessage = string.Empty;
+                if (NPSYS.Device.UsingSettingCardReadType == ConfigID.CardReaderType.SMATRO_TIT_DIP)
                 {
-                    StartPlayVideo();
+                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroEVCAT_CardApprovalAction", "[신용카드 요금변경 결제요청 시작]" + CurrentNormalCarInfo.PaymentMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
+                    mSmartro_TITDIP_EVCat.ChangePayMoney(NPSYS.Device.Smartro_TITDIP_Evcat, CurrentNormalCarInfo.PaymentMoney.ToString());
+                    TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | SmatroEVCAT_CardApprovalAction", "[신용카드 요금변경 결제요청 종료]" + CurrentNormalCarInfo.PaymentMoney.ToString() + " 메모리:" + System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64.ToString());
                 }
             }
         }
-        //KSNet 적용완료
-        #endregion
-
-
-        
 
         #endregion
     }

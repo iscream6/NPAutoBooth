@@ -12,19 +12,22 @@ using System.Threading.Tasks;
 
 namespace NPAutoBooth.UI
 {
+    /// <summary>
+    /// KICC 처리
+    /// </summary>
     partial class FormCreditPaymentMenu
     {
         private void CardActionKiccDip()
         {
             try
             {
-                if (mCurrentNormalCarInfo.Current_Money > 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 현금이 있을때 카드가 들어가있다면
+                if (CurrentNormalCarInfo.Current_Money > 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 현금이 있을때 카드가 들어가있다면
                 {
                     NPSYS.Device.KICC_TIT.CardEject();
                     mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
                     return;
                 }
-                if (mCurrentNormalCarInfo.PaymentMoney == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 결제요금이 0원이고카드가 들어가있다면
+                if (CurrentNormalCarInfo.PaymentMoney == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 결제요금이 0원이고카드가 들어가있다면
                 {
                     NPSYS.Device.KICC_TIT.CardEject();
                     mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
@@ -39,12 +42,12 @@ namespace NPAutoBooth.UI
                     TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | timerKICC_DIP_IFM_Tick", "KICC_DIP장비상태" + RECV_SUCCESS.MSG);
                 }
 
-                if (mCurrentNormalCarInfo.PaymentMoney > 0 && mCurrentNormalCarInfo.Current_Money == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED)
+                if (CurrentNormalCarInfo.PaymentMoney > 0 && CurrentNormalCarInfo.Current_Money == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED)
                 {
 
                     inputtime = paymentInputTimer;
                     NPSYS.CurrentBusyType = NPSYS.BusyType.Paying;
-                    Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, mCurrentNormalCarInfo);
+                    Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, CurrentNormalCarInfo);
                     NPSYS.CurrentBusyType = NPSYS.BusyType.None;
 
                     NPSYS.Device.KICC_TIT.CardEject();
@@ -52,15 +55,15 @@ namespace NPAutoBooth.UI
                     if (_CardpaySuccess.Success) // 정상적인 티켓이라면
                     {
                         NPSYS.CashCreditCount += 1;
-                        NPSYS.CashCreditMoney += mCurrentNormalCarInfo.VanAmt;
-                        paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
-                        paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc);
+                        NPSYS.CashCreditMoney += CurrentNormalCarInfo.VanAmt;
+                        paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+                        paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
                         TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | timerKICC_DIP_IFM_Tick", "정상적인 카드결제됨");
 
-                        if (mCurrentNormalCarInfo.PaymentMoney == 0)
+                        if (CurrentNormalCarInfo.PaymentMoney == 0)
                         {
                             //카드실패전송
-                            mCurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
+                            CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
                             //카드실패전송완료
                             PaymentComplete();
 
@@ -69,16 +72,16 @@ namespace NPAutoBooth.UI
                     }
                     else // 잘못된 티켓
                     {
-                        if (mCurrentNormalCarInfo.VanRescode != KICC_TIT.KICC_USER_CANCLECODE)
+                        if (CurrentNormalCarInfo.VanRescode != KICC_TIT.KICC_USER_CANCLECODE)
                         {
                             //카드실패전송
                             if (NPSYS.gUseCardFailSend)
                             {
                                 DateTime paydate = DateTime.Now;
                                 //카드실패전송
-                                mCurrentNormalCarInfo.PaymentMethod = PaymentType.Fail_Card;
+                                CurrentNormalCarInfo.PaymentMethod = PaymentType.Fail_Card;
                                 //카드실패전송 완료
-                                Payment currentCar = mHttpProcess.PaySave(mCurrentNormalCarInfo, paydate);
+                                Payment currentCar = mHttpProcess.PaySave(CurrentNormalCarInfo, paydate);
                             }
                             //카드실패전송 완료
                         }
@@ -166,52 +169,52 @@ namespace NPAutoBooth.UI
                     paymentControl.ErrorMessage = "결제가성공하였습니다";
                     string logDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
-                    LPRDbSelect.LogMoney(PaymentType.CreditCard, logDate, mCurrentNormalCarInfo, MoneyType.CreditCard, mCurrentNormalCarInfo.PaymentMoney, 0, "");
-                    mCurrentNormalCarInfo.VanCheck = 1;
+                    LPRDbSelect.LogMoney(PaymentType.CreditCard, logDate, CurrentNormalCarInfo, MoneyType.CreditCard, CurrentNormalCarInfo.PaymentMoney, 0, "");
+                    CurrentNormalCarInfo.VanCheck = 1;
                     string[] lCardNumData = cardNo.Split('=');
                     if (lCardNumData[0].Length > 13)
                     {
-                        mCurrentNormalCarInfo.VanCardNumber = lCardNumData[0].Substring(0, 4) + "-" + lCardNumData[0].Substring(4, 4) + "-" + lCardNumData[0].Substring(8, 4) + "-" + lCardNumData[0].Substring(12);
+                        CurrentNormalCarInfo.VanCardNumber = lCardNumData[0].Substring(0, 4) + "-" + lCardNumData[0].Substring(4, 4) + "-" + lCardNumData[0].Substring(8, 4) + "-" + lCardNumData[0].Substring(12);
                     }
                     else
                     {
-                        mCurrentNormalCarInfo.VanCardNumber = lCardNumData[0];
+                        CurrentNormalCarInfo.VanCardNumber = lCardNumData[0];
                     }
                     approvalDate = "20" + approvalDate;
-                    mCurrentNormalCarInfo.VanRegNo = approvalNo;
-                    mCurrentNormalCarInfo.VanDate = approvalDate;
-                    mCurrentNormalCarInfo.VanRescode = returnCode;
-                    mCurrentNormalCarInfo.VanResMsg = "정상";
-                    int Creditpaymoneys = mCurrentNormalCarInfo.PaymentMoney;
+                    CurrentNormalCarInfo.VanRegNo = approvalNo;
+                    CurrentNormalCarInfo.VanDate = approvalDate;
+                    CurrentNormalCarInfo.VanRescode = returnCode;
+                    CurrentNormalCarInfo.VanResMsg = "정상";
+                    int Creditpaymoneys = CurrentNormalCarInfo.PaymentMoney;
 
                     int taxsResult = (int)(Creditpaymoneys / 11);
                     int SupplyPay = Creditpaymoneys - Convert.ToInt32(taxsResult); //공급가
-                    mCurrentNormalCarInfo.VanSupplyPay = SupplyPay;
-                    mCurrentNormalCarInfo.VanTaxPay = taxsResult;
-                    mCurrentNormalCarInfo.VanCardName = issueName;
-                    mCurrentNormalCarInfo.VanBeforeCardPay = Convert.ToInt32(mCurrentNormalCarInfo.PaymentMoney);
-                    mCurrentNormalCarInfo.VanCardApproveYmd = NPSYS.ConvetYears_Dash(approvalDate.Substring(0, 8));
-                    mCurrentNormalCarInfo.VanCardApproveHms = NPSYS.ConvetDay_Dash(approvalDate.Substring(8));
-                    mCurrentNormalCarInfo.VanCardApprovalYmd = NPSYS.ConvetYears_Dash(approvalDate.Substring(0, 8));
-                    mCurrentNormalCarInfo.VanCardApprovalHms = NPSYS.ConvetDay_Dash(approvalDate.Substring(8));
+                    CurrentNormalCarInfo.VanSupplyPay = SupplyPay;
+                    CurrentNormalCarInfo.VanTaxPay = taxsResult;
+                    CurrentNormalCarInfo.VanCardName = issueName;
+                    CurrentNormalCarInfo.VanBeforeCardPay = Convert.ToInt32(CurrentNormalCarInfo.PaymentMoney);
+                    CurrentNormalCarInfo.VanCardApproveYmd = NPSYS.ConvetYears_Dash(approvalDate.Substring(0, 8));
+                    CurrentNormalCarInfo.VanCardApproveHms = NPSYS.ConvetDay_Dash(approvalDate.Substring(8));
+                    CurrentNormalCarInfo.VanCardApprovalYmd = NPSYS.ConvetYears_Dash(approvalDate.Substring(0, 8));
+                    CurrentNormalCarInfo.VanCardApprovalHms = NPSYS.ConvetDay_Dash(approvalDate.Substring(8));
 
                     //만료차량 정기권요금제에서 일반요금제 변경기능 (매입사정보에 발급사정보들어가던거 수정)
-                    mCurrentNormalCarInfo.VanIssueCode = issueCode;
-                    mCurrentNormalCarInfo.VanIssueName = issueName;
-                    mCurrentNormalCarInfo.VanCardAcquirerCode = accquireCode;
-                    mCurrentNormalCarInfo.VanCardAcquirerName = accquireName;
+                    CurrentNormalCarInfo.VanIssueCode = issueCode;
+                    CurrentNormalCarInfo.VanIssueName = issueName;
+                    CurrentNormalCarInfo.VanCardAcquirerCode = accquireCode;
+                    CurrentNormalCarInfo.VanCardAcquirerName = accquireName;
                     //만료차량 정기권요금제에서 일반요금제 변경기능주석완료
 
 
-                    mCurrentNormalCarInfo.VanRescode = "0000";
-                    LPRDbSelect.Creditcard_Log_INsert(mCurrentNormalCarInfo);
+                    CurrentNormalCarInfo.VanRescode = "0000";
+                    LPRDbSelect.Creditcard_Log_INsert(CurrentNormalCarInfo);
                     //LPRDbSelect.SaveCardPay(mNormalCarInfo); 
                     //통합처리로 결제정보를 전달해야한다
-                    mCurrentNormalCarInfo.VanAmt = mCurrentNormalCarInfo.PaymentMoney;
+                    CurrentNormalCarInfo.VanAmt = CurrentNormalCarInfo.PaymentMoney;
                     TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | GetKiccState", "카드 결제성공");
 
-                    paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
-                    paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc);
+                    paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+                    paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
                 }
                 else // fallback거래등현재 확인결과 9999는 fallback으로보임
                 {
@@ -238,7 +241,7 @@ namespace NPAutoBooth.UI
         private void btnCardApproval_Click(object sender, EventArgs e)
         {
 
-            if (mCurrentNormalCarInfo.PaymentMoney > 0)
+            if (CurrentNormalCarInfo.PaymentMoney > 0)
             {
                 TextCore.ACTION(TextCore.ACTIONS.USER, "FormCreditPaymentMenu | btnCardApproval_Click", "[신용카드 결제버튼누름]");
                 //포시즌 카드누를시 화면숨김
@@ -249,7 +252,7 @@ namespace NPAutoBooth.UI
                 if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.KICC_TS141)
                 {
                     KiccTs141.Initilize();
-                    int Creditpaymoneys = mCurrentNormalCarInfo.PaymentMoney;
+                    int Creditpaymoneys = CurrentNormalCarInfo.PaymentMoney;
 
                     int taxsResult = (int)(Creditpaymoneys / 11);
                     int SupplyPay = Creditpaymoneys - Convert.ToInt32(taxsResult); //공급가
@@ -301,11 +304,11 @@ namespace NPAutoBooth.UI
                 timerKiccTs141State.Stop();
 
                 GetKiccState();
-                if (mCurrentNormalCarInfo.PaymentMoney == 0 && mCurrentNormalCarInfo.VanAmt > 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardPaySuccess)
+                if (CurrentNormalCarInfo.PaymentMoney == 0 && CurrentNormalCarInfo.VanAmt > 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CardPaySuccess)
                 {
                     mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.CardPaySuccess;
                     //카드실패전송
-                    mCurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
+                    CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
                     //카드실패전송완료
                     PaymentComplete();
                 }
@@ -316,7 +319,7 @@ namespace NPAutoBooth.UI
             }
             finally
             {
-                if (mCurrentNormalCarInfo.PaymentMoney != 0)
+                if (CurrentNormalCarInfo.PaymentMoney != 0)
                 {
                     timerKiccTs141State.Start();
                 }

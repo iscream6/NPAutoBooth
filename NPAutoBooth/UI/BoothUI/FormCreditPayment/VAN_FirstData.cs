@@ -11,21 +11,23 @@ using System.Threading.Tasks;
 
 namespace NPAutoBooth.UI
 {
+    /// <summary>
+    /// FIRSTDATA 처리 
+    /// </summary>
     partial class FormCreditPaymentMenu
     {
-        #region FistData DIP적용
         //FIRSTDATA처리 
         private void CardActionFirstDataDip()
         {
             try
             {
-                if (mCurrentNormalCarInfo.Current_Money > 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 현금이 있을때 카드가 들어가있다면
+                if (CurrentNormalCarInfo.Current_Money > 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 현금이 있을때 카드가 들어가있다면
                 {
                     FirstDataDip.CardEject();
                     mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
                     return;
                 }
-                if (mCurrentNormalCarInfo.PaymentMoney == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 결제요금이 0원이고카드가 들어가있다면
+                if (CurrentNormalCarInfo.PaymentMoney == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED) // 결제요금이 0원이고카드가 들어가있다면
                 {
                     FirstDataDip.CardEject();
                     mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
@@ -47,24 +49,24 @@ namespace NPAutoBooth.UI
                     TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu | timerFirstData_DIP_IFM_Tick", "FISTDATA_DIP장비상태" + CardDeviceStatus.CardReaderStatus.CARDINSERTED);
                 }
 
-                if (mCurrentNormalCarInfo.PaymentMoney > 0 && mCurrentNormalCarInfo.Current_Money == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED)
+                if (CurrentNormalCarInfo.PaymentMoney > 0 && CurrentNormalCarInfo.Current_Money == 0 && mCardStatus.currentCardReaderStatus == CardDeviceStatus.CardReaderStatus.CARDINSERTED)
                 {
 
-                    Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, mCurrentNormalCarInfo);
+                    Result _CardpaySuccess = m_PayCardandCash.CreditCardPayResult(string.Empty, CurrentNormalCarInfo);
                     FirstDataDip.CardEject();
                     mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
                     if (_CardpaySuccess.Success) // 정상적인 티켓이라면
                     {
                         NPSYS.CashCreditCount += 1;
-                        NPSYS.CashCreditMoney += mCurrentNormalCarInfo.VanAmt;
-                        paymentControl.Payment = TextCore.ToCommaString(mCurrentNormalCarInfo.PaymentMoney);
-                        paymentControl.DiscountMoney = TextCore.ToCommaString(mCurrentNormalCarInfo.TotDc);
+                        NPSYS.CashCreditMoney += CurrentNormalCarInfo.VanAmt;
+                        paymentControl.Payment = TextCore.ToCommaString(CurrentNormalCarInfo.PaymentMoney);
+                        paymentControl.DiscountMoney = TextCore.ToCommaString(CurrentNormalCarInfo.TotDc);
                         TextCore.INFO(TextCore.INFOS.CARD_SUCCESS, "FormPaymentMenu | timerFirstData_DIP_IFM_Tick", "정상적인 카드결제됨");
 
-                        if (mCurrentNormalCarInfo.PaymentMoney == 0)
+                        if (CurrentNormalCarInfo.PaymentMoney == 0)
                         {
                             //카드실패전송
-                            mCurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
+                            CurrentNormalCarInfo.PaymentMethod = PaymentType.CreditCard;
                             //카드실패전송완료
                             PaymentComplete();
 
@@ -89,8 +91,5 @@ namespace NPAutoBooth.UI
 
         }
 
-
-        //FIRSTDATA처리 주석완료
-        #endregion
     }
 }
