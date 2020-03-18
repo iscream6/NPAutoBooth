@@ -30,8 +30,6 @@
         {
             this.components = new System.ComponentModel.Container();
             this.pnlControl = new System.Windows.Forms.FlowLayoutPanel();
-            this.btnCancel = new FadeFox.UI.GlassButton();
-            this.btnOk = new FadeFox.UI.GlassButton();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.label25 = new System.Windows.Forms.Label();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
@@ -138,11 +136,13 @@
             this.label19 = new System.Windows.Forms.Label();
             this.cbxLanguageType = new System.Windows.Forms.ComboBox();
             this.label10 = new System.Windows.Forms.Label();
+            this.panel1 = new System.Windows.Forms.Panel();
+            this.panel2 = new System.Windows.Forms.Panel();
+            this.btnCancel = new FadeFox.UI.GlassButton();
+            this.btnOk = new FadeFox.UI.GlassButton();
             this.pnlLayoutTop = new FadeFox.UI.GradientPanelEx();
             this.pnlCondition = new System.Windows.Forms.FlowLayoutPanel();
             this.lblSubject = new FadeFox.UI.Text3DLabel();
-            this.panel1 = new System.Windows.Forms.Panel();
-            this.panel2 = new System.Windows.Forms.Panel();
             this.pnlControl.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.group5.SuspendLayout();
@@ -152,9 +152,9 @@
             this.groupBox8.SuspendLayout();
             this.groupBox6.SuspendLayout();
             this.groupBox3.SuspendLayout();
-            this.pnlLayoutTop.SuspendLayout();
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
+            this.pnlLayoutTop.SuspendLayout();
             this.SuspendLayout();
             // 
             // pnlControl
@@ -167,38 +167,6 @@
             this.pnlControl.Name = "pnlControl";
             this.pnlControl.Size = new System.Drawing.Size(181, 30);
             this.pnlControl.TabIndex = 289;
-            // 
-            // btnCancel
-            // 
-            this.btnCancel.BackColor = System.Drawing.Color.DarkGray;
-            this.btnCancel.EnableFadeInOut = true;
-            this.btnCancel.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.btnCancel.ForeColor = System.Drawing.Color.Black;
-            this.btnCancel.GlowColor = System.Drawing.Color.White;
-            this.btnCancel.InnerBorderColor = System.Drawing.Color.DimGray;
-            this.btnCancel.Location = new System.Drawing.Point(93, 3);
-            this.btnCancel.Margin = new System.Windows.Forms.Padding(0, 3, 2, 3);
-            this.btnCancel.Name = "btnCancel";
-            this.btnCancel.Size = new System.Drawing.Size(86, 24);
-            this.btnCancel.TabIndex = 0;
-            this.btnCancel.Text = "취소(&C)";
-            this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
-            // btnOk
-            // 
-            this.btnOk.BackColor = System.Drawing.Color.DarkGray;
-            this.btnOk.EnableFadeInOut = true;
-            this.btnOk.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.btnOk.ForeColor = System.Drawing.Color.Black;
-            this.btnOk.GlowColor = System.Drawing.Color.White;
-            this.btnOk.InnerBorderColor = System.Drawing.Color.DimGray;
-            this.btnOk.Location = new System.Drawing.Point(5, 3);
-            this.btnOk.Margin = new System.Windows.Forms.Padding(0, 3, 2, 3);
-            this.btnOk.Name = "btnOk";
-            this.btnOk.Size = new System.Drawing.Size(86, 24);
-            this.btnOk.TabIndex = 1;
-            this.btnOk.Text = "확인(&O)";
-            this.btnOk.Click += new System.EventHandler(this.btnOk_Click);
             // 
             // label25
             // 
@@ -1431,6 +1399,64 @@
             this.label10.TabIndex = 392;
             this.label10.Text = "국가설정";
             // 
+            // panel1
+            // 
+            this.panel1.AutoScroll = true;
+            this.panel1.Controls.Add(this.groupBox11);
+            this.panel1.Controls.Add(this.groupBox2);
+            this.panel1.Controls.Add(this.groupBox8);
+            this.panel1.Controls.Add(this.groupBox3);
+            this.panel1.Controls.Add(this.groupBox5);
+            this.panel1.Controls.Add(this.group5);
+            this.panel1.Controls.Add(this.groupBox1);
+            this.panel1.Controls.Add(this.groupBox6);
+            this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panel1.Location = new System.Drawing.Point(0, 46);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(1004, 490);
+            this.panel1.TabIndex = 387;
+            // 
+            // panel2
+            // 
+            this.panel2.Controls.Add(this.pnlControl);
+            this.panel2.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panel2.Location = new System.Drawing.Point(0, 536);
+            this.panel2.Name = "panel2";
+            this.panel2.Size = new System.Drawing.Size(1004, 38);
+            this.panel2.TabIndex = 388;
+            // 
+            // btnCancel
+            // 
+            this.btnCancel.BackColor = System.Drawing.Color.DarkGray;
+            this.btnCancel.EnableFadeInOut = true;
+            this.btnCancel.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.btnCancel.ForeColor = System.Drawing.Color.Black;
+            this.btnCancel.GlowColor = System.Drawing.Color.White;
+            this.btnCancel.InnerBorderColor = System.Drawing.Color.DimGray;
+            this.btnCancel.Location = new System.Drawing.Point(93, 3);
+            this.btnCancel.Margin = new System.Windows.Forms.Padding(0, 3, 2, 3);
+            this.btnCancel.Name = "btnCancel";
+            this.btnCancel.Size = new System.Drawing.Size(86, 24);
+            this.btnCancel.TabIndex = 0;
+            this.btnCancel.Text = "닫기";
+            this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
+            // 
+            // btnOk
+            // 
+            this.btnOk.BackColor = System.Drawing.Color.DarkGray;
+            this.btnOk.EnableFadeInOut = true;
+            this.btnOk.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.btnOk.ForeColor = System.Drawing.Color.Black;
+            this.btnOk.GlowColor = System.Drawing.Color.White;
+            this.btnOk.InnerBorderColor = System.Drawing.Color.DimGray;
+            this.btnOk.Location = new System.Drawing.Point(5, 3);
+            this.btnOk.Margin = new System.Windows.Forms.Padding(0, 3, 2, 3);
+            this.btnOk.Name = "btnOk";
+            this.btnOk.Size = new System.Drawing.Size(86, 24);
+            this.btnOk.TabIndex = 1;
+            this.btnOk.Text = "확인(&O)";
+            this.btnOk.Click += new System.EventHandler(this.btnOk_Click);
+            // 
             // pnlLayoutTop
             // 
             this.pnlLayoutTop.BackColor = System.Drawing.SystemColors.Window;
@@ -1472,32 +1498,6 @@
             this.lblSubject.TextShadowColor = System.Drawing.Color.Transparent;
             this.lblSubject.TextTopMargin = 2;
             // 
-            // panel1
-            // 
-            this.panel1.AutoScroll = true;
-            this.panel1.Controls.Add(this.groupBox11);
-            this.panel1.Controls.Add(this.groupBox2);
-            this.panel1.Controls.Add(this.groupBox8);
-            this.panel1.Controls.Add(this.groupBox3);
-            this.panel1.Controls.Add(this.groupBox5);
-            this.panel1.Controls.Add(this.group5);
-            this.panel1.Controls.Add(this.groupBox1);
-            this.panel1.Controls.Add(this.groupBox6);
-            this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panel1.Location = new System.Drawing.Point(0, 46);
-            this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1004, 490);
-            this.panel1.TabIndex = 387;
-            // 
-            // panel2
-            // 
-            this.panel2.Controls.Add(this.pnlControl);
-            this.panel2.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel2.Location = new System.Drawing.Point(0, 536);
-            this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(1004, 38);
-            this.panel2.TabIndex = 388;
-            // 
             // AdminFetureSetting
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
@@ -1529,9 +1529,9 @@
             this.groupBox6.PerformLayout();
             this.groupBox3.ResumeLayout(false);
             this.groupBox3.PerformLayout();
-            this.pnlLayoutTop.ResumeLayout(false);
             this.panel1.ResumeLayout(false);
             this.panel2.ResumeLayout(false);
+            this.pnlLayoutTop.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }

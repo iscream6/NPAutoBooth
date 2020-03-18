@@ -198,7 +198,7 @@ namespace NPConfig
             mConfig.SetValue(ConfigID.UsingSettingCardRederTypeRight, cbxCardreaderType2.Text);
 
 
-            this.Close();
+            MessageBox.Show("저장하였습니다.");
         }
 
         private void btnCancel_Click(object sender, EventArgs e)

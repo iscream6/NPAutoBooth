@@ -210,6 +210,7 @@
             this.Controls.Add(this.oftConfig);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.ribbon1);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.IsMdiContainer = true;
             this.KeyPreview = true;
             this.Name = "ConfigMain";

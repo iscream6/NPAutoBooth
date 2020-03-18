@@ -16,8 +16,6 @@ namespace NPConfig
         private const string m_DiscountReadingFormat_105 = "TRACK2ISO_TRACK3105";
         private const string m_DiscountReadingFormat_210 = "TRACK2ISO_TRACK3210";
 
-
-
         private const string m_TIcketDeviceBetstMagneticKorea = "베스트마그네틱발권기";
         private const string m_TIcketDeviceSamhwaBarcodeKorea = "삼화바코드발권기";
 
@@ -27,7 +25,6 @@ namespace NPConfig
         private const string m_BoothModeTest = "TEST";
         private const string m_Use = "사용";
         private const string m_NotUse = "사용안함";
-
 
         public AdminFetureSetting(string pConfigfilePath)
         {
@@ -383,8 +380,6 @@ namespace NPConfig
             {
                 mConfig.SetValue(ConfigID.FeatureSettingAutoBooth, "N");
             }
-
-
 
             if (cbx_PaymentInsertMoneyTimeInfinite.Text == "사용")
             {

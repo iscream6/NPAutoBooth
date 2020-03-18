@@ -64,7 +64,7 @@
             this.pnlLayoutTop.GradientStart = System.Drawing.SystemColors.Window;
             this.pnlLayoutTop.Location = new System.Drawing.Point(0, 0);
             this.pnlLayoutTop.Name = "pnlLayoutTop";
-            this.pnlLayoutTop.Size = new System.Drawing.Size(709, 46);
+            this.pnlLayoutTop.Size = new System.Drawing.Size(687, 46);
             this.pnlLayoutTop.TabIndex = 73;
             // 
             // pnlCondition
@@ -72,7 +72,7 @@
             this.pnlCondition.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.pnlCondition.BackColor = System.Drawing.Color.Transparent;
             this.pnlCondition.FlowDirection = System.Windows.Forms.FlowDirection.RightToLeft;
-            this.pnlCondition.Location = new System.Drawing.Point(606, 8);
+            this.pnlCondition.Location = new System.Drawing.Point(584, 8);
             this.pnlCondition.Name = "pnlCondition";
             this.pnlCondition.Size = new System.Drawing.Size(99, 26);
             this.pnlCondition.TabIndex = 66;
@@ -99,7 +99,7 @@
             this.pnlControl.Controls.Add(this.btnCancel);
             this.pnlControl.Controls.Add(this.btnOk);
             this.pnlControl.FlowDirection = System.Windows.Forms.FlowDirection.RightToLeft;
-            this.pnlControl.Location = new System.Drawing.Point(516, 547);
+            this.pnlControl.Location = new System.Drawing.Point(494, 547);
             this.pnlControl.Name = "pnlControl";
             this.pnlControl.Size = new System.Drawing.Size(181, 30);
             this.pnlControl.TabIndex = 289;
@@ -117,7 +117,7 @@
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(86, 24);
             this.btnCancel.TabIndex = 0;
-            this.btnCancel.Text = "취소(&C)";
+            this.btnCancel.Text = "닫기";
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
             // 
             // btnOk
@@ -138,12 +138,14 @@
             // 
             // groupBox11
             // 
+            this.groupBox11.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox11.BackColor = System.Drawing.Color.Beige;
             this.groupBox11.Controls.Add(this.txtRESTfulLocalPort);
             this.groupBox11.Controls.Add(this.label31);
             this.groupBox11.Location = new System.Drawing.Point(10, 52);
             this.groupBox11.Name = "groupBox11";
-            this.groupBox11.Size = new System.Drawing.Size(685, 82);
+            this.groupBox11.Size = new System.Drawing.Size(663, 82);
             this.groupBox11.TabIndex = 382;
             this.groupBox11.TabStop = false;
             this.groupBox11.Text = "레스트풀 내부 PORT설정";
@@ -168,6 +170,8 @@
             // 
             // groupBox1
             // 
+            this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox1.BackColor = System.Drawing.Color.Beige;
             this.groupBox1.Controls.Add(this.txtRESTfulServerPort);
             this.groupBox1.Controls.Add(this.txtRESTfulServerIp);
@@ -175,7 +179,7 @@
             this.groupBox1.Controls.Add(this.label1);
             this.groupBox1.Location = new System.Drawing.Point(10, 140);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(685, 82);
+            this.groupBox1.Size = new System.Drawing.Size(663, 82);
             this.groupBox1.TabIndex = 386;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "레스트풀 SERVER정보";
@@ -218,12 +222,14 @@
             // 
             // groupBox2
             // 
+            this.groupBox2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox2.BackColor = System.Drawing.Color.Beige;
             this.groupBox2.Controls.Add(this.txtRESTfulVersion);
             this.groupBox2.Controls.Add(this.label3);
             this.groupBox2.Location = new System.Drawing.Point(10, 228);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(685, 60);
+            this.groupBox2.Size = new System.Drawing.Size(663, 60);
             this.groupBox2.TabIndex = 389;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "레스트풀 VERSION";
@@ -251,7 +257,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(709, 589);
+            this.ClientSize = new System.Drawing.Size(687, 589);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.groupBox11);

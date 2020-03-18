@@ -167,7 +167,7 @@
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(86, 24);
             this.btnCancel.TabIndex = 0;
-            this.btnCancel.Text = "취소(&C)";
+            this.btnCancel.Text = "닫기";
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
             // 
             // btnOk
@@ -279,7 +279,7 @@
             this.groupBox1.Controls.Add(this.label1);
             this.groupBox1.Location = new System.Drawing.Point(1, 403);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(671, 101);
+            this.groupBox1.Size = new System.Drawing.Size(664, 101);
             this.groupBox1.TabIndex = 114;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "카드리더기장비세부설정";
@@ -327,7 +327,7 @@
             this.groupBox2.Controls.Add(this.rbNoDCTicket);
             this.groupBox2.Location = new System.Drawing.Point(0, 287);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(671, 43);
+            this.groupBox2.Size = new System.Drawing.Size(665, 43);
             this.groupBox2.TabIndex = 115;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "할인설정";
@@ -411,7 +411,7 @@
             this.groupBox3.Controls.Add(this.label5);
             this.groupBox3.Location = new System.Drawing.Point(1, 336);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(671, 61);
+            this.groupBox3.Size = new System.Drawing.Size(664, 61);
             this.groupBox3.TabIndex = 115;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "바코드리더기장비세부설정";
@@ -445,6 +445,8 @@
             // 
             // groupBox4
             // 
+            this.groupBox4.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox4.Controls.Add(this.label4);
             this.groupBox4.Controls.Add(this.chkCash500Use);
             this.groupBox4.Controls.Add(this.chkCash100Use);
