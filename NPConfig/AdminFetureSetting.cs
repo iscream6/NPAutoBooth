@@ -139,8 +139,6 @@ namespace NPConfig
                     break;
             }
 
-
-
             switch (mConfig.GetValue(ConfigID.FeatureSettingPaymentInsertMoneyTimeInfinite).ToUpper())
             {
                 case "Y":
@@ -153,9 +151,6 @@ namespace NPConfig
                     cbx_PaymentInsertMoneyTimeInfinite.Text = "사용안함";
                     break;
             }
-
-
-
 
             tbxMoveiTime.Text = mConfig.GetValue(ConfigID.MovieStopTime).ToUpper().Trim() == "" ?
                                              "10" : mConfig.GetValue(ConfigID.MovieStopTime).ToUpper().Trim();
@@ -186,23 +181,11 @@ namespace NPConfig
                     break;
             }
 
-
-
-
-
-
             cbxDiscountDIsplay.Text = mConfig.GetValue(ConfigID.FeatureSettingDiscountDIsplay).ToUpper().Trim() == "Y" ?
                                              "사용" : "사용안함";
 
             cbxUseFullcuting.Text = mConfig.GetValue(ConfigID.FeatureSettingFullcuting).ToUpper().Trim() == "Y" ?
                                             "사용" : "사용안함";
-
-
-
-
-
-
-
 
             cbxUseDiscountFormat.Text = (mConfig.GetValue(ConfigID.FeatureSettingUseDiscountFormat).ToUpper() == string.Empty ? m_DiscountReadingFormat_210 : mConfig.GetValue(ConfigID.FeatureSettingUseDiscountFormat).ToUpper());
             string moneyOutputType = mConfig.GetValue(ConfigID.FeatureSettingMoneyOutputType);
@@ -299,15 +282,9 @@ namespace NPConfig
             {
                 mConfig.SetValue(ConfigID.FeatureSettingButtonSound, "N");
             }
-
-
+            
             mConfig.SetValue(ConfigID.FeatureSettingCenterAliveTime, (txtCenterAliveTime.Text==string.Empty?"0": txtCenterAliveTime.Text));
-
-
-
-
-
-
+                        
             if (cbxUseCreditAndTIcketSplit.Text == "사용")
             {
                 mConfig.SetValue(ConfigID.FeatureSettingUseCreditAndTIcketSplit, "Y");
@@ -548,58 +525,61 @@ namespace NPConfig
 
             mConfig.SetValue(ConfigID.FeatureSettingTmap24ErrorCode, txt24ErrCode.Text);
 
-            DateTime outTime;
-            if (DateTime.TryParseExact(txt24Interval.Text, "HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out outTime))
+            if (cbxUseTmap.Text.Trim() == "사용")
             {
-                mConfig.SetValue(ConfigID.FeatureSettingTmapUseInterval, txt24Interval.Text);
-            }
-            else
-            {
-                try
+                DateTime outTime;
+                if (DateTime.TryParseExact(txt24Interval.Text, "HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out outTime))
                 {
-                    //Validation Check~!
-                    string sInteval = txt24Interval.Text;
-                    int h;
-                    if (int.TryParse(sInteval.Substring(0, 2), out h))
-                    {
-                        if (h >= 24)
-                        {
-                            sInteval = "23" + sInteval.Substring(2);
-                        }
-                    }
-                    int m;
-                    if (int.TryParse(sInteval.Substring(3, 2), out m))
-                    {
-                        if (m >= 59 || h == 24)
-                        {
-                            sInteval = sInteval.Substring(0, 2) + ":59:" + sInteval.Substring(6);
-                        }
-                    }
-                    int s;
-                    if (int.TryParse(sInteval.Substring(6), out s))
-                    {
-                        if (s >= 59 || h == 24)
-                        {
-                            sInteval = sInteval.Substring(0, 6) + "59";
-                        }
-                    }
-                    if (DateTime.TryParseExact(sInteval, "HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out outTime))
-                    {
-                        mConfig.SetValue(ConfigID.FeatureSettingTmapUseInterval, sInteval);
-                    }
-                    else
-                    {
-                        //강제로 적용
-                        mConfig.SetValue(ConfigID.FeatureSettingTmapUseInterval, "23:59:59"); //Default 24시 시간 체크(실제론 1분 빠진다)
-                    }
+                    mConfig.SetValue(ConfigID.FeatureSettingTmapUseInterval, txt24Interval.Text);
                 }
-                catch (Exception)
+                else
                 {
-                    MessageBox.Show("시(2자리숫자):분(2자리숫자):초(2자리숫차) 포멧을 맞춰 입력하세요.");
-                    txt24Interval.Focus();
-                    return;
-                }
+                    try
+                    {
+                        //Validation Check~!
+                        string sInteval = txt24Interval.Text;
+                        int h;
+                        if (int.TryParse(sInteval.Substring(0, 2), out h))
+                        {
+                            if (h >= 24)
+                            {
+                                sInteval = "23" + sInteval.Substring(2);
+                            }
+                        }
+                        int m;
+                        if (int.TryParse(sInteval.Substring(3, 2), out m))
+                        {
+                            if (m >= 59 || h == 24)
+                            {
+                                sInteval = sInteval.Substring(0, 2) + ":59:" + sInteval.Substring(6);
+                            }
+                        }
+                        int s;
+                        if (int.TryParse(sInteval.Substring(6), out s))
+                        {
+                            if (s >= 59 || h == 24)
+                            {
+                                sInteval = sInteval.Substring(0, 6) + "59";
+                            }
+                        }
+                        if (DateTime.TryParseExact(sInteval, "HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out outTime))
+                        {
+                            mConfig.SetValue(ConfigID.FeatureSettingTmapUseInterval, sInteval);
+                        }
+                        else
+                        {
+                            //강제로 적용
+                            mConfig.SetValue(ConfigID.FeatureSettingTmapUseInterval, "23:59:59"); //Default 24시 시간 체크(실제론 1분 빠진다)
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        MessageBox.Show("시(2자리숫자):분(2자리숫자):초(2자리숫차) 포멧을 맞춰 입력하세요.");
+                        txt24Interval.Focus();
+                        return;
+                    }
 
+                }
             }
 
             MessageBox.Show("저장하였습니다.");
@@ -679,6 +659,27 @@ namespace NPConfig
             lblMagmDelayStartTimeName.Visible = pIsVisible;
             lblUseMagmDelayName.Visible = pIsVisible;
             cbxUseMagamDelay.Visible = pIsVisible;
+        }
+
+        /// <summary>
+        /// TMap 옵션 변경 시
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void cbxUseTmap_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cbxUseTmap.Text.Trim() == "사용")
+            {
+                cbxUseCardFailSend.Enabled = true;
+                txt24ErrCode.Enabled = true;
+                txt24Interval.Enabled = true;
+            }
+            else
+            {
+                cbxUseCardFailSend.Enabled = false;
+                txt24ErrCode.Enabled = false;
+                txt24Interval.Enabled = false;
+            }
         }
     }
 }
