@@ -793,7 +793,39 @@ namespace NPAutoBooth.UI
                             // O : IC카드 제거
                             // F : IC카드 FallBack
                             ReceiveEvent receive = pDTO.BodyData as ReceiveEvent;
-                            TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu | TmoneySmartro3500_EventCode", $"{receive.EventCode}");
+                            TextCore.INFO(TextCore.INFOS.CARD_FAIL, "FormPaymentMenu | TmoneySmartro3500_EventCode_카드인식", $"{receive.EventCode}");
+                            //결제 동작 시작
+                            if(receive.EventCode == "I") //IC카드 인식
+                            {
+                                if (CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar ||
+                                CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar)
+                                {
+                                    //취소금액
+                                    string cancelPaymentMoney = CurrentNormalCarInfo.PaymentMoney.ToString();
+                                    //취소 승인일시
+                                    string cancelDateTime = CurrentNormalCarInfo.VanDate_Cancle.Replace("-", "") + CurrentNormalCarInfo.VanTime_Cancle.Replace(":", "");
+                                    //취소할 승인번호
+                                    string cancelNumber = CurrentNormalCarInfo.VanRegNo_Cancle;
+
+                                    //결제 취소 요청
+                                    NPSYS.Device.TmoneySmartro3500.RequestApprovalCancle(cancelPaymentMoney, cancelDateTime, cancelNumber);
+                                }
+                                else
+                                {
+                                    //결제 승인 요청
+                                    NPSYS.Device.TmoneySmartro3500.RequestApproval(CurrentNormalCarInfo.PaymentMoney.ToString());
+                                }
+                            }
+                            else if(receive.EventCode == "M") //마그네틱 인식
+                            {
+                                //DOTO : 마그네틱 인식은 추후에 고려.... 마그네틱 카드를 받을지도 의문...
+                                break;
+                            }
+                            else if(receive.EventCode == "R") //RF카드 인식
+                            {
+
+                            }
+
                             break;
                         case "g": //부가정보 추가 거래승인 응답전문
                             break;

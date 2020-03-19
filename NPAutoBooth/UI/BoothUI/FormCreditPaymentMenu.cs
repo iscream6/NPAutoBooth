@@ -910,36 +910,41 @@ namespace NPAutoBooth.UI
                     }
                     else
                     {
-                        Thread.Sleep(100); //잠시 대기
-                        //결제 요청 전문 송신
-                        //0원 결제일 경우를 제외시켜야 함.
-                        if (CurrentNormalCarInfo.PaymentMoney != 0)
-                        {
-                            if (CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar ||
-                                CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar)
-                            {
-                                //취소금액
-                                string cancelPaymentMoney = CurrentNormalCarInfo.PaymentMoney.ToString();
-                                //취소 승인일시
-                                string cancelDateTime = CurrentNormalCarInfo.VanDate_Cancle.Replace("-", "") + CurrentNormalCarInfo.VanTime_Cancle.Replace(":", "");
-                                //취소할 승인번호
-                                string cancelNumber = CurrentNormalCarInfo.VanRegNo_Cancle;
-                                
-                                //결제 취소 요청
-                                NPSYS.Device.TmoneySmartro3500.RequestApprovalCancle(cancelPaymentMoney, cancelDateTime, cancelNumber);
-                            }
-                            else
-                            {
-                                //결제 승인 요청
-                                NPSYS.Device.TmoneySmartro3500.RequestApproval(CurrentNormalCarInfo.PaymentMoney.ToString());
-                                //NPSYS.Device.TmoneySmartro3500.RequestApprovalCancle("2500", "20200317124737", "31298213"); //결제취소 테스트
-                            }
-                        }
-                        else
-                        {
-                            //0원결제
-                        }
+                        paymentControl.ErrorMessage = "결제하여 주십시오.";
                     }
+
+                    //else
+                    //{
+                    //    Thread.Sleep(100); //잠시 대기
+                    //    //결제 요청 전문 송신
+                    //    //0원 결제일 경우를 제외시켜야 함.
+                    //    if (CurrentNormalCarInfo.PaymentMoney != 0)
+                    //    {
+                    //        if (CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_OutCar ||
+                    //            CurrentNormalCarInfo.CurrentCarPayStatus == NormalCarInfo.CarPayStatus.RemoteCancleCard_PreCar)
+                    //        {
+                    //            //취소금액
+                    //            string cancelPaymentMoney = CurrentNormalCarInfo.PaymentMoney.ToString();
+                    //            //취소 승인일시
+                    //            string cancelDateTime = CurrentNormalCarInfo.VanDate_Cancle.Replace("-", "") + CurrentNormalCarInfo.VanTime_Cancle.Replace(":", "");
+                    //            //취소할 승인번호
+                    //            string cancelNumber = CurrentNormalCarInfo.VanRegNo_Cancle;
+                                
+                    //            //결제 취소 요청
+                    //            NPSYS.Device.TmoneySmartro3500.RequestApprovalCancle(cancelPaymentMoney, cancelDateTime, cancelNumber);
+                    //        }
+                    //        else
+                    //        {
+                    //            //결제 승인 요청
+                    //            NPSYS.Device.TmoneySmartro3500.RequestApproval(CurrentNormalCarInfo.PaymentMoney.ToString());
+                    //            //NPSYS.Device.TmoneySmartro3500.RequestApprovalCancle("2500", "20200317124737", "31298213"); //결제취소 테스트
+                    //        }
+                    //    }
+                    //    else
+                    //    {
+                    //        //0원결제
+                    //    }
+                    //}
 
                     break;
             }
@@ -1814,11 +1819,11 @@ namespace NPAutoBooth.UI
                 Thread.Sleep(1000);
                 TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "FormPaymentMenu1920 | timer_CardReader2_Tick", "[KICC 거래초기화 요청]");
             }
-            else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.SMATRO_TL3500S)
-            {
-                //결제 대기 상태로 전환한다. 이상태는 결제 불가함.
-                NPSYS.Device.TmoneySmartro3500.RequestApprovalWait();
-            }
+            //else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.SMATRO_TL3500S)
+            //{
+            //    //결제 대기 상태로 전환한다. 이상태는 결제 불가함.
+            //    NPSYS.Device.TmoneySmartro3500.RequestApprovalWait();
+            //}
         }
 
         /// <summary>
@@ -1848,11 +1853,11 @@ namespace NPAutoBooth.UI
             {
                 mCardStatus.currentCardReaderStatus = CardDeviceStatus.CardReaderStatus.None;
             }
-            else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.SMATRO_TL3500S)
-            {
-                //할인 된 금액으로 다시 재결제 요청
-                NPSYS.Device.TmoneySmartro3500.RequestApproval(CurrentNormalCarInfo.PaymentMoney.ToString());
-            }
+            //else if (NPSYS.Device.GetCurrentUseDeviceCard() == ConfigID.CardReaderType.SMATRO_TL3500S)
+            //{
+            //    //할인 된 금액으로 다시 재결제 요청
+            //    NPSYS.Device.TmoneySmartro3500.RequestApproval(CurrentNormalCarInfo.PaymentMoney.ToString());
+            //}
         }
 
         // 2016.10.27 KIS_DIP 추가
@@ -2860,8 +2865,6 @@ namespace NPAutoBooth.UI
                         break;
                 }
             }
-
-
 
             return (output_ResponeCointQty == output_RequesetCointQty ? PaymentResult.Success : PaymentResult.Fail); // 요청금액이랑 방출금액이 다르면 실패
         }
