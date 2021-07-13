@@ -1,3 +1,4 @@
+
 /*
  * ==============================================================================
  *   Program ID     :
@@ -93,6 +94,8 @@ namespace FadeFox.UI
 			}
 		}
 
+		
+		
 		/// <summary>
 		/// Gets or sets the border value for the left edge.
 		/// </summary>
